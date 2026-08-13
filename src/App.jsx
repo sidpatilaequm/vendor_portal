@@ -1,0 +1,290 @@
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import AuthLayout from './components/layout/AuthLayout';
+import LoginForm from './components/auth/LoginForm';
+import SignupForm from './components/auth/SignupForm';
+import Alert from './components/common/Alert';
+import DashboardLayout from './components/dashboard/DashboardLayout';
+import AdminDashboardLayout from './components/dashboard/AdminDashboardLayout';
+import Button from './components/common/Button';
+import Input from './components/common/Input';
+import './App.css';
+
+// Helper to decode JWT payload client-side without verification
+const decodeJwt = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.error("Failed to decode token", e);
+    return null;
+  }
+};
+
+// Employee login component
+const EmployeeLogin = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [info, setInfo] = useState('');
+  const { login, loading } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setInfo('');
+    const res = await login(email, password, 'standard');
+    if (res.success) {
+      navigate(res.redirectUrl || '/employee/dashboard');
+    }
+  };
+
+  return (
+    <div className="form-card card fade-in-slide">
+      <div className="form-card-header">
+        <h2 className="form-card-title">Employee Sign in</h2>
+        <p className="form-card-subtitle">Secure access portal for procurement managers and executives</p>
+      </div>
+      <div className="form-card-body text-start">
+        <form onSubmit={handleSubmit}>
+          <Input
+            label="Employee ID / Email"
+            id="employee-email"
+            type="email"
+            placeholder="e.g. employee@company.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Input
+            label="Password"
+            id="employee-password"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          {info && (
+            <div className="alert alert-warning py-2 mb-3 small" role="alert">
+              <i className="fas fa-info-circle me-1"></i> {info}
+            </div>
+          )}
+          <Button type="submit" disabled={loading} className="w-100 btn-success" style={{ backgroundColor: '#064e3b', borderColor: '#064e3b' }}>
+            {loading ? (
+              <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Signing in...</>
+            ) : (
+              'Sign In'
+            )}
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Route wrapper that guards based on authentications and roles
+const RouteGuards = ({ children, allowedRole }) => {
+  const { currentUser } = useAuth();
+  
+  if (!currentUser) {
+    if (allowedRole === 'standard') {
+      return <Navigate to="/admin/login" replace />;
+    }
+    return <Navigate to="/vendor/login" replace />;
+  }
+
+  const role = String(currentUser.role).toUpperCase();
+  
+  if (allowedRole === 'standard') {
+    if (role === 'VENDOR') {
+      return <Navigate to="/vendor/dashboard" replace />;
+    } else if (role === 'EMPLOYEE' || role === 'PURCHASE_DEPT') {
+      return <Navigate to="/employee/dashboard" replace />;
+    }
+    return children;
+  } else if (allowedRole === 'vendor') {
+    if (role !== 'VENDOR') {
+      return <Navigate to={(role === 'EMPLOYEE' || role === 'PURCHASE_DEPT') ? "/employee/dashboard" : "/admin/dashboard"} replace />;
+    }
+    return children;
+  } else if (allowedRole === 'employee') {
+    if (role !== 'EMPLOYEE' && role !== 'PURCHASE_DEPT') {
+      return <Navigate to={role === 'VENDOR' ? "/vendor/dashboard" : "/admin/dashboard"} replace />;
+    }
+    return children;
+  }
+
+  return children;
+};
+
+// Handles redirecting logged in users away from login pages
+const LoginRedirect = ({ children, loginType }) => {
+  const { currentUser } = useAuth();
+
+  if (currentUser) {
+    const role = String(currentUser.role).toUpperCase();
+    if (role === 'VENDOR') {
+      return <Navigate to="/vendor/dashboard" replace />;
+    } else if (role === 'EMPLOYEE' || role === 'PURCHASE_DEPT') {
+      return <Navigate to="/employee/dashboard" replace />;
+    } else {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+  }
+
+  return children;
+};
+
+// Main routing flow handler
+const AppRoutes = () => {
+  const { alert, clearAlert, currentUser, logout } = useAuth();
+  
+  // States for SignupForm
+  const [inviteToken, setInviteToken] = useState('');
+  const [adminId, setAdminId] = useState('');
+  const [defaultEmail, setDefaultEmail] = useState('');
+  const [isEmailReadOnly, setIsEmailReadOnly] = useState(false);
+
+  const query = new URLSearchParams(window.location.search);
+  const tokenParam = query.get('token');
+  const adminIdParam = query.get('adminId');
+
+  useEffect(() => {
+    if (adminIdParam) {
+      setAdminId(adminIdParam);
+    }
+    if (tokenParam) {
+      setInviteToken(tokenParam);
+      const payload = decodeJwt(tokenParam);
+      if (payload) {
+        if (payload.email) {
+          setDefaultEmail(payload.email);
+          setIsEmailReadOnly(true);
+        }
+      }
+    }
+  }, [tokenParam, adminIdParam]);
+
+  return (
+    <>
+      <Alert 
+        type={alert?.type} 
+        message={alert?.message} 
+        onClose={clearAlert} 
+      />
+
+      <Routes>
+        {/* Auth routes */}
+        <Route 
+          path="/login" 
+          element={
+            <LoginRedirect loginType="vendor">
+              <AuthLayout screen="login" onToggleScreen={() => {}} onLogout={logout}>
+                <LoginForm />
+              </AuthLayout>
+            </LoginRedirect>
+          } 
+        />
+        <Route 
+          path="/vendor/login" 
+          element={
+            <Navigate to="/login" replace />
+          } 
+        />
+        <Route 
+          path="/admin/login" 
+          element={
+            <Navigate to="/login" replace />
+          } 
+        />
+        <Route 
+          path="/employee/login" 
+          element={
+            <Navigate to="/login" replace />
+          } 
+        />
+
+        {/* Invitation Signup route */}
+        <Route 
+          path="/register" 
+          element={
+            <AuthLayout screen="signup" onToggleScreen={() => {}} onLogout={logout}>
+              <SignupForm
+                inviteToken={inviteToken}
+                isEmailReadOnly={isEmailReadOnly}
+                defaultEmail={defaultEmail}
+                adminId={adminId}
+                onSignupSuccess={() => {}}
+              />
+            </AuthLayout>
+          } 
+        />
+
+        {/* Private Dashboard routes */}
+        <Route 
+          path="/vendor/dashboard" 
+          element={
+            <RouteGuards allowedRole="vendor">
+              <DashboardLayout />
+            </RouteGuards>
+          } 
+        />
+        <Route 
+          path="/employee/dashboard" 
+          element={
+            <RouteGuards allowedRole="employee">
+              <DashboardLayout />
+            </RouteGuards>
+          } 
+        />
+        <Route 
+          path="/admin/dashboard" 
+          element={
+            <RouteGuards allowedRole="standard">
+              <AdminDashboardLayout />
+            </RouteGuards>
+          } 
+        />
+
+        {/* Fallbacks */}
+        <Route 
+          path="*" 
+          element={
+            currentUser ? (
+              String(currentUser.role).toUpperCase() === 'VENDOR' ? (
+                <Navigate to="/vendor/dashboard" replace />
+              ) : (String(currentUser.role).toUpperCase() === 'EMPLOYEE' || String(currentUser.role).toUpperCase() === 'PURCHASE_DEPT') ? (
+                <Navigate to="/employee/dashboard" replace />
+              ) : (
+                <Navigate to="/admin/dashboard" replace />
+              )
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
+        />
+      </Routes>
+    </>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </Router>
+  );
+}
+
+export default App;

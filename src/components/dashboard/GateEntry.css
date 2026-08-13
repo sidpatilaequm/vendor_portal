@@ -1,0 +1,799 @@
+.gate-entry-container {
+  --steel: #064e3b;
+  --steel-2: #059669;
+  --steel-3: #ecfdf5;
+  --ink: #0F172A;
+  --mute: #5A6B80;
+  --line: #CBD6E2;
+  --paper: #F2F5F9;
+  --card: #FFFFFF;
+  --ok: #15803D;
+  --ok-bg: #E7F5EC;
+  --warn: #B45309;
+  --warn-bg: #FDF3E3;
+  --bad: #B91C1C;
+  --bad-bg: #FCEBEB;
+
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.45;
+  box-sizing: border-box;
+}
+
+.gate-entry-container * {
+  box-sizing: border-box;
+}
+
+.gate-entry-container .wrap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 20px 60px;
+}
+
+/* ── Header ─────────────────────────────────────────── */
+.gate-entry-container header {
+  background: var(--steel);
+  color: #fff;
+  padding: 14px 0;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.gate-entry-container .hd {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.gate-entry-container .brand {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+
+.gate-entry-container .brand span {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  opacity: .8;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}
+
+.gate-entry-container .hd .sep {
+  flex: 1;
+}
+
+.gate-entry-container .hchip {
+  background: rgba(255, 255, 255, .13);
+  border: 1px solid rgba(255, 255, 255, .25);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.gate-entry-container .hchip b {
+  font-weight: 600;
+}
+
+/* ── Verdict banner ─────────────────────────────────── */
+.gate-entry-container .verdict {
+  margin: 18px 0;
+  border-radius: 10px;
+  padding: 18px 22px;
+  border: 2px solid;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.gate-entry-container .verdict .vt {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: .3px;
+}
+
+.gate-entry-container .verdict .vs {
+  font-size: 14px;
+  color: var(--mute);
+  flex: 1;
+  min-width: 260px;
+}
+
+.gate-entry-container .v-idle {
+  background: #fff;
+  border-color: var(--line);
+}
+
+.gate-entry-container .v-prog {
+  background: var(--steel-3);
+  border-color: var(--steel-2);
+}
+
+.gate-entry-container .v-ok {
+  background: var(--ok-bg);
+  border-color: var(--ok);
+}
+
+.gate-entry-container .v-ok .vt {
+  color: var(--ok);
+}
+
+.gate-entry-container .v-hold {
+  background: var(--warn-bg);
+  border-color: var(--warn);
+}
+
+.gate-entry-container .v-hold .vt {
+  color: var(--warn);
+}
+
+.gate-entry-container .v-bad {
+  background: var(--bad-bg);
+  border-color: var(--bad);
+}
+
+.gate-entry-container .v-bad .vt {
+  color: var(--bad);
+}
+
+.gate-entry-container .prog {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gate-entry-container .pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--mute);
+}
+
+.gate-entry-container .pill.done {
+  background: var(--ok-bg);
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+/* ── Layout ─────────────────────────────────────────── */
+.gate-entry-container .grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+@media(max-width:1080px) {
+  .gate-entry-container .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gate-entry-container .card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-bottom: 18px;
+}
+
+.gate-entry-container .card>h2 {
+  margin: 0;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  color: var(--steel);
+}
+
+.gate-entry-container .card>h2 .step {
+  display: inline-block;
+  background: var(--steel);
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  border-radius: 5px;
+  margin-right: 9px;
+  font-size: 13px;
+}
+
+.gate-entry-container .card>h2 small {
+  float: right;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  color: var(--mute);
+  font-size: 12.5px;
+}
+
+.gate-entry-container .card.focus {
+  border-color: var(--steel);
+  border-width: 2px;
+}
+
+.gate-entry-container .card.focus>h2 {
+  background: var(--steel);
+  color: #fff;
+}
+
+.gate-entry-container .card.focus>h2 .step {
+  background: #fff;
+  color: var(--steel);
+}
+
+.gate-entry-container .card.focus>h2 small {
+  color: rgba(255, 255, 255, .8);
+}
+
+.gate-entry-container .cb {
+  padding: 16px 18px;
+}
+
+/* ── Arrivals queue ─────────────────────────────────── */
+.gate-entry-container .search {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
+.gate-entry-container .search:focus {
+  outline: 2px solid var(--steel-2);
+  outline-offset: -1px;
+}
+
+.gate-entry-container .arr {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--steel-2);
+  border-radius: 8px;
+  padding: 12px 13px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  background: #fff;
+}
+
+.gate-entry-container .arr:hover {
+  background: var(--steel-3);
+}
+
+.gate-entry-container .arr.sel {
+  background: var(--steel-3);
+  border-color: var(--steel);
+  border-left-color: var(--steel);
+  box-shadow: 0 0 0 2px rgba(30, 66, 102, .14);
+}
+
+.gate-entry-container .arr .an {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.gate-entry-container .arr .av {
+  font-size: 13.5px;
+  color: var(--mute);
+  margin: 2px 0;
+}
+
+.gate-entry-container .arr .am {
+  font-size: 12.5px;
+  color: var(--mute);
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.gate-entry-container .tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+
+.gate-entry-container .t-due {
+  background: var(--steel-3);
+  color: var(--steel);
+}
+
+.gate-entry-container .t-late {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+.gate-entry-container .t-early {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+/* ── Declared shipment ──────────────────────────────── */
+.gate-entry-container .kv {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px 22px;
+}
+
+.gate-entry-container .kv div span {
+  display: block;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--mute);
+  margin-bottom: 2px;
+}
+
+.gate-entry-container .kv div b {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* ── Document handover ──────────────────────────────── */
+.gate-entry-container .doc {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #EDF1F6;
+  flex-wrap: wrap;
+}
+
+.gate-entry-container .doc:last-child {
+  border-bottom: 0;
+}
+
+.gate-entry-container .doc .dn {
+  flex: 1;
+  min-width: 210px;
+  font-size: 15px;
+}
+
+.gate-entry-container .doc .dn i {
+  display: block;
+  font-style: normal;
+  font-size: 12.5px;
+  color: var(--mute);
+}
+
+.gate-entry-container .req {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--bad);
+  letter-spacing: .5px;
+  margin-left: 6px;
+}
+
+.gate-entry-container .seg {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.gate-entry-container .seg button {
+  border: 0;
+  background: #fff;
+  padding: 9px 15px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--mute);
+  border-right: 1px solid var(--line);
+  font-family: inherit;
+}
+
+.gate-entry-container .seg button:last-child {
+  border-right: 0;
+}
+
+.gate-entry-container .seg button:hover {
+  background: var(--paper);
+}
+
+.gate-entry-container .seg button.on-ok {
+  background: var(--ok);
+  color: #fff;
+}
+
+.gate-entry-container .seg button.on-bad {
+  background: var(--bad);
+  color: #fff;
+}
+
+.gate-entry-container .seg button.on-na {
+  background: var(--mute);
+  color: #fff;
+}
+
+/* ── Count table ────────────────────────────────────── */
+.gate-entry-container .note {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--mute);
+}
+
+.gate-entry-container table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14.5px;
+}
+
+.gate-entry-container th {
+  background: var(--steel-3);
+  color: var(--steel);
+  text-align: left;
+  padding: 11px 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  border-bottom: 1px solid var(--line);
+}
+
+.gate-entry-container td {
+  padding: 12px;
+  border-bottom: 1px solid #EDF1F6;
+  vertical-align: middle;
+}
+
+.gate-entry-container tr.done {
+  background: var(--ok-bg);
+}
+
+.gate-entry-container tr.diff {
+  background: var(--warn-bg);
+}
+
+.gate-entry-container td .cnt {
+  width: 110px;
+  padding: 12px 10px;
+  border: 2px solid var(--line);
+  border-radius: 7px;
+  font-size: 19px;
+  font-weight: 700;
+  text-align: right;
+  font-family: "Consolas", ui-monospace, monospace;
+}
+
+.gate-entry-container td .cnt:focus {
+  outline: 0;
+  border-color: var(--steel-2);
+}
+
+.gate-entry-container td .cnt:disabled {
+  background: #fff;
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.gate-entry-container td .cnt.err {
+  border-color: var(--bad);
+}
+
+.gate-entry-container .dec {
+  font-size: 19px;
+  font-weight: 700;
+  font-family: "Consolas", ui-monospace, monospace;
+}
+
+.gate-entry-container .vbtn {
+  padding: 11px 18px;
+  border: 2px solid var(--steel);
+  background: #fff;
+  color: var(--steel);
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.gate-entry-container .vbtn:hover {
+  background: var(--steel-3);
+}
+
+.gate-entry-container .vbtn.undo {
+  border-color: var(--line);
+  color: var(--mute);
+  font-weight: 600;
+}
+
+.gate-entry-container .st {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: .4px;
+  white-space: nowrap;
+}
+
+.gate-entry-container .st.m {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.gate-entry-container .st.s {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.gate-entry-container .st.x {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+.gate-entry-container .st.p {
+  background: #EEF1F5;
+  color: var(--mute);
+}
+
+.gate-entry-container .rmk {
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--warn);
+  border-radius: 7px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.gate-entry-container .pkg {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--steel-3);
+  border: 1px solid var(--steel-2);
+  border-radius: 9px;
+  padding: 16px 18px;
+}
+
+.gate-entry-container .pkg .lab {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--mute);
+  display: block;
+  margin-bottom: 3px;
+}
+
+.gate-entry-container .pkg .big {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: "Consolas", ui-monospace, monospace;
+}
+
+.gate-entry-container .pkg input {
+  width: 130px;
+  padding: 13px 12px;
+  border: 2px solid var(--line);
+  border-radius: 7px;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: right;
+  font-family: "Consolas", ui-monospace, monospace;
+}
+
+.gate-entry-container .pkg input:disabled {
+  background: #fff;
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.gate-entry-container .totals {
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.gate-entry-container .totals b {
+  font-family: "Consolas", ui-monospace, monospace;
+  font-size: 16px;
+}
+
+/* ── Actions ────────────────────────────────────────── */
+.gate-entry-container .acts {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+}
+
+.gate-entry-container .btn {
+  padding: 15px 26px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  border: 2px solid;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: .2px;
+}
+
+.gate-entry-container .btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.gate-entry-container .b-ok {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #fff;
+}
+
+.gate-entry-container .b-hold {
+  background: #fff;
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.gate-entry-container .b-bad {
+  background: #fff;
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+.gate-entry-container .b-gh {
+  background: #fff;
+  border-color: var(--line);
+  color: var(--mute);
+  font-weight: 600;
+}
+
+/* ── Audit feed ─────────────────────────────────────── */
+.gate-entry-container .feed {
+  max-height: 300px;
+  overflow: auto;
+  font-size: 13.5px;
+}
+
+.gate-entry-container .fi {
+  padding: 8px 0;
+  border-bottom: 1px solid #EDF1F6;
+  display: flex;
+  gap: 10px;
+}
+
+.gate-entry-container .fi:last-child {
+  border-bottom: 0;
+}
+
+.gate-entry-container .fi time {
+  color: var(--mute);
+  font-family: "Consolas", ui-monospace, monospace;
+  font-size: 12.5px;
+  flex: 0 0 62px;
+}
+
+.gate-entry-container .fi.ok span {
+  color: var(--ok);
+}
+
+.gate-entry-container .fi.bad span {
+  color: var(--bad);
+}
+
+.gate-entry-container .fi.warn span {
+  color: var(--warn);
+}
+
+.gate-entry-container .empty {
+  padding: 46px 20px;
+  text-align: center;
+  color: var(--mute);
+}
+
+.gate-entry-container .empty b {
+  display: block;
+  font-size: 17px;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.gate-entry-container .hidden {
+  display: none !important;
+}
+
+/* ── Gate pass modal ────────────────────────────────── */
+.gate-entry-container .modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, .6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1050; /* Bootstrap modal z-index level */
+}
+
+.gate-entry-container .modal.on {
+  display: flex;
+}
+
+.gate-entry-container .pass {
+  background: #fff;
+  border-radius: 10px;
+  max-width: 660px;
+  width: 100%;
+  max-height: 92vh;
+  overflow: auto;
+}
+
+.gate-entry-container .pass-h {
+  background: var(--steel);
+  color: #fff;
+  padding: 16px 22px;
+  border-radius: 10px 10px 0 0;
+}
+
+.gate-entry-container .pass-h b {
+  font-size: 19px;
+}
+
+.gate-entry-container .pass-h span {
+  display: block;
+  font-size: 12.5px;
+  opacity: .85;
+}
+
+.gate-entry-container .pass-b {
+  padding: 22px;
+}
+
+.gate-entry-container .sign {
+  display: flex;
+  gap: 20px;
+  margin-top: 34px;
+  padding-top: 12px;
+}
+
+.gate-entry-container .sign div {
+  flex: 1;
+  border-top: 1px solid var(--ink);
+  padding-top: 6px;
+  font-size: 12.5px;
+  color: var(--mute);
+  text-align: center;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .gate-entry-container .modal,
+  .gate-entry-container .modal * {
+    visibility: visible;
+  }
+  .gate-entry-container .modal {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    display: block;
+    padding: 0;
+  }
+  .gate-entry-container .pass {
+    max-width: 100%;
+    box-shadow: none;
+  }
+  .gate-entry-container .noprint {
+    display: none;
+  }
+}

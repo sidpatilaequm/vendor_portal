@@ -9,7 +9,7 @@ export default defineConfig({
     proxy: {
 
       '/api/auth/login/': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/auth\/login\//, '/login/')
       },

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Input from '../common/Input';
 import Select from '../common/Select';
 import Button from '../common/Button';
 
 const LoginForm = ({ onLoginSuccess, initialLoginType }) => {
+  const navigate = useNavigate();
   const { login, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,8 +40,12 @@ const LoginForm = ({ onLoginSuccess, initialLoginType }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const result = await login(email, password, loginType);
-    if (result.success && onLoginSuccess) {
-      onLoginSuccess(result.redirectUrl);
+    if (result.success) {
+      if (onLoginSuccess) {
+        onLoginSuccess(result.redirectUrl);
+      } else {
+        navigate(result.redirectUrl || '/dashboard');
+      }
     }
   };
 

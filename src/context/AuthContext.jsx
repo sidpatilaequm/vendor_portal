@@ -39,25 +39,22 @@ export const AuthProvider = ({ children }) => {
       });
 
       const data = response.data;
-      if (response.status === 200 && data.status === 'success') {
-        let userData = data.user_data;
-
-        // Normalise role — Java /api/employee/login returns 'userType', not 'role'
-        if (!userData.role && userData.userType) {
-          userData.role = userData.userType;
-        }
+      if (response.status === 200 && data.token) {
+        let userData = {
+          ...data,
+          role: data.authName || 'EMPLOYEE'
+        };
 
         if (data.token) {
           localStorage.setItem('auth_token', data.token);
           setAuthToken(data.token);
         }
-        if (userData) {
-          localStorage.setItem('user_data', JSON.stringify(userData));
-          setCurrentUser(userData);
-        }
+        
+        localStorage.setItem('user_data', JSON.stringify(userData));
+        setCurrentUser(userData);
 
         showAlert('Login successful! Redirecting...', 'success');
-        return { success: true, redirectUrl: data.redirect_url };
+        return { success: true, redirectUrl: data.redirectUrl || '/dashboard' };
       } else {
         showAlert(data.error || 'Login failed. Please verify credentials.', 'danger');
         return { success: false };

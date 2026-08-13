@@ -8,10 +8,10 @@ export default defineConfig({
     port: 5173,
     proxy: {
 
-      '/api/auth/login/': {
-        target: 'http://localhost:8001',
+      '/api/auth/login': {
+        target: 'http://localhost:8080',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/auth\/login\//, '/login/')
+        rewrite: (path) => path.replace(/^\/api\/auth\/login\/?/, '/api/users/login')
       },
       '/vendor/register-request/': {
         target: 'http://localhost:8000',
@@ -22,15 +22,15 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/users': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '/api/dashboard': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '/api/reports': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '/api/locations': {
@@ -43,11 +43,11 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/employee/quote-comparison': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '/api/employee/award-quote': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '/api/employee': {
@@ -60,7 +60,7 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/vendors\/all\/?$/, '/api/vendors/all/')
       },
       '/api/vendors': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '^/api/vendor/asns/history/.+': {
@@ -80,11 +80,11 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/vendor/purchase-requisitions': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '/api/vendor/quotations': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '/api/purchase-requisitions': {
@@ -96,7 +96,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/vendor': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '/api/stages': {
@@ -121,12 +121,12 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/extract-invoice/, '/extract-invoice')
       },
       '/api/budget': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8080',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/budget/, '/api')
       },
       '/api/department-status': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '/api/organization': {
@@ -140,4 +140,3 @@ export default defineConfig({
     }
   }
 })
-

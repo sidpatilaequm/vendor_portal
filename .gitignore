@@ -41,3 +41,4 @@ dist-ssr
 __tests__/
  coverage/
 *_tmp.txt
+.env

@@ -18,6 +18,7 @@ const AdminUsers = () => {
   const [role, setRole] = useState('ADMIN');
   const [departments, setDepartments] = useState([]);
   const [deptCode, setDeptCode] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Fallback mock users
   const mockUsers = [
@@ -46,13 +47,20 @@ const AdminUsers = () => {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     .then(res => {
+      let fetchedUsers = [];
       if (res.data && Array.isArray(res.data)) {
-        setUsers(res.data);
+        fetchedUsers = res.data;
+      } else if (res.data && res.data.data && Array.isArray(res.data.data.users)) {
+        fetchedUsers = res.data.data.users;
       } else if (res.data && Array.isArray(res.data.data)) {
-        setUsers(res.data.data);
+        fetchedUsers = res.data.data;
       } else {
-        setUsers(mockUsers);
+        fetchedUsers = mockUsers;
       }
+      
+      // Filter to only show users with the EMPLOYEE role as requested
+      const employeeUsers = fetchedUsers.filter(user => user.role === 'EMPLOYEE');
+      setUsers(employeeUsers);
     })
     .catch(err => {
       console.error('Failed to load users, using mock data.', err);
@@ -219,11 +227,11 @@ const AdminUsers = () => {
       {showAddModal && (
         <div className="custom-modal-overlay">
           <div className="custom-modal-content" style={{ maxWidth: '450px' }}>
-            <div className="custom-modal-header bg-success bg-opacity-5">
-              <h5 className="custom-modal-title fw-bold text-success">
+            <div className="custom-modal-header bg-success text-white">
+              <h5 className="custom-modal-title fw-bold text-white">
                 <i className="fas fa-user-plus me-2"></i>Create New Platform User
               </h5>
-              <button className="custom-modal-close-btn" onClick={() => setShowAddModal(false)}>&times;</button>
+              <button className="custom-modal-close-btn text-white" onClick={() => setShowAddModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleAddSubmit}>
               <div className="custom-modal-body p-4 text-start">
@@ -247,11 +255,19 @@ const AdminUsers = () => {
                   </div>
                   <div className="col-12">
                     <label className="form-label fw-bold text-muted small">Temporary Password *</label>
-                    <input type="password" className="form-control border-success-subtle" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                    <div className="input-group">
+                      <input type={showPassword ? "text" : "password"} className="form-control border-success-subtle" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                      <button type="button" className="btn btn-outline-success border-success-subtle" onClick={() => setShowPassword(!showPassword)}>
+                        <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                      </button>
+                    </div>
                   </div>
                   <div className="col-sm-6">
                     <label className="form-label fw-bold text-muted small">Phone Number</label>
-                    <input type="text" className="form-control border-success-subtle" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
+                    <div className="input-group">
+                      <span className="input-group-text bg-light border-success-subtle">+91</span>
+                      <input type="tel" maxLength="10" pattern="[0-9]{10}" placeholder="10-digit number" className="form-control border-success-subtle" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))} />
+                    </div>
                   </div>
                   <div className="col-sm-6">
                     <label className="form-label fw-bold text-muted small">Role Assignment *</label>

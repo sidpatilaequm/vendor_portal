@@ -129,7 +129,7 @@ const AdminMasterData = () => {
     
     let url = '';
     if (activeOrgTab === 'companies' || activeOrgTab === 'countries' || activeOrgTab === 'currencies') {
-      url = `/api/organization/${activeOrgTab}/`;
+      url = `/api/organization/${activeOrgTab}`;
     } else if (activeOrgTab === 'departments') {
       url = '/api/budget/departments';
     } else if (activeOrgTab === 'projects') {
@@ -143,13 +143,17 @@ const AdminMasterData = () => {
     axios.get(url, { headers })
     .then(res => {
       let data = [];
+      const expectedKey = activeOrgTab === 'sub_activities' ? 'subActivities' : activeOrgTab;
+
       if (res.data && Array.isArray(res.data)) {
         data = res.data;
       } else if (res.data && Array.isArray(res.data.data)) {
         data = res.data.data;
+      } else if (res.data && Array.isArray(res.data[expectedKey])) {
+        // Matches { "total": 32, "departments": [...] }
+        data = res.data[expectedKey];
       } else if (res.data && res.data.data && typeof res.data.data === 'object') {
         // Try to match the exact tab name first
-        const expectedKey = activeOrgTab === 'sub_activities' ? 'subActivities' : activeOrgTab;
         if (res.data.data[expectedKey] && Array.isArray(res.data.data[expectedKey])) {
           data = res.data.data[expectedKey];
         } else if (res.data.data[activeOrgTab] && Array.isArray(res.data.data[activeOrgTab])) {
@@ -214,13 +218,13 @@ const AdminMasterData = () => {
     let payload = {};
 
     if (activeOrgTab === 'companies') {
-      url = '/api/organization/companies/';
+      url = '/api/organization/companies';
       payload = { name: compName, code: compCode };
     } else if (activeOrgTab === 'countries') {
-      url = '/api/organization/countries/';
+      url = '/api/organization/countries';
       payload = { name: countryName, code: countryCode };
     } else if (activeOrgTab === 'currencies') {
-      url = '/api/organization/currencies/';
+      url = '/api/organization/currencies';
       payload = { name: currName, code: currCode };
     } else if (activeOrgTab === 'departments') {
       url = '/api/budget/departments';
@@ -388,7 +392,7 @@ const AdminMasterData = () => {
     }
 
     return filteredData.map((item, index) => {
-      const keyId = item.id || item.dept_code || item.project_code || item.activity_code || item.subactivity_code || index;
+      const keyId = item.id || item.dept_code || item.deptCode || item.project_code || item.activity_code || item.subactivity_code || index;
       switch (activeOrgTab) {
         case 'companies':
           return (
@@ -420,22 +424,22 @@ const AdminMasterData = () => {
         case 'departments':
           return (
             <tr key={keyId}>
-              <td className="ps-4 font-monospace text-muted fw-semibold" style={{ fontSize: '13px' }}>{item.wbs}</td>
+              <td className="ps-4 font-monospace text-muted fw-semibold" style={{ fontSize: '13px' }}>{item.wbs || '-'}</td>
               <td>
                 <div 
                   className="fw-semibold text-primary" 
                   style={{ fontSize: '13.5px', cursor: 'pointer' }}
                   onClick={() => {
-                    setParentFilter({ key: 'dept_code', value: item.dept_code, label: `Department: ${item.name}` });
+                    setParentFilter({ key: 'dept_code', value: item.dept_code || item.deptCode, label: `Department: ${item.name || item.deptName}` });
                     setActiveOrgTab('projects');
                   }}
                   title="View Projects"
                 >
                   <i className="fas fa-folder me-2 small text-muted"></i>
-                  {item.name}
+                  {item.name || item.deptName}
                 </div>
               </td>
-              <td className="pe-4"><code className="bg-light px-2 py-0.5 rounded text-success fw-bold font-monospace" style={{ fontSize: '12px' }}>{item.dept_code}</code></td>
+              <td className="pe-4"><code className="bg-light px-2 py-0.5 rounded text-success fw-bold font-monospace" style={{ fontSize: '12px' }}>{item.dept_code || item.deptCode}</code></td>
             </tr>
           );
         case 'projects':

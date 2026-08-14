@@ -130,7 +130,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/organization': {
-        target: 'http://nexdmdg.com',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '/api': {

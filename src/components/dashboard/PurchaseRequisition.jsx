@@ -516,14 +516,14 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
       }
 
       const formattedPRs = content.map((item) => {
-        const status = item.status || item.pr_status || 'CREATED';
+        const status = item.status || item.pr_status || item.assignmentStatus || 'CREATED';
         let statusBadge = 'secondary';
-        if (status.toUpperCase() === 'RELEASED' || status.toUpperCase() === 'APPROVED' || status.toUpperCase() === 'CLOSED') statusBadge = 'success';
-        else if (status.toUpperCase() === 'PARTIALLY_RELEASED' || status.toUpperCase() === 'IN_PROCESS' || status.toUpperCase() === 'PENDING') statusBadge = 'warning';
+        if (status.toUpperCase() === 'RELEASED' || status.toUpperCase() === 'APPROVED' || status.toUpperCase() === 'CLOSED' || status.toUpperCase() === 'ACCEPTED') statusBadge = 'success';
+        else if (status.toUpperCase() === 'PARTIALLY_RELEASED' || status.toUpperCase() === 'IN_PROCESS' || status.toUpperCase() === 'PENDING' || status.toUpperCase() === 'OPEN') statusBadge = 'warning';
         else if (status.toUpperCase() === 'REJECTED') statusBadge = 'danger';
         else if (status.toUpperCase() === 'ACKNOWLEDGED') statusBadge = 'primary';
 
-        let dateStr = item.createdAt || item.requiredDate || item.prDate || '';
+        let dateStr = item.createdAt || item.requiredDate || item.prDate || item.sentDate || '';
         if (dateStr && dateStr.includes('T')) {
           dateStr = dateStr.split('T')[0];
         } else if (dateStr && dateStr.includes(' ')) {
@@ -531,14 +531,15 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
         }
 
         return {
-          id: item.id || null,
+          id: item.id || item.assignmentId || null,
           pr_number: item.prNumber || item.pr_number || 'PR-UNKNOWN',
           pr_status: status,
           status_slug: status.toLowerCase(),
           status_badge: statusBadge,
-          line_count: item.items?.length || 1,
+          line_count: item.items?.length || (item.quantity ? 1 : 1), // Sometimes it's flat
           created_by: item.createdBy || 'System',
-          created_date: dateStr || 'N/A'
+          created_date: dateStr || 'N/A',
+          payment_terms: item.paymentTerms || 'N/A' // Added payment terms if available
         };
       });
 
@@ -585,7 +586,8 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
 
       if (isVendor) {
         if (mode === 'pr') {
-          filteredArray = formattedPRs.filter(pr => pr.pr_status.toUpperCase() === 'CLOSED');
+          // Broadened filter so vendors can see ACCEPTED, OPEN, and CLOSED PRs
+          filteredArray = formattedPRs.filter(pr => ['CLOSED', 'ACCEPTED', 'OPEN'].includes(pr.pr_status.toUpperCase()));
         } else if (mode === 'rfq') {
           filteredArray = formattedPRs.filter(pr => pr.pr_status.toUpperCase() !== 'CLOSED');
         }

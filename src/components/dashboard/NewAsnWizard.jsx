@@ -92,15 +92,15 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
   }, [poId, drawerOpen]);
   const [formData, setFormData] = useState({
     invoiceNumber: '',
-    irn: '',
+    invoiceDate: '',
     ewayBill: '',
     ewbValidTo: '',
     vehicleNumber: '',
     transporterCode: '',
-    lrNumber: '',
     dispatchDate: '',
     expectedDelivery: '',
     packaging: 'Returnable bin — RB-40',
+    noOfPackages: '',
     // Documents
     taxInvoiceAttached: null,
     ewayBillAttached: null,
@@ -113,7 +113,7 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
 
   // Calculate functions
   const fmt = n => (n != null && n !== '') ? Number(n).toLocaleString("en-IN") : '—';
-  const avail = l => (l.pending !== undefined ? l.pending : Math.max(0, l.ordered - l.received)) - l.onLive;
+  const avail = l => l.pending !== undefined ? l.pending : (Math.max(0, l.ordered - l.received) - l.onLive);
   const tolQty = l => Math.floor(l.ordered * l.tolPct / 100);
   const isClosed = l => avail(l) <= 0 && l.received >= l.ordered;
 
@@ -225,15 +225,15 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
         vendor_bpno: 'BP-MARK-01',
         shipment_details: {
           invoice_number: formData.invoiceNumber,
-          irn: formData.irn,
+          invoice_date: formData.invoiceDate,
           eway_bill: formData.ewayBill,
           ewb_valid_to: formData.ewbValidTo,
           vehicle_number: formData.vehicleNumber,
           transporter_code: formData.transporterCode,
-          lr_number: formData.lrNumber,
           dispatch_date: formData.dispatchDate,
           expected_delivery: formData.expectedDelivery,
-          packaging: formData.packaging
+          packaging: formData.packaging,
+          no_of_packages: formData.noOfPackages ? parseInt(formData.noOfPackages, 10) : null
         },
         items: []
       };
@@ -445,12 +445,11 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
           <div className="asn-card-bd">
             <div className="grid">
               <div className="f"><label>Invoice number <span className="req">*</span></label><input className="mono" value={formData.invoiceNumber} onChange={e => handleInputChange('invoiceNumber', e.target.value)} /></div>
-              <div className="f"><label>IRN <span className="req">*</span></label><input className="mono" value={formData.irn} onChange={e => handleInputChange('irn', e.target.value)} /></div>
+              <div className="f"><label>Invoice date <span className="req">*</span></label><input type="date" value={formData.invoiceDate} onChange={e => handleInputChange('invoiceDate', e.target.value)} /></div>
               <div className="f"><label>E-way bill <span className="req">*</span></label><input className="mono" value={formData.ewayBill} onChange={e => handleInputChange('ewayBill', e.target.value)} /></div>
               <div className="f"><label>EWB valid to</label><input type="date" value={formData.ewbValidTo} onChange={e => handleInputChange('ewbValidTo', e.target.value)} /></div>
               <div className="f"><label>Vehicle number <span className="req">*</span></label><input className="mono" value={formData.vehicleNumber} onChange={e => handleInputChange('vehicleNumber', e.target.value)} /></div>
               <div className="f"><label>Transporter code </label><input className="mono" value={formData.transporterCode} onChange={e => handleInputChange('transporterCode', e.target.value)} /></div>
-              <div className="f"><label>LR number <span className="req">*</span></label><input className="mono" value={formData.lrNumber} onChange={e => handleInputChange('lrNumber', e.target.value)} /></div>
               <div className="f"><label>Dispatch date <span className="req">*</span></label><input type="date" value={formData.dispatchDate} onChange={e => handleInputChange('dispatchDate', e.target.value)} /></div>
               <div className="f"><label>Expected delivery <span className="req">*</span></label><input type="date" value={formData.expectedDelivery} onChange={e => handleInputChange('expectedDelivery', e.target.value)} /></div>
               <div className="f"><label>Packaging</label>
@@ -460,6 +459,7 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
                   <option>Carton</option>
                 </select>
               </div>
+              <div className="f"><label>No. of packages <span className="req">*</span></label><input type="number" min="1" className="mono" value={formData.noOfPackages} onChange={e => handleInputChange('noOfPackages', e.target.value)} /></div>
             </div>
           </div>
         </div>
@@ -467,7 +467,7 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
         <div className="asn-card">
           <div className="asn-card-hd"><h2>Documents</h2><span className="pill grey">Required documents</span></div>
           <div className="asn-card-bd" style={{ paddingTop: '4px' }}>
-            {renderDocRow('Tax invoice with IRN and QR', 'PDF format required', 'taxInvoiceAttached', true)}
+            {renderDocRow('Tax invoice', 'PDF format required', 'taxInvoiceAttached', true)}
             {renderDocRow('E-way bill', 'Required for road transports', 'ewayBillAttached', true)}
             {renderDocRow('Packing list', 'Detailed packaging breakout', 'packingListAttached', true)}
             {renderDocRow('Pre-dispatch inspection report', 'PDIR document', 'pdirAttached', true)}

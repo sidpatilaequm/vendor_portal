@@ -27,7 +27,7 @@ const AsnDetail = ({ asnId, onBack }) => {
           transport_mode: 'Road',
           carrier: '—',
           vehicle_no: '—',
-          lr_number: '—',
+          invoice_date: '—',
           packages: '4 Pallet',
           gross_weight: '82,000 KG',
           eway_bill: '—',
@@ -57,7 +57,7 @@ const AsnDetail = ({ asnId, onBack }) => {
           transport_mode: 'Road',
           carrier: 'Mahindra Logistics',
           vehicle_no: 'KA-19-AB-1234',
-          lr_number: 'LR/MHI /2026/11245',
+          invoice_date: '2026-06-10',
           packages: '50 Pallet',
           gross_weight: '2,52,000 KG',
           eway_bill: '240612345678',
@@ -89,7 +89,7 @@ const AsnDetail = ({ asnId, onBack }) => {
           transport_mode: 'Road',
           carrier: 'Blue Dart',
           vehicle_no: 'DL-01-XY-9081',
-          lr_number: 'BD/2026/44221',
+          invoice_date: '2026-06-25',
           packages: '12 Carton',
           gross_weight: '840 KG',
           eway_bill: '230522345671',
@@ -115,7 +115,49 @@ const AsnDetail = ({ asnId, onBack }) => {
             'Authorization': `Bearer ${token}`
           }
         });
-        if (response.data) {
+        if (response.data && response.data.data && response.data.data.asn) {
+          const apiAsn = response.data.data.asn;
+          
+          const docs = [];
+          if (apiAsn.taxInvoiceUrl) docs.push({ name: 'Tax Invoice', status: 'Uploaded', file: 'Uploaded', mandatory: true });
+          if (apiAsn.ewayBillUrl) docs.push({ name: 'E-Way Bill', status: 'Uploaded', file: 'Uploaded', mandatory: true });
+          if (apiAsn.packingListUrl) docs.push({ name: 'Packing List', status: 'Uploaded', file: 'Uploaded', mandatory: true });
+          if (apiAsn.pdirUrl) docs.push({ name: 'Pre-dispatch inspection report', status: 'Uploaded', file: 'Uploaded', mandatory: true });
+          if (apiAsn.deviationUrl) docs.push({ name: 'Deviation approval', status: 'Uploaded', file: 'Uploaded', mandatory: false });
+          if (apiAsn.othersUrl) docs.push({ name: 'Others', status: 'Uploaded', file: 'Uploaded', mandatory: false });
+
+          const mapped = {
+            asn_number: asnId.startsWith("ASN-") ? asnId : `ASN-${apiAsn.createdDate ? apiAsn.createdDate.substring(0,4) : new Date().getFullYear()}-${String(apiAsn.id).padStart(5, '0')}`,
+            po_reference: apiAsn.poNumber,
+            despatch_date: apiAsn.dispatchDate,
+            expected_delivery: apiAsn.expectedDelivery,
+            is_partial: apiAsn.partial,
+            despatch_address: '—',
+            deliver_address: '—',
+            transport_mode: 'Road',
+            vehicle_no: apiAsn.vehicleNumber,
+            invoice_date: apiAsn.invoiceDate,
+            packages: (apiAsn.packaging || '') + (apiAsn.noOfPackages ? ` - ${apiAsn.noOfPackages}` : ''),
+            gross_weight: 'TBD',
+            eway_bill: apiAsn.ewayBill,
+            eway_validity: apiAsn.ewbValidTo,
+            invoice_number: apiAsn.invoiceNumber,
+            status: apiAsn.status || 'SUBMITTED',
+            status_slug: (apiAsn.status || 'submitted').toLowerCase(),
+            status_badge: apiAsn.status === 'ALLOWED' ? 'success' : (apiAsn.status === 'REJECTED' ? 'danger' : 'warning'),
+            lines: apiAsn.items ? apiAsn.items.map(i => ({
+              lineNo: i.lineNumber,
+              description: i.partNumber,
+              hsn: '—',
+              despatchQty: i.quantityShipped,
+              uom: '—',
+              batchNo: i.batchHeatNumber,
+              sloc: '—'
+            })) : [],
+            documents: docs
+          };
+          setAsn(mapped);
+        } else if (response.data && response.data.asn_number) {
           setAsn(response.data);
         } else {
           setAsn(mockAsns[asnId] || mockAsns['ASN-2026-00112']);
@@ -227,8 +269,8 @@ const AsnDetail = ({ asnId, onBack }) => {
                   <span className="fw-bold text-dark fs-12">{asn.vehicle_no || '—'}</span>
                 </div>
                 <div className="col-md-4">
-                  <span className="text-muted small d-block">LR / Consignment Note</span>
-                  <span className="fw-bold text-dark fs-12">{asn.lr_number || '—'}</span>
+                  <span className="text-muted small d-block">Invoice Date</span>
+                  <span className="fw-bold text-dark fs-12">{asn.invoice_date || asn.invoiceDate || '—'}</span>
                 </div>
                 <div className="col-md-4">
                   <span className="text-muted small d-block">E-Way Bill Number</span>

@@ -134,7 +134,7 @@ const AdminUsers = () => {
   const handleDeactivate = (userId) => {
     if (window.confirm("Are you sure you want to deactivate this administrator?")) {
       const token = localStorage.getItem('auth_token');
-      axios.post(`/api/users/${userId}/deactivate/`, {}, {
+      axios.delete(`/api/users/${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(() => {

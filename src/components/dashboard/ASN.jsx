@@ -15,6 +15,7 @@ const ASN = ({ onBack }) => {
   const [loadingPos, setLoadingPos] = useState(false);
   const [availablePos, setAvailablePos] = useState([]);
   const [tempSelectedPo, setTempSelectedPo] = useState('');
+  const [poSearchQuery, setPoSearchQuery] = useState('');
 
   // Main list states
   const [search, setSearch] = useState('');
@@ -123,7 +124,7 @@ const ASN = ({ onBack }) => {
             despatch_date: asn.despatch_date || asn.dispatchDate || '—',
             expected_delivery: asn.expected_delivery || asn.expectedDelivery || '—',
             carrier: asn.carrier || asn.transporterCode || '—',
-            lr_number: asn.lr_number || asn.lrNumber || '',
+            invoice_date: asn.invoice_date || asn.invoiceDate || '',
             packages: asn.packages || '—', // Or derived from packages if added later
             gross_weight: asn.gross_weight !== 'TBD' ? asn.gross_weight : `${totalQty} KG`,
             eway_bill: asn.eway_bill || asn.ewayBill || '—',
@@ -155,7 +156,10 @@ const ASN = ({ onBack }) => {
       });
       let data = response.data?.orders || response.data?.content || response.data || [];
       if (!Array.isArray(data)) data = [];
-      data = data.filter(po => po.poStatus && (po.poStatus.toLowerCase() === 'acknowledged' || po.poStatus.toLowerCase() === 'partial_dispatch'));
+      data = data.filter(po => {
+        const status = po.poStatus || po.status;
+        return status && (status.toLowerCase() === 'acknowledged' || status.toLowerCase() === 'partial_dispatch');
+      });
       setAvailablePos(data);
     } catch (err) {
       console.warn('Failed to fetch POs for modal selection, loading default mocks.', err);
@@ -359,7 +363,7 @@ const ASN = ({ onBack }) => {
                       {asn.carrier !== '—' && asn.carrier ? (
                         <>
                           <div className="fw-bold text-dark">{asn.carrier}</div>
-                          <div className="text-muted small">{asn.lr_number}</div>
+                          <div className="text-muted small">{asn.invoice_date}</div>
                         </>
                       ) : (
                         <span className="text-muted">—</span>
@@ -396,11 +400,20 @@ const ASN = ({ onBack }) => {
       {showPoSelectModal && (
         <div className="custom-modal-overlay">
           <div className="custom-modal-content" style={{ maxWidth: '650px' }}>
-            <div className="custom-modal-header bg-light">
-              <h5 className="custom-modal-title text-dark fw-bold">
+            <div className="custom-modal-header bg-light d-flex justify-content-between align-items-center">
+              <h5 className="custom-modal-title text-dark fw-bold mb-0">
                 <i className="fas fa-file-invoice text-success me-2"></i> Select Purchase Order
               </h5>
               <button className="custom-modal-close-btn" onClick={() => setShowPoSelectModal(false)}>&times;</button>
+            </div>
+            <div className="bg-white p-3 border-bottom">
+              <input 
+                type="text" 
+                className="form-control form-control-sm" 
+                placeholder="Search by PO Number..." 
+                value={poSearchQuery}
+                onChange={e => setPoSearchQuery(e.target.value)}
+              />
             </div>
             <div className="custom-modal-body p-0">
               <div className="table-responsive" style={{ maxHeight: '350px' }}>
@@ -427,8 +440,14 @@ const ASN = ({ onBack }) => {
                             <i className="fas fa-info-circle me-1"></i> No available POs (Acknowledged or Partial).
                           </td>
                         </tr>
+                      ) : availablePos.filter(po => (po.poNumber || po.po_number || '').toLowerCase().includes(poSearchQuery.toLowerCase())).length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="text-center py-4 text-muted">
+                            <i className="fas fa-info-circle me-1"></i> No available POs match your search.
+                          </td>
+                        </tr>
                       ) : (
-                      availablePos.map((po) => (
+                      availablePos.filter(po => (po.poNumber || po.po_number || '').toLowerCase().includes(poSearchQuery.toLowerCase())).map((po) => (
                         <tr key={po.poNumber || po.po_number || po.id}>
                           <td className="ps-3 fw-bold text-success">{po.poNumber || po.po_number}</td>
                           <td>{po.description || po.vendorName || 'General Supply'}</td>

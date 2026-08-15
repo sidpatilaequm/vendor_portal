@@ -30,7 +30,8 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setAlert(null);
     try {
-      const response = await axios.post('/api/auth/login/', {
+      const endpoint = loginType === 'standard' ? '/api/super-admin/login' : '/api/auth/login/';
+      const response = await axios.post(endpoint, {
         email,
         password,
         login_type: loginType
@@ -42,7 +43,7 @@ export const AuthProvider = ({ children }) => {
       if (response.status === 200 && data.token) {
         let userData = {
           ...data,
-          role: data.authName || 'EMPLOYEE'
+          role: data.role || data.authName || 'EMPLOYEE'
         };
 
         if (data.token) {

@@ -15,11 +15,11 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/auth\/login\/?/, '/api/users/login')
       },
       '/vendor/register-request/': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
       },
       '/api/workflows': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
       },
       '/api/users': {
@@ -35,12 +35,12 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/locations': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/locations/, '/api/locations/')
       },
       '/api/materials': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
       },
       '/api/employee/quote-comparison': {
@@ -56,7 +56,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/vendors/all': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/vendors\/all\/?$/, '/api/vendors/all/')
       },
@@ -69,15 +69,27 @@ export default defineConfig({
         changeOrigin: true,
       },
       '^/api/vendor/asns/.+': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
       },
       '^/api/vendor/asns/?$': {
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/api/vendor/create-pr-options': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+      },
+      '/api/vendor/selection-list': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+      },
       '^/api/vendor/purchase-orders/\\d+/?$': {
         target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '^/api/vendor/purchase-requisitions/[^/]+/create-rfq/?$': {
+        target: 'http://localhost:8001',
         changeOrigin: true,
       },
       '/api/vendor/purchase-requisitions': {
@@ -96,24 +108,28 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/api/vendor/all': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+      },
       '/api/vendor': {
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '/api/stages': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
       },
       '/api/auth/me': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
       },
       '/api/messages': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
       },
       '/api/requests': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
       },
       '/api/extract-invoice': {

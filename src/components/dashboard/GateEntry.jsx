@@ -8,7 +8,7 @@ const DOC_LIST = [
   { id: "ewb", name: "e-Way bill copy", hint: "Part-A and Part-B", req: true },
   { id: "chal", name: "Delivery challan / packing list", hint: "Box-wise, item-wise detail", req: true },
   { id: "lr", name: "LR / GR copy (consignment note)", hint: "Not required for supplier's own vehicle", req: true },
-  { id: "mtc", name: "Material test certificate", hint: "Heat number traceable to invoice lines", req: true },
+  { id: "mtc", name: "Material test certificate", hint: "Heat number traceable to invoice lines", req: false },
   { id: "dl", name: "Driver licence", hint: "Sighted and returned to driver", req: true },
   { id: "ins", name: "Insurance cover note", hint: "High-value consignments only", req: false },
   { id: "coc", name: "Warranty / certificate of conformity", hint: "Where contractually agreed", req: false }

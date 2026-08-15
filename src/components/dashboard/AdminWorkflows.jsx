@@ -259,7 +259,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
         if (res.data && Array.isArray(res.data)) {
           const mappedUsers = res.data.map(u => ({
             id: u.id,
-            name: `${u.firstName || ''} ${u.lastName || ''}`,
+            name: u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Unknown',
             firstName: u.firstName,
             lastName: u.lastName,
             email: u.email
@@ -610,7 +610,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
     const headers = { 'Authorization': `Bearer ${token}` };
 
     try {
-      await axios.post(`/api/stages/approver-groups/${groupId}/members/${targetUserId}?user_id=${userId}`, {}, { headers });
+        await axios.post(`/api/stages/approver-groups/${groupId}/members?user_id=${userId}`, { user_id: targetUserId, sequential_order: 1, is_optional: false }, { headers });
       logActivity(`Added user ${targetUserId} to Approver Group ${groupId}`);
       fetchAllData();
     } catch (err) {

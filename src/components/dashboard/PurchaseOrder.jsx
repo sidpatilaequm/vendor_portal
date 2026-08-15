@@ -52,7 +52,32 @@ const PurchaseOrder = ({ onBack }) => {
         headers: { 'Authorization': `Bearer ${token}` },
         params: { vendor_code: appliedVendorCode }
       });
-      setData(response.data);
+      
+      let finalData;
+      if (Array.isArray(response.data)) {
+        const arr = response.data;
+        const totalPOs = arr.length;
+        const poIssued = arr.filter(p => ['CREATED', 'ISSUED', 'OPEN', 'RELEASED'].includes((p.status || p.poStatus || '').toUpperCase())).length;
+        const poDelivered = arr.filter(p => ['DELIVERED', 'COMPLETED', 'CLOSED', 'GR DONE', 'FULLY_SHIPPED'].includes((p.status || p.poStatus || '').toUpperCase())).length;
+        
+        finalData = {
+          vendorInfo: {},
+          summary: {
+            totalPOs,
+            poIssued,
+            poDelivered,
+            poInProcess: totalPOs - poDelivered
+          },
+          orders: arr.map(o => ({
+            ...o,
+            poStatus: o.poStatus || o.status
+          }))
+        };
+      } else {
+        finalData = response.data;
+      }
+      
+      setData(finalData);
       setExpandedIdx(null); // Reset expansion on new fetch
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to fetch Purchase Orders.');

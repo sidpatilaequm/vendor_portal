@@ -11,7 +11,7 @@ export default function PrApprovalReport({ onBack }) {
   const [endDate, setEndDate] = useState('2026-12-31');
   const [company, setCompany] = useState('');
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('Pending');
+  const [statusFilter, setStatusFilter] = useState('Open');
   const [expandedIdx, setExpandedIdx] = useState(null);
   const [showKpis, setShowKpis] = useState(false);
 
@@ -58,8 +58,17 @@ export default function PrApprovalReport({ onBack }) {
       });
       const resData = await response.json();
 
-      setData(resData.prs || []);
-      if (resData.summary) {
+      let items = [];
+      if (Array.isArray(resData)) {
+        items = resData;
+      } else if (resData && Array.isArray(resData.prs)) {
+        items = resData.prs;
+      } else if (resData && Array.isArray(resData.content)) {
+        items = resData.content;
+      }
+      setData(items);
+
+      if (resData && resData.summary) {
         setSummary(resData.summary);
       } else {
         setSummary({
@@ -83,7 +92,10 @@ export default function PrApprovalReport({ onBack }) {
 
   const filtered = data.filter(r => {
     const matchSearch = search === '' || (r.prNumber || '').toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'All' || r.vendorStatus === statusFilter || r.status === statusFilter;
+    const rowStatus = r.vendorStatus || r.status || r.assignmentStatus || 'CREATED';
+    const matchStatus = statusFilter === 'All' ||
+      (statusFilter.toUpperCase() === 'OPEN' && ['PENDING', 'OPEN', 'SENT', 'NOT RESPONDED'].includes(rowStatus.toUpperCase())) ||
+      rowStatus.toUpperCase() === statusFilter.toUpperCase();
     return matchSearch && matchStatus;
   }).sort((a, b) => {
     const prA = a.prNumber || '';
@@ -95,10 +107,11 @@ export default function PrApprovalReport({ onBack }) {
     const headers = ['PR Number,PR Date,Item Code,Requested Delivery Date,Payment Terms,Status\n'];
     const rows = filtered.map(v => {
       const items = v.items || [];
+      const vStatus = v.vendorStatus || v.status || v.assignmentStatus || 'CREATED';
       if (items.length === 0) {
-        return `"${v.prNumber}","${v.createdAt || ''}","","${v.requiredDate || ''}","${v.paymentTerms || ''}","${v.vendorStatus || v.status}"\n`;
+        return `"${v.prNumber}","${v.createdAt || ''}","","${v.requiredDate || ''}","${v.paymentTerms || ''}","${vStatus}"\n`;
       }
-      return items.map(item => `"${v.prNumber}","${v.createdAt || v.prDate || ''}","${item.itemCode || item.sku || ''}","${item.requestedDeliveryDate || item.requiredDate || v.requestedDeliveryDate || v.requiredDate || ''}","${v.requestedPaymentTerms || v.paymentTerms || ''}","${v.vendorStatus || v.status}"\n`).join('');
+      return items.map(item => `"${v.prNumber}","${v.createdAt || v.prDate || ''}","${item.itemCode || item.sku || ''}","${item.requestedDeliveryDate || item.requiredDate || v.requestedDeliveryDate || v.requiredDate || ''}","${v.requestedPaymentTerms || v.paymentTerms || ''}","${vStatus}"\n`).join('');
     });
     const csv = headers.join('') + rows.join('');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -134,7 +147,7 @@ export default function PrApprovalReport({ onBack }) {
     if (status === 'ACKNOWLEDGED' || status === 'ACCEPTED' || status === 'APPROVED') return 'bg-success bg-opacity-10 text-success';
     if (status === 'CLOSED') return 'bg-info bg-opacity-10 text-info';
     if (status === 'REJECTED') return 'bg-danger bg-opacity-10 text-danger';
-    if (status === 'NOT RESPONDED' || status === 'PENDING' || status === 'SENT') return 'bg-warning bg-opacity-10 text-warning';
+    if (status === 'NOT RESPONDED' || status === 'PENDING' || status === 'SENT' || status === 'OPEN') return 'bg-warning bg-opacity-10 text-warning';
     return 'bg-secondary bg-opacity-10 text-secondary';
   };
 
@@ -158,15 +171,11 @@ export default function PrApprovalReport({ onBack }) {
       )}
 
       {/* Vendor Summary Card */}
-      {/* <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '12px' }}>
+      {/* <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '12px', background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)' }}>
         <div className="card-body p-4">
           <div className="row">
-            <div className="col-md-4">
-              <p className="text-muted small text-uppercase fw-bold mb-1">BP No</p>
-              <p className="fw-bold fs-5 text-dark mb-0">{realVendorCode || '-'}</p>
-            </div>
-            <div className="col-md-4">
-              <p className="text-muted small text-uppercase fw-bold mb-1">Name</p>
+            <div className="col-md-4 border-end">
+              <p className="text-muted small text-uppercase fw-bold mb-1">Vendor Name</p>
               <p className="fw-bold fs-5 text-dark mb-0">{realVendorName || '-'}</p>
             </div>
             <div className="col-md-4">
@@ -187,10 +196,11 @@ export default function PrApprovalReport({ onBack }) {
         <input type="text" placeholder="Filter by PR Number..." value={search} onChange={e => setSearch(e.target.value)} className="form-control shadow-sm border" style={{ padding: '10px 16px' }} />
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="form-select shadow-sm border" style={{ width: '200px', padding: '10px 16px' }}>
           <option value="All">All Statuses</option>
+          <option value="Open">Open</option>
           <option value="Acknowledged">Acknowledged</option>
           <option value="Closed">Closed</option>
-          <option value="Pending">Pending</option>
           <option value="Rejected">Rejected</option>
+          <option value="Accepted">Accepted</option>
         </select>
         <button
           className="btn btn-light text-secondary border shadow-sm d-flex align-items-center justify-content-center"
@@ -248,7 +258,7 @@ export default function PrApprovalReport({ onBack }) {
                   <tr><td colSpan="6" className="text-center py-4 text-muted">No records found</td></tr>
                 ) : filtered.map((v, idx) => {
                   const items = v.items || [];
-                  const displayStatus = v.status || v.vendorStatus;
+                  const displayStatus = v.vendorStatus || v.status || v.assignmentStatus || 'CREATED';
                   let dateStr = v.prDate || v.createdAt || '';
                   if (dateStr && dateStr.includes('T')) dateStr = dateStr.split('T')[0];
 
@@ -268,7 +278,7 @@ export default function PrApprovalReport({ onBack }) {
                           <span className={`badge rounded-pill px-3 py-2 fw-medium ${getStatusBadge(displayStatus)}`}>{displayStatus}</span>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          {(!displayStatus || displayStatus.toUpperCase() === 'PENDING' || displayStatus.toUpperCase() === 'SENT' || displayStatus.toUpperCase() === 'NOT RESPONDED') ? (
+                          {(!displayStatus || displayStatus.toUpperCase() === 'PENDING' || displayStatus.toUpperCase() === 'SENT' || displayStatus.toUpperCase() === 'NOT RESPONDED' || displayStatus.toUpperCase() === 'OPEN') ? (
                             <div className="d-flex justify-content-center gap-2">
                               <button
                                 className="btn btn-sm btn-outline-success rounded-pill fw-bold"
@@ -307,7 +317,7 @@ export default function PrApprovalReport({ onBack }) {
                                       <th>Delivery Date</th>
                                       <th>Payment Terms</th>
                                       <th className="text-center">Status</th>
-                                      
+
                                     </tr>
                                   </thead>
                                   <tbody>

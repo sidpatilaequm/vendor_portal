@@ -61,8 +61,9 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   const [activeBroadcasts, setActiveBroadcasts] = useState([]);
 
   // Retrieve current user details
-  const currentUser = JSON.parse(localStorage.getItem('user_data') || '{"id": 1, "firstName": "Admin", "lastName": "User", "email": "admin@company.com", "role": "admin"}');
-  const userId = currentUser.id || 1;
+  const currentUser = JSON.parse(localStorage.getItem('user_data') || '{"userId": 1, "firstName": "Admin", "lastName": "User", "email": "admin@company.com", "role": "admin"}');
+  // LoginResponse serializes the logged-in user's id as `userId`, not `id` — see AuthController.java.
+  const userId = currentUser.userId || 1;
 
   // Mock Fallbacks
   const mockWorkflows = [

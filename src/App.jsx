@@ -7,6 +7,7 @@ import SignupForm from './components/auth/SignupForm';
 import Alert from './components/common/Alert';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import AdminDashboardLayout from './components/dashboard/AdminDashboardLayout';
+import SupplierRegistrationPage from './components/supplier/SupplierRegistrationPage';
 import Button from './components/common/Button';
 import Input from './components/common/Input';
 import './App.css';
@@ -147,7 +148,8 @@ const LoginRedirect = ({ children, loginType }) => {
 // Main routing flow handler
 const AppRoutes = () => {
   const { alert, clearAlert, currentUser, logout } = useAuth();
-  
+  const navigate = useNavigate();
+
   // States for SignupForm
   const [inviteToken, setInviteToken] = useState('');
   const [adminId, setAdminId] = useState('');
@@ -188,14 +190,18 @@ const AppRoutes = () => {
           path="/login" 
           element={
             <LoginRedirect loginType="vendor">
-              <AuthLayout screen="login" onToggleScreen={() => {}} onLogout={logout}>
+              <AuthLayout screen="login" onToggleScreen={() => navigate('/become-a-supplier')} onLogout={logout}>
                 <LoginForm />
               </AuthLayout>
             </LoginRedirect>
-          } 
+          }
         />
-        <Route 
-          path="/vendor/login" 
+        <Route
+          path="/become-a-supplier"
+          element={<SupplierRegistrationPage />}
+        />
+        <Route
+          path="/vendor/login"
           element={
             <Navigate to="/login" replace />
           } 

@@ -34,9 +34,9 @@ export const DOCS = [
     gives: 'Account name, number and IFSC, verified with a penny-drop',
     verifyKind: 'bank',
     fields: [
-      { k: 'benName', label: 'Account name as printed', req: true },
-      { k: 'acctNo', label: 'Account number', req: true, mono: true },
-      { k: 'ifsc', label: 'IFSC', req: true, mono: true, upper: true },
+      { k: 'benName', label: 'Account name as printed', req: true, editable: true },
+      { k: 'acctNo', label: 'Account number', req: true, mono: true, editable: true },
+      { k: 'ifsc', label: 'IFSC', req: true, mono: true, upper: true, editable: true },
     ],
   },
   {
@@ -45,7 +45,7 @@ export const DOCS = [
     req: false,
     gives: 'Udyam registration number, verified against the Udyam portal',
     verifyKind: 'udyam',
-    fields: [{ k: 'udyam', label: 'Udyam registration number', mono: true, upper: true }],
+    fields: [{ k: 'udyam', label: 'Udyam registration number', req: true, mono: true, upper: true }],
   },
   {
     id: 'iso',
@@ -53,9 +53,9 @@ export const DOCS = [
     req: false,
     gives: 'Certificate number and expiry',
     fields: [
-      { k: 'isoNo', label: 'Certificate number', mono: true },
-      { k: 'isoBody', label: 'Certifying body' },
-      { k: 'isoExpiry', label: 'Valid to', type: 'date' },
+      { k: 'isoNo', label: 'Certificate number', req: true, mono: true },
+      { k: 'isoBody', label: 'Certifying body', req: true },
+      { k: 'isoExpiry', label: 'Valid to', req: true, type: 'date', expiry: true },
     ],
   },
   {
@@ -64,12 +64,25 @@ export const DOCS = [
     req: false,
     gives: 'Certificate number and expiry',
     fields: [
-      { k: 'asNo', label: 'Certificate number', mono: true },
-      { k: 'asBody', label: 'Certifying body' },
-      { k: 'asExpiry', label: 'Valid to', type: 'date' },
+      { k: 'asNo', label: 'Certificate number', req: true, mono: true },
+      { k: 'asBody', label: 'Certifying body', req: true },
+      { k: 'asExpiry', label: 'Valid to', req: true, type: 'date', expiry: true },
     ],
   },
 ];
+
+export const SUPPLY_CATEGORIES = [
+  'Machined components',
+  'Castings and forgings',
+  'Sheet metal and fabrication',
+  'Raw material and fasteners',
+  'Subcontract job work',
+  'Services and AMC',
+];
+
+export const PLANTS = ['Plant 1 — Bengaluru', 'Plant 2 — Hosur', 'Plant 3 — Coimbatore', 'All three'];
+
+export const PAYMENT_TERMS = ['Advance', 'Against delivery', 'Net 30 days', 'Net 45 days', 'Net 60 days'];
 
 export const RULES = {
   pan: { re: /^[A-Z]{5}[0-9]{4}[A-Z]$/, msg: 'Ten characters — five letters, four digits, one letter.' },
@@ -88,3 +101,23 @@ export function fieldError(key, value) {
   if (!rule) return null;
   return rule.re.test(value) ? null : rule.msg;
 }
+
+export const TODAY = new Date().toISOString().slice(0, 10);
+
+export const REVIEW_FLOW = [
+  { title: 'Procurement — duplicate and category check', sub: '1 working day' },
+  {
+    title:
+      'Finance — PAN, GST and Udyam verified on the government portals; one rupee sent to your account and the returned name matched',
+    sub: '2 working days',
+  },
+  { title: 'Quality — certificate review, and a site audit for manufacturing', sub: '5 working days' },
+  { title: 'Vendor code created and your portal login emailed', sub: '1 working day' },
+];
+
+export const SECTIONS = [
+  { id: 'sec-docs', name: 'Documents and details' },
+  { id: 'sec-file', name: 'On file' },
+  { id: 'sec-you', name: 'Only you can answer' },
+  { id: 'sec-submit', name: 'Submit' },
+];

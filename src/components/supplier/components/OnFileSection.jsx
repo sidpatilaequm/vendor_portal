@@ -1,0 +1,75 @@
+import React from 'react';
+import { DOCS } from '../data';
+import { fmtSize } from '../lib/utils';
+
+const CHECK_SYMBOL = { ok: '✓', warn: '!', no: '✕' };
+
+// Ported from become-a-supplier/app/become-a-supplier/components/OnFileSection.tsx
+const OnFileSection = ({ state, readiness }) => {
+  const files = DOCS.filter((d) => state.docs[d.id]?.status === 'read');
+  const total = files.reduce((t, d) => t + (state.docs[d.id].size || 0), 0);
+
+  return (
+    <section className="sec" id="sec-file">
+      <div className="sh">
+        <h2>On file</h2>
+        <span className="n">02</span>
+      </div>
+      <p className="sdesc">Everything you have uploaded, kept with this draft until you submit. Open any of them here.</p>
+
+      {files.length === 0 ? (
+        <p className="sm muted">Nothing uploaded yet.</p>
+      ) : (
+        <>
+          <table>
+            <thead>
+              <tr>
+                <th style={{ width: '40%' }}>Document</th>
+                <th>File</th>
+                <th>Uploaded</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {files.map((d) => {
+                const f = state.docs[d.id];
+                return (
+                  <tr key={d.id}>
+                    <td>{d.name}</td>
+                    <td>
+                      <span className="sm">{f.name}</span>
+                      <div className="xs muted mono">{fmtSize(f.size || 0)}</div>
+                    </td>
+                    <td className="sm muted">{f.at}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button className="btn ghost sm" type="button" onClick={() => f.url && window.open(f.url, '_blank', 'noopener')}>View</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <p className="sm muted" style={{ marginTop: 10 }}>
+            {files.length} file{files.length > 1 ? 's' : ''} · {fmtSize(total)} · held against {state.code || 'this draft'} until you submit.
+          </p>
+        </>
+      )}
+
+      <h3 style={{ fontFamily: "'Fraunces',serif", fontSize: 16, fontWeight: 600, margin: '20px 0 8px' }}>Cross-checks</h3>
+      <div className="xcheck">
+        {readiness.crossChecks.length === 0 ? (
+          <div className="muted">Nothing to compare yet.</div>
+        ) : (
+          readiness.crossChecks.map(([kind, text], i) => (
+            <div key={i}>
+              <span className={kind}>{CHECK_SYMBOL[kind]}</span>
+              <span style={{ color: 'var(--ink)' }}>{text}</span>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+};
+
+export default OnFileSection;

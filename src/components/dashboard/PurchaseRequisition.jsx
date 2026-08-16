@@ -437,20 +437,6 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
         }
       };
 
-      const requestPayload = {
-        title: `Invoice: ${extractedData.documentNumber || 'N/A'} - ${extractedData.supplier?.name || 'Unknown'}`,
-        description: `Please approve invoice. Total: ${extractedData.grandTotal}`,
-        amount: extractedData.grandTotal,
-        workflow_id: 12, // Indent Approval
-        request_metadata: enrichedMetadata
-      };
-
-      await axios.post(`/api/budget/requests/?user_id=${userId}`, requestPayload, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
 
       showToast('Invoice successfully saved and budget blocked.');
       setShowDetailsModal(false);
@@ -551,7 +537,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
 
       let formattedWFReqs = [];
       try {
-        const wfResponse = await axios.get(`/api/budget/requests/?user_id=${userId}&workflow_id=12`, {
+        const wfResponse = await axios.get(`/api/requests/?user_id=${userId}&workflow_id=12`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 

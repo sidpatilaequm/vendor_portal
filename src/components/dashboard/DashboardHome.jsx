@@ -12,6 +12,7 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
   const menuRef = useRef(null);
   const [vendorCode, setVendorCode] = useState('');
   const [vendorName, setVendorName] = useState('');
+  const [workflowRequests, setWorkflowRequests] = useState([]);
 
   useEffect(() => {
     if (!resolvedIsAdmin) {
@@ -51,6 +52,24 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    if (!resolvedIsAdmin && (role === 'EMPLOYEE' || role === 'PURCHASE_DEPT' || role === 'SUBMITTER' || role === 'APPROVER')) {
+      const fetchWorkflowRequests = async () => {
+        try {
+          const userStr = localStorage.getItem('user_data');
+          let userId = 1;
+          if (userStr) userId = JSON.parse(userStr).id || 1;
+          
+          const response = await axios.get(`/api/requests/?user_id=${userId}`);
+          setWorkflowRequests(response.data || []);
+        } catch (error) {
+          console.error("Error fetching workflow requests", error);
+        }
+      };
+      fetchWorkflowRequests();
+    }
+  }, [resolvedIsAdmin, role]);
 
   const handleNavigation = (e, path) => {
     e.preventDefault();
@@ -137,6 +156,7 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
       { title: "Invoice", desc: "Track pending and completed invoices", icon: "fa-file-invoice-dollar", colorClass: "success" },
       { title: "Vendor Payment", desc: "Track vendor payments", icon: "fa-wallet", colorClass: "secondary" },
       { title: "Vendor Returns", desc: "Manage purchase returns and debit notes", icon: "fa-undo", colorClass: "danger" },
+      { title: "Work Flow Approval", desc: "View and manage pending workflow requests", icon: "fa-check-circle", colorClass: "primary" },
     ];
 
     const routeMap = {
@@ -152,12 +172,14 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
       "Stock": "stock",
       "Invoice": "invoice",
       "Vendor Payment": "vendor-payment",
-      "Vendor Returns": "vendor-returns"
+      "Vendor Returns": "vendor-returns",
+      "Work Flow Approval": "admin-workflows"
     };
 
     return (
       <div className="container-fluid py-4 bg-light bg-opacity-50 min-vh-100 fade-in-slide">
         <div className="row g-4">
+          {/* Render standard cards */}
           {cards.map((card, idx) => (
             <div key={idx} className="col-12 col-sm-6 col-md-4 col-lg-3">
               <div className="card h-100 shadow-sm border-0" style={{ borderRadius: '12px' }}>

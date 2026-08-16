@@ -12,6 +12,7 @@ import AdminVendors from './AdminVendors';
 import OnboardingComplianceDashboard from './OnboardingComplianceDashboard';
 import PrApprovalReport from './PrApprovalReport';
 import QuotationCycleReport from './QuotationCycleReport';
+import AdminWorkflows from './AdminWorkflows';
 import PurchaseOrderReport from './PurchaseOrderReport';
 import MaterialReport from './MaterialReport';
 import QuoteComparison from './QuoteComparison';
@@ -72,6 +73,8 @@ const DashboardLayout = () => {
         return <Reports onNavigate={navigate} />;
       case 'vendor-data':
         return <OnboardingComplianceDashboard onBack={() => setActiveTab('dashboard')} />;
+      case 'admin-workflows':
+        return <AdminWorkflows subTab="wf_dashboard" onNavigate={setActiveTab} />;
       case 'pr-approval-report':
         return <PrApprovalReport onBack={() => setActiveTab('dashboard')} />;
       case 'quotation-cycle-report':

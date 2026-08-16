@@ -61,7 +61,7 @@ const IndentDashboard = ({ onBack }) => {
   const fetchIndents = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`/api/budget/requests/?user_id=${user.id || 1}&workflow_id=12`, {
+      const res = await axios.get(`/api/requests/?user_id=${user.id || 1}&workflow_id=12`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       // Filter out non-12 if API returned mixed (just to be safe)

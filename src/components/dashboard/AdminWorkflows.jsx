@@ -3,7 +3,11 @@ import axios from 'axios';
 import Button from '../common/Button';
 
 const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
-  const currentTab = subTab.startsWith('wf_') ? subTab : `wf_${subTab}`;
+  const currentUserInfo = JSON.parse(localStorage.getItem('user_data') || '{"userId": 1, "firstName": "Admin", "lastName": "User", "email": "admin@company.com", "role": "admin"}');
+  const userRole = String(currentUserInfo?.role || '').toUpperCase();
+  const isEmployee = (userRole === 'EMPLOYEE' || userRole === 'PURCHASE_DEPT' || userRole === 'SUBMITTER' || userRole === 'APPROVER');
+  
+  const currentTab = isEmployee ? 'wf_requests' : (subTab.startsWith('wf_') ? subTab : `wf_${subTab}`);
 
   const [loading, setLoading] = useState(false);
   const [workflows, setWorkflows] = useState([]);
@@ -255,24 +259,26 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
       }
 
       // 3. Fetch Users
-      try {
-        const res = await axios.get(`/api/stages/users?user_id=${userId}`, { headers });
-        if (res.data && Array.isArray(res.data)) {
-          const mappedUsers = res.data.map(u => ({
-            id: u.id,
-            name: u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Unknown',
-            firstName: u.firstName,
-            lastName: u.lastName,
-            email: u.email
-          }));
-          setUsers(mappedUsers);
-          setLocalData('workflows_users', mappedUsers);
-        } else {
+      if (!isEmployee) {
+        try {
+          const res = await axios.get(`/api/stages/users?user_id=${userId}`, { headers });
+          if (res.data && Array.isArray(res.data)) {
+            const mappedUsers = res.data.map(u => ({
+              id: u.id,
+              name: u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Unknown',
+              firstName: u.firstName,
+              lastName: u.lastName,
+              email: u.email
+            }));
+            setUsers(mappedUsers);
+            setLocalData('workflows_users', mappedUsers);
+          } else {
+            setUsers(getLocalData('workflows_users'));
+          }
+        } catch (err) {
+          console.warn('API error users, loading local storage.', err);
           setUsers(getLocalData('workflows_users'));
         }
-      } catch (err) {
-        console.warn('API error users, loading local storage.', err);
-        setUsers(getLocalData('workflows_users'));
       }
 
       // 4. Fetch Requests
@@ -290,8 +296,9 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
       }
 
       // 5. Fetch Broadcast messages & OOO status
-      try {
-        const res = await axios.get(`/api/messages/?user_id=${userId}`, { headers });
+      if (!isEmployee) {
+        try {
+          const res = await axios.get(`/api/messages/?user_id=${userId}`, { headers });
         if (res.data && Array.isArray(res.data)) {
           setActiveBroadcasts(res.data);
           setLocalData('workflows_broadcasts', res.data);
@@ -300,6 +307,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
         }
       } catch (err) {
         setActiveBroadcasts(getLocalData('workflows_broadcasts'));
+      }
       }
 
       // Fetch OOO config
@@ -851,7 +859,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
           </h4>
           <p className="text-muted mb-0 small">Design approval paths, configure user delegation, process actions, and review SLA metrics.</p>
         </div>
-        <div className="col-auto">
+        <div className="col-auto d-flex gap-2">
           {currentTab === 'wf_list' && (
             <Button onClick={openWfCreate} className="btn-success btn-sm">
               <i className="fas fa-plus me-1"></i> Create Workflow
@@ -867,10 +875,16 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
               <i className="fas fa-plus me-1"></i> Create Group
             </Button>
           )}
+          {isEmployee && (
+            <Button onClick={() => onNavigate ? onNavigate('dashboard') : window.history.back()} className="btn-secondary btn-sm">
+              <i className="fas fa-arrow-left me-1"></i> Back
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Tabs list inside screen (dual routing support) */}
+      {!isEmployee && (
       <div className="card border-0 shadow-sm mb-4">
         <div className="card-body p-2">
           <ul className="nav nav-pills gap-1">
@@ -898,6 +912,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
           </ul>
         </div>
       </div>
+      )}
 
       {loading ? (
         <div className="text-center py-5">

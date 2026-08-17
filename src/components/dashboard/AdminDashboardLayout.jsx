@@ -13,6 +13,7 @@ import PurchaseOrder from './PurchaseOrder';
 import ASN from './ASN';
 import BudgetApp from './BudgetApp';
 import IndentDashboard from './IndentDashboard';
+import Questionnaire from './Questionnaire';
 
 // Unified Coming Soon Component for Unimplemented Admin Screens
 const ComingSoonView = ({ moduleName, iconClass }) => {
@@ -152,7 +153,8 @@ const AdminDashboardLayout = () => {
     { id: 'material_bom', label: 'Material BOM', icon: 'fas fa-clipboard-list', comingSoon: true },
     { id: 'budget', label: 'Budget', icon: 'fas fa-wallet' },
     { id: 'masterdata', label: 'Master Data', icon: 'fas fa-database' },
-    { id: 'users', label: 'Users', icon: 'fas fa-users-cog' }
+    { id: 'users', label: 'Users', icon: 'fas fa-users-cog' },
+    { id: 'questionnaires', label: 'Questionnaires', icon: 'fas fa-question-circle' }
   ];
 
   const renderContent = () => {
@@ -190,6 +192,8 @@ const AdminDashboardLayout = () => {
         return <ASN />;
       case 'budget':
         return <BudgetApp />;
+      case 'questionnaires':
+        return <Questionnaire />;
       default:
         // Check if it matches a coming soon page
         const item = [...vendorPovSubItems, ...generalMenuItems].find(i => i.id === activeTab);

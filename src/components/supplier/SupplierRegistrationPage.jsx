@@ -9,6 +9,7 @@ import ResumeStrip from './components/ResumeStrip';
 import DocumentsSection from './components/DocumentsSection';
 import OnFileSection from './components/OnFileSection';
 import YouSection from './components/YouSection';
+import DynamicQuestionsSection from './components/DynamicQuestionsSection';
 import SubmitSection from './components/SubmitSection';
 import EmailDialog from './components/EmailDialog';
 import Toast from './components/Toast';
@@ -24,11 +25,16 @@ const SupplierRegistrationPage = () => {
   const [activeSection, setActiveSection] = useState(SECTIONS[0].id);
   const [submitting, setSubmitting] = useState(false);
 
+  // Hide the "Additional questions" nav item entirely unless an admin actually has a
+  // questionnaire published + active — no dead link to a section that renders nothing.
+  const hasQuestionnaire = !!state.questionnaire?.sections?.length;
+  const visibleSections = hasQuestionnaire ? SECTIONS : SECTIONS.filter((s) => s.id !== 'sec-questions');
+
   // Scroll-spy for the step nav.
   useEffect(() => {
     const onScroll = () => {
-      let cur = SECTIONS[0].id;
-      SECTIONS.forEach((s) => {
+      let cur = visibleSections[0].id;
+      visibleSections.forEach((s) => {
         const el = document.getElementById(s.id);
         if (el && el.getBoundingClientRect().top < 130) cur = s.id;
       });
@@ -43,7 +49,7 @@ const SupplierRegistrationPage = () => {
   useEffect(() => {
     if (state.dirty) form.scheduleAutosave();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.dirty, state.fields, state.businessTypes, state.equipmentFacilities, state.directors, state.machinery, state.docs, state.declaration]);
+  }, [state.dirty, state.fields, state.businessTypes, state.equipmentFacilities, state.directors, state.machinery, state.dynamicAnswers, state.docs, state.declaration]);
 
   // Warn on unload if there is unsaved work.
   useEffect(() => {
@@ -87,6 +93,7 @@ const SupplierRegistrationPage = () => {
           onSubmit={handleSubmit}
           onSaveDraft={form.saveDraft}
           busy={submitting}
+          sections={visibleSections}
         />
 
         <main>
@@ -101,6 +108,9 @@ const SupplierRegistrationPage = () => {
               <DocumentsSection form={form} />
               <OnFileSection state={state} readiness={readiness} />
               <YouSection form={form} />
+              {hasQuestionnaire && (
+                <DynamicQuestionsSection state={state} readiness={readiness} setDynamicAnswer={form.setDynamicAnswer} />
+              )}
               <SubmitSection readiness={readiness} onSubmit={handleSubmit} busy={submitting} />
             </>
           )}

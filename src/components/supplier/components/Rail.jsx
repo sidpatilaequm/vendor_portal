@@ -1,8 +1,8 @@
 import React from 'react';
-import { SECTIONS } from '../data';
+import { SECTIONS as ALL_SECTIONS } from '../data';
 
 // Ported from become-a-supplier/app/become-a-supplier/components/Rail.tsx
-const Rail = ({ readiness, submitted, activeSection, onSubmit, onSaveDraft, busy }) => {
+const Rail = ({ readiness, submitted, activeSection, onSubmit, onSaveDraft, busy, sections = ALL_SECTIONS }) => {
   const leftLabel = readiness.canSubmit
     ? 'All done. You can submit.'
     : readiness.bad
@@ -29,9 +29,9 @@ const Rail = ({ readiness, submitted, activeSection, onSubmit, onSaveDraft, busy
       </div>
 
       <nav className="steps" aria-label="Sections">
-        {SECTIONS.map((sec) => {
-          const total = sec.id === 'sec-docs' ? readiness.docsTotal : sec.id === 'sec-you' ? readiness.youTotal : 0;
-          const filledCount = sec.id === 'sec-docs' ? readiness.docsFilled : sec.id === 'sec-you' ? readiness.youFilled : 0;
+        {sections.map((sec) => {
+          const total = sec.id === 'sec-docs' ? readiness.docsTotal : sec.id === 'sec-you' ? readiness.youTotal : sec.id === 'sec-questions' ? readiness.dynamicTotal : 0;
+          const filledCount = sec.id === 'sec-docs' ? readiness.docsFilled : sec.id === 'sec-you' ? readiness.youFilled : sec.id === 'sec-questions' ? readiness.dynamicFilled : 0;
           const isFile = sec.id === 'sec-file';
           const status = isFile
             ? (readiness.filesCount ? 'done' : '')

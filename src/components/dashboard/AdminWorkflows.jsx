@@ -1826,63 +1826,6 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                             <div className="fw-bold text-dark">{reviewDetails.registration.cinNumber || '—'}</div>
                           </div>
                         </div>
-                        <div className="row small g-2 mt-2">
-                          <div className="col-4">
-                            <div className="text-muted" style={{ fontSize: '10px' }}>Nature of business</div>
-                            <div>{reviewDetails.registration.businessTypes || '—'}</div>
-                          </div>
-                          <div className="col-4">
-                            <div className="text-muted" style={{ fontSize: '10px' }}>Type of company</div>
-                            <div>{reviewDetails.registration.companyType || '—'}</div>
-                          </div>
-                          <div className="col-4">
-                            <div className="text-muted" style={{ fontSize: '10px' }}>Telephone</div>
-                            <div>{reviewDetails.registration.telephone || '—'}</div>
-                          </div>
-                        </div>
-                        {reviewDetails.registration.businessScope && (
-                          <div className="small mt-2">
-                            <span className="text-muted" style={{ fontSize: '10px' }}>Scope: </span>
-                            {reviewDetails.registration.businessScope}
-                          </div>
-                        )}
-                        {(() => {
-                          let directors = [];
-                          try { directors = JSON.parse(reviewDetails.registration.directorsJson || '[]'); } catch (e) { /* ignore */ }
-                          return !!directors.length && (
-                            <div className="mt-2 pt-2 border-top small">
-                              <div className="text-muted fw-bold" style={{ fontSize: '10px' }}>DIRECTORS / PARTNERS / PROPRIETOR</div>
-                              {directors.map((d, i) => (
-                                <div key={i} className="mt-1">
-                                  {d.name} {d.qualification && `— ${d.qualification}`} {d.experience && `· ${d.experience}`}
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        })()}
-                        {reviewDetails.registration.businessTypes?.includes('Manufacturer') && (
-                          <div className="mt-2 pt-2 border-top small">
-                            <div className="text-muted fw-bold mb-1" style={{ fontSize: '10px' }}>PRODUCTION FACILITIES</div>
-                            <div>
-                              Manpower — Office: {reviewDetails.registration.manpowerOffice || '—'}, Supervisors: {reviewDetails.registration.manpowerSupervisor || '—'}, Workmen: {reviewDetails.registration.manpowerWorkmen || '—'}
-                            </div>
-                            <div>Shifts/day: {reviewDetails.registration.shiftsPerDay || '—'} · Spare capacity: {reviewDetails.registration.spareCapacity || '—'} · Floor space: {reviewDetails.registration.floorSpace || '—'}</div>
-                            {reviewDetails.registration.equipmentFacilities && (
-                              <div className="mt-1">Equipment: {reviewDetails.registration.equipmentFacilities}</div>
-                            )}
-                            {(() => {
-                              let machinery = [];
-                              try { machinery = JSON.parse(reviewDetails.registration.machineryJson || '[]'); } catch (e) { /* ignore */ }
-                              return !!machinery.length && (
-                                <div className="mt-1">
-                                  {machinery.map((m, i) => (
-                                    <div key={i}>{m.description} {m.capacity && `— ${m.capacity}`} {m.numbers && `× ${m.numbers}`}</div>
-                                  ))}
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        )}
                       </div>
 
                       <label className="text-muted small fw-bold text-uppercase d-block mb-2">Documents</label>
@@ -1961,6 +1904,22 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                           );
                         })}
                       </div>
+
+                      {!!(reviewDetails.dynamicAnswers || []).length && (
+                        <>
+                          <label className="text-muted small fw-bold text-uppercase d-block mb-2 mt-3">Additional Questions</label>
+                          <div className="d-flex flex-column gap-2">
+                            {reviewDetails.dynamicAnswers.map((a) => (
+                              <div key={a.questionId} className="bg-light p-2 rounded">
+                                <div className="small fw-bold text-dark">{a.prompt}</div>
+                                <div className="small text-muted">
+                                  {a.questionType === 'short_text' ? (a.textValue || '—') : (a.selectedLabels || []).join(', ') || '—'}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
                 </div>

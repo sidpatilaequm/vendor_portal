@@ -23,6 +23,36 @@ export function ruleError(ruleKey, rawValue) {
   return ruleFieldError(ruleKey, v) || '';
 }
 
+/**
+ * Generic readiness pass over the admin-defined questionnaire's questions — mandatory required,
+ * choice min/max — since these rules are admin-authored data, not developer-authored code, unlike
+ * every other field in this form.
+ */
+export function computeDynamicReadiness(questionnaire, dynamicAnswers) {
+  let total = 0;
+  let filled = 0;
+  const gaps = [];
+  if (!questionnaire?.sections) return { total, filled, gaps };
+
+  for (const section of questionnaire.sections) {
+    for (const q of section.questions) {
+      if (!q.isMandatory) continue;
+      total++;
+      const answer = dynamicAnswers[q.questionId] || {};
+      const ok =
+        q.questionType === 'short_text'
+          ? isFilled(answer.textValue)
+          : Array.isArray(answer.optionIds) && answer.optionIds.length > 0;
+      if (ok) {
+        filled++;
+      } else {
+        gaps.push({ sec: 'sec-questions', name: q.prompt, id: `q_${q.questionId}` });
+      }
+    }
+  }
+  return { total, filled, gaps };
+}
+
 export function crossChecks(fields) {
   const out = [];
   const g = (id) => (fields[id] || '').trim().toUpperCase();
@@ -89,10 +119,6 @@ export function computeReadiness(state) {
   let youFilled = 0;
 
   const youRequired = [
-    { id: 'businessTypeCount', label: 'At least one business type', filled: state.businessTypes.length > 0 },
-    { id: 'businessScope', label: 'Detail scope of business', filled: isFilled(state.fields.businessScope) },
-    { id: 'companyType', label: 'Type of the company', filled: isFilled(state.fields.companyType) },
-    { id: 'telephone', label: 'Telephone', filled: isFilled(state.fields.telephone) },
     { id: 'dTrue', label: 'Declaration', filled: state.declaration },
     { id: 'c1_name', label: 'Contact name', filled: isFilled(state.fields.c1_name) },
     { id: 'c1_role', label: 'Contact designation', filled: isFilled(state.fields.c1_role) },
@@ -136,8 +162,17 @@ export function computeReadiness(state) {
   total += youTotal;
   filled += youFilled;
 
+  const dynamicReadiness = computeDynamicReadiness(state.questionnaire, state.dynamicAnswers);
+  total += dynamicReadiness.total;
+  filled += dynamicReadiness.filled;
+  gaps.push(...dynamicReadiness.gaps);
+
   const pct = total ? Math.round((filled / total) * 100) : 0;
   const canSubmit = !state.submitted && filled === total && bad === 0 && total > 0;
 
-  return { total, filled, bad, pct, canSubmit, gaps, docsTotal, docsFilled, filesCount, youTotal, youFilled, errors, crossChecks: checks };
+  return {
+    total, filled, bad, pct, canSubmit, gaps, docsTotal, docsFilled, filesCount, youTotal, youFilled,
+    dynamicTotal: dynamicReadiness.total, dynamicFilled: dynamicReadiness.filled,
+    errors, crossChecks: checks,
+  };
 }

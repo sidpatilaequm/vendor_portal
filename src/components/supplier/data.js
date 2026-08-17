@@ -140,5 +140,6 @@ export const SECTIONS = [
   { id: 'sec-docs', name: 'Documents and details' },
   { id: 'sec-file', name: 'On file' },
   { id: 'sec-you', name: 'Only you can answer' },
+  { id: 'sec-questions', name: 'Additional questions' },
   { id: 'sec-submit', name: 'Submit' },
 ];

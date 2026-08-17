@@ -158,6 +158,11 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      // backend_java itself (never Form Studio directly — see QuestionnaireProxyController).
+      '/api/questionnaire': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
       '/api': {
         target: 'http://127.0.0.1:8080',
         changeOrigin: true,

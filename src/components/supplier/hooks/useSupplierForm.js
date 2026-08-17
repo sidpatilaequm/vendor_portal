@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import axios from 'axios';
 import { DOCS, fieldError } from '../data';
 import { fmtSize, nowStr } from '../lib/utils';
@@ -28,6 +28,10 @@ const initialState = {
   equipmentFacilities: [],
   directors: [],
   machinery: [],
+  // Admin-defined questionnaire (Questionnaire tab in the admin panel) — null until fetched, or
+  // if none is currently published+active. { textValue?, optionIds? } per questionId once answered.
+  questionnaire: null,
+  dynamicAnswers: {},
   contactsCount: 1,
   primaryContact: 1,
   declaration: false,
@@ -119,6 +123,18 @@ function reducer(state, action) {
     case 'SET_DECLARATION':
       return { ...state, declaration: action.value, dirty: true };
 
+    case 'SET_QUESTIONNAIRE':
+      return { ...state, questionnaire: action.questionnaire };
+
+    case 'SET_DYNAMIC_ANSWER': {
+      const current = state.dynamicAnswers[action.questionId] || {};
+      return {
+        ...state,
+        dynamicAnswers: { ...state.dynamicAnswers, [action.questionId]: { ...current, ...action.patch } },
+        dirty: true,
+      };
+    }
+
     case 'TOGGLE_LIST': {
       const arr = state[action.list] || [];
       const has = arr.includes(action.value);
@@ -174,6 +190,7 @@ function reducer(state, action) {
         equipmentFacilities: [...action.equipmentFacilities],
         directors: [...action.directors],
         machinery: [...action.machinery],
+        dynamicAnswers: { ...action.dynamicAnswers },
         contactsCount: action.contactsCount,
         primaryContact: action.primaryContact,
         declaration: action.declaration,
@@ -206,6 +223,19 @@ export function useSupplierForm() {
   const pendingFirstUpload = useRef(null);
 
   const readiness = useMemo(() => computeReadiness(state), [state]);
+
+  // Fetched once — whichever questionnaire the admin has published + marked active, if any.
+  // Empty {} (not null) means "no active questionnaire", same as the backend returns.
+  useEffect(() => {
+    axios
+      .get('/api/public/supplier-registration/questionnaire')
+      .then(({ data }) => {
+        if (data && data.processId) dispatch({ type: 'SET_QUESTIONNAIRE', questionnaire: data });
+      })
+      .catch(() => {});
+  }, []);
+
+  const setDynamicAnswer = useCallback((questionId, patch) => dispatch({ type: 'SET_DYNAMIC_ANSWER', questionId, patch }), []);
 
   const showToast = useCallback((html, ms = 5200) => {
     toastId.current += 1;
@@ -365,6 +395,9 @@ export function useSupplierForm() {
       equipmentFacilities: state.equipmentFacilities.join(','),
       directorsJson: JSON.stringify(state.directors),
       machineryJson: JSON.stringify(state.machinery),
+      dynamicAnswersJson: JSON.stringify(
+        Object.entries(state.dynamicAnswers).map(([questionId, a]) => ({ questionId: Number(questionId), ...a }))
+      ),
       declarationAccepted: state.declaration,
       gstNumber: f.gstin || '',
       panNumber: f.pan || '',
@@ -467,6 +500,9 @@ export function useSupplierForm() {
         equipmentFacilities: reg.equipmentFacilities ? reg.equipmentFacilities.split(',').filter(Boolean) : [],
         directors: reg.directorsJson ? JSON.parse(reg.directorsJson) : [],
         machinery: reg.machineryJson ? JSON.parse(reg.machineryJson) : [],
+        dynamicAnswers: reg.dynamicAnswersJson
+          ? Object.fromEntries(JSON.parse(reg.dynamicAnswersJson).map(({ questionId, ...rest }) => [questionId, rest]))
+          : {},
         contactsCount: hasSecondContact ? 2 : 1,
         primaryContact: reg.primaryContact || 1,
         declaration: !!reg.declarationAccepted,
@@ -537,6 +573,7 @@ export function useSupplierForm() {
     addRow,
     updateRow,
     removeRow,
+    setDynamicAnswer,
     setContactsCount,
     setPrimaryContact,
     ingestFile,

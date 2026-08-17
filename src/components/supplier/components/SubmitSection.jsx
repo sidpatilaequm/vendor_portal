@@ -13,7 +13,7 @@ const SubmitSection = ({ readiness, onSubmit, busy }) => {
     <section className="sec" id="sec-submit">
       <div className="sh">
         <h2>Submit</h2>
-        <span className="n">04</span>
+        <span className="n">05</span>
       </div>
       <p className="sdesc">Four reviews, about ten working days. You are told at each step.</p>
       <ul className="flow">

@@ -71,18 +71,39 @@ export const DOCS = [
   },
 ];
 
-export const SUPPLY_CATEGORIES = [
-  'Machined components',
-  'Castings and forgings',
-  'Sheet metal and fabrication',
-  'Raw material and fasteners',
-  'Subcontract job work',
-  'Services and AMC',
+// Mirrors AA-PUR-F-03 Rev02 "Supplier Evaluation and Registration Form" — the paper form
+// this section of the digital flow is a direct port of.
+export const BUSINESS_TYPES = ['Manufacturer', 'Service', 'Trader'];
+
+export const COMPANY_TYPES = ['Proprietary', 'Partnership', 'Private Limited', 'Public Limited'];
+
+export const WEEKLY_OFF_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+export const EQUIPMENT_FACILITIES = [
+  'Fabrication — Sheet Metal',
+  'Fabrication — Plate',
+  'Machining',
+  'Casting — Ferrous',
+  'Casting — Non Ferrous',
+  'Forging — Cold',
+  'Forging — Hot',
+  'Grinding',
+  'Sheet Metal Press',
+  'Moldings — Rubber',
+  'Moldings — Plastic',
+  'Moldings — Bakelite',
+  'Moldings — Others',
+  'Springs',
+  'Elec. & Electronics Items',
+  'Heat Treatment',
+  'Electro Plating',
+  'Tooling',
+  'Others',
 ];
 
-export const PLANTS = ['Plant 1 — Bengaluru', 'Plant 2 — Hosur', 'Plant 3 — Coimbatore', 'All three'];
+export const DIRECTOR_ROW_TEMPLATE = { name: '', qualification: '', experience: '', commencementDate: '', capitalEmployed: '' };
 
-export const PAYMENT_TERMS = ['Advance', 'Against delivery', 'Net 30 days', 'Net 45 days', 'Net 60 days'];
+export const MACHINERY_ROW_TEMPLATE = { description: '', capacity: '', makeName: '', makeYear: '', numbers: '', remarks: '' };
 
 export const RULES = {
   pan: { re: /^[A-Z]{5}[0-9]{4}[A-Z]$/, msg: 'Ten characters — five letters, four digits, one letter.' },

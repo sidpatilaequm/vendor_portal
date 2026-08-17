@@ -43,7 +43,7 @@ const SupplierRegistrationPage = () => {
   useEffect(() => {
     if (state.dirty) form.scheduleAutosave();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.dirty, state.fields, state.cats, state.docs, state.declaration]);
+  }, [state.dirty, state.fields, state.businessTypes, state.equipmentFacilities, state.directors, state.machinery, state.docs, state.declaration]);
 
   // Warn on unload if there is unsaved work.
   useEffect(() => {

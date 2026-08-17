@@ -36,7 +36,7 @@ export function crossChecks(fields) {
         : 'The PAN inside your GSTIN is not the PAN on your PAN card — the two documents are for different entities.',
     ]);
   }
-  if (g('udyam')) out.push(['ok', 'MSME registration on file — payment terms will be set to 45 days.']);
+  if (g('udyam')) out.push(['ok', 'MSME registration on file — payments to you fall under the 45-day MSMED Act rule.']);
 
   return out;
 }
@@ -89,9 +89,10 @@ export function computeReadiness(state) {
   let youFilled = 0;
 
   const youRequired = [
-    { id: 'catCount', label: 'At least one supply category', filled: state.cats.length > 0 },
-    { id: 'plant', label: 'Plant you can serve', filled: isFilled(state.fields.plant) },
-    { id: 'terms', label: 'Payment terms sought', filled: isFilled(state.fields.terms) },
+    { id: 'businessTypeCount', label: 'At least one business type', filled: state.businessTypes.length > 0 },
+    { id: 'businessScope', label: 'Detail scope of business', filled: isFilled(state.fields.businessScope) },
+    { id: 'companyType', label: 'Type of the company', filled: isFilled(state.fields.companyType) },
+    { id: 'telephone', label: 'Telephone', filled: isFilled(state.fields.telephone) },
     { id: 'dTrue', label: 'Declaration', filled: state.declaration },
     { id: 'c1_name', label: 'Contact name', filled: isFilled(state.fields.c1_name) },
     { id: 'c1_role', label: 'Contact designation', filled: isFilled(state.fields.c1_role) },

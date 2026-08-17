@@ -15,11 +15,11 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/auth\/login\/?/, '/api/users/login')
       },
       '/vendor/register-request/': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8000',
         changeOrigin: true,
       },
       '/api/workflows': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8000',
         changeOrigin: true,
       },
       '/api/users': {
@@ -117,19 +117,19 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/stages': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8000',
         changeOrigin: true,
       },
       '/api/auth/me': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8000',
         changeOrigin: true,
       },
       '/api/messages': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8000',
         changeOrigin: true,
       },
       '/api/requests': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8000',
         changeOrigin: true,
       },
       '/api/extract-invoice': {

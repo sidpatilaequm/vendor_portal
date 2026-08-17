@@ -24,7 +24,10 @@ const initialState = {
   docs: {},
   fields: {},
   src: {},
-  cats: [],
+  businessTypes: [],
+  equipmentFacilities: [],
+  directors: [],
+  machinery: [],
   contactsCount: 1,
   primaryContact: 1,
   declaration: false,
@@ -116,10 +119,24 @@ function reducer(state, action) {
     case 'SET_DECLARATION':
       return { ...state, declaration: action.value, dirty: true };
 
-    case 'TOGGLE_CATEGORY': {
-      const has = state.cats.includes(action.value);
-      const cats = has ? state.cats.filter((c) => c !== action.value) : [...state.cats, action.value];
-      return { ...state, cats, dirty: true };
+    case 'TOGGLE_LIST': {
+      const arr = state[action.list] || [];
+      const has = arr.includes(action.value);
+      const next = has ? arr.filter((v) => v !== action.value) : [...arr, action.value];
+      return { ...state, [action.list]: next, dirty: true };
+    }
+
+    case 'ADD_ROW':
+      return { ...state, [action.list]: [...state[action.list], action.row], dirty: true };
+
+    case 'UPDATE_ROW': {
+      const rows = state[action.list].map((r, i) => (i === action.index ? { ...r, [action.key]: action.value } : r));
+      return { ...state, [action.list]: rows, dirty: true };
+    }
+
+    case 'REMOVE_ROW': {
+      const rows = state[action.list].filter((_, i) => i !== action.index);
+      return { ...state, [action.list]: rows, dirty: true };
     }
 
     case 'SET_CONTACTS_COUNT':
@@ -153,7 +170,10 @@ function reducer(state, action) {
         email: action.email,
         fields: { ...action.fields },
         src: { ...action.src },
-        cats: [...action.cats],
+        businessTypes: [...action.businessTypes],
+        equipmentFacilities: [...action.equipmentFacilities],
+        directors: [...action.directors],
+        machinery: [...action.machinery],
         contactsCount: action.contactsCount,
         primaryContact: action.primaryContact,
         declaration: action.declaration,
@@ -240,7 +260,10 @@ export function useSupplierForm() {
   );
 
   const setDeclaration = useCallback((value) => dispatch({ type: 'SET_DECLARATION', value }), []);
-  const toggleCategory = useCallback((value) => dispatch({ type: 'TOGGLE_CATEGORY', value }), []);
+  const toggleListValue = useCallback((list, value) => dispatch({ type: 'TOGGLE_LIST', list, value }), []);
+  const addRow = useCallback((list, row) => dispatch({ type: 'ADD_ROW', list, row }), []);
+  const updateRow = useCallback((list, index, key, value) => dispatch({ type: 'UPDATE_ROW', list, index, key, value }), []);
+  const removeRow = useCallback((list, index) => dispatch({ type: 'REMOVE_ROW', list, index }), []);
   const setContactsCount = useCallback((count) => dispatch({ type: 'SET_CONTACTS_COUNT', count }), []);
   const setPrimaryContact = useCallback((n) => dispatch({ type: 'SET_PRIMARY_CONTACT', n }), []);
 
@@ -324,9 +347,24 @@ export function useSupplierForm() {
       contact2Email: state.contactsCount === 2 ? f.c2_email || '' : '',
       contact2Phone: state.contactsCount === 2 ? f.c2_phone || '' : '',
       primaryContact: state.primaryContact,
-      supplyCategories: state.cats.join(','),
-      plant: f.plant || '',
-      paymentTerms: f.terms || '',
+      businessTypes: state.businessTypes.join(','),
+      businessScope: f.businessScope || '',
+      companyType: f.companyType || '',
+      telephone: f.telephone || '',
+      fax: f.fax || '',
+      weeklyOff: f.weeklyOff || '',
+      annualTurnover: f.annualTurnover || '',
+      turnoverYear: f.turnoverYear || '',
+      regulatoryActs: f.regulatoryActs || '',
+      manpowerOffice: f.manpowerOffice || '',
+      manpowerSupervisor: f.manpowerSupervisor || '',
+      manpowerWorkmen: f.manpowerWorkmen || '',
+      shiftsPerDay: f.shiftsPerDay || '',
+      spareCapacity: f.spareCapacity || '',
+      floorSpace: f.floorSpace || '',
+      equipmentFacilities: state.equipmentFacilities.join(','),
+      directorsJson: JSON.stringify(state.directors),
+      machineryJson: JSON.stringify(state.machinery),
       declarationAccepted: state.declaration,
       gstNumber: f.gstin || '',
       panNumber: f.pan || '',
@@ -393,7 +431,13 @@ export function useSupplierForm() {
         c1_email: reg.contact1Email || '', c1_phone: reg.contact1Phone || '',
         c2_name: reg.contact2Name || '', c2_role: reg.contact2Role || '',
         c2_email: reg.contact2Email || '', c2_phone: reg.contact2Phone || '',
-        plant: reg.plant || '', terms: reg.paymentTerms || '',
+        businessScope: reg.businessScope || '', companyType: reg.companyType || '',
+        telephone: reg.telephone || '', fax: reg.fax || '', weeklyOff: reg.weeklyOff || '',
+        annualTurnover: reg.annualTurnover || '', turnoverYear: reg.turnoverYear || '',
+        regulatoryActs: reg.regulatoryActs || '',
+        manpowerOffice: reg.manpowerOffice || '', manpowerSupervisor: reg.manpowerSupervisor || '',
+        manpowerWorkmen: reg.manpowerWorkmen || '', shiftsPerDay: reg.shiftsPerDay || '',
+        spareCapacity: reg.spareCapacity || '', floorSpace: reg.floorSpace || '',
         gstin: reg.gstNumber || '', pan: reg.panNumber || '', udyam: reg.msmeNumber || '', cin: reg.cinNumber || '',
         benName: reg.beneficiaryName || '', acctNo: reg.accountNumber || '', ifsc: reg.ifscCode || '',
         isoNo: reg.isoCertificateNo || '', isoBody: reg.isoCertifyingBody || '', isoExpiry: reg.isoExpiry || '',
@@ -419,7 +463,10 @@ export function useSupplierForm() {
         email: reg.email?.includes('@placeholder.local') ? null : reg.email,
         fields,
         src,
-        cats: reg.supplyCategories ? reg.supplyCategories.split(',').filter(Boolean) : [],
+        businessTypes: reg.businessTypes ? reg.businessTypes.split(',').filter(Boolean) : [],
+        equipmentFacilities: reg.equipmentFacilities ? reg.equipmentFacilities.split(',').filter(Boolean) : [],
+        directors: reg.directorsJson ? JSON.parse(reg.directorsJson) : [],
+        machinery: reg.machineryJson ? JSON.parse(reg.machineryJson) : [],
         contactsCount: hasSecondContact ? 2 : 1,
         primaryContact: reg.primaryContact || 1,
         declaration: !!reg.declarationAccepted,
@@ -486,7 +533,10 @@ export function useSupplierForm() {
     primaryEmail,
     setField,
     setDeclaration,
-    toggleCategory,
+    toggleListValue,
+    addRow,
+    updateRow,
+    removeRow,
     setContactsCount,
     setPrimaryContact,
     ingestFile,

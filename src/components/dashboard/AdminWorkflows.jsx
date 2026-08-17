@@ -44,6 +44,9 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
 
   // Request Details Modal
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [reviewDetails, setReviewDetails] = useState(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState('');
   const [actionComment, setActionComment] = useState('');
 
   // Email Action processing states
@@ -285,8 +288,9 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
       try {
         const res = await axios.get(`/api/requests/?user_id=${userId}`, { headers });
         if (res.data && Array.isArray(res.data)) {
-          setRequests(res.data);
-          setLocalData('workflows_requests', res.data);
+          const sorted = [...res.data].sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
+          setRequests(sorted);
+          setLocalData('workflows_requests', sorted);
         } else {
           setRequests(getLocalData('workflows_requests'));
         }
@@ -334,6 +338,48 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   useEffect(() => {
     fetchAllData();
   }, [currentTab]);
+
+  // Become-a-Supplier requests carry a registrationId in request_metadata — fetch the full
+  // application (documents + extracted/verified fields) so the approver can actually see
+  // what they're approving instead of just the generic request title/status.
+  useEffect(() => {
+    setReviewDetails(null);
+    setReviewError('');
+    setExpandedDocType(null);
+    const registrationId = selectedRequest?.request_metadata?.registrationId;
+    if (!selectedRequest || selectedRequest.request_type !== 'vendor_registration' || !registrationId) return;
+
+    setReviewLoading(true);
+    const token = localStorage.getItem('auth_token');
+    axios.get(`/api/supplier-registration/${registrationId}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => setReviewDetails(data.data?.result || null))
+      .catch(() => setReviewError('Could not load the application details.'))
+      .finally(() => setReviewLoading(false));
+  }, [selectedRequest]);
+
+  const [expandedDocType, setExpandedDocType] = useState(null);
+  const [previewLoadingDoc, setPreviewLoadingDoc] = useState(null);
+
+  // FolderIt's own presigned link forces a download, so the backend streams the bytes through
+  // /preview instead (inline disposition) — fetched here as a blob so we can attach the JWT,
+  // since that route lives outside /api/public/** and a plain <a href> can't send auth headers.
+  const handleViewDocument = async (doc) => {
+    if (!doc.previewUrl) return;
+    setPreviewLoadingDoc(doc.docType);
+    const token = localStorage.getItem('auth_token');
+    try {
+      const res = await axios.get(doc.previewUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
+      });
+      const blobUrl = URL.createObjectURL(res.data);
+      window.open(blobUrl, '_blank', 'noopener');
+    } catch (err) {
+      alert('Could not load the document preview.');
+    } finally {
+      setPreviewLoadingDoc(null);
+    }
+  };
 
   // WORKFLOW CRUD HANDLERS
   const handleWfSubmit = async (e) => {
@@ -522,13 +568,17 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
 
   const processRequestAction = async (action) => {
     const token = localStorage.getItem('auth_token');
-    const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+    const headers = { 'Authorization': `Bearer ${token}` };
+    // WorkFlow's real action endpoint is POST /api/requests/action/{id} with action/user_id/
+    // comment as query params (not a JSON body) — action here is "approve"/"reject" from the
+    // buttons below, but the API expects "approved"/"rejected".
+    const wfAction = action === 'approve' ? 'approved' : 'rejected';
 
     try {
-      await axios.post(`/api/requests/${selectedRequest.id}/action?user_id=${userId}`, {
-        action,
-        comment: actionComment
-      }, { headers });
+      await axios.post(`/api/requests/action/${selectedRequest.id}`, null, {
+        params: { action: wfAction, user_id: userId, comment: actionComment },
+        headers,
+      });
       logActivity(`Processed action "${action}" on Request #${selectedRequest.id}`);
       setSelectedRequest(null);
       setActionComment('');
@@ -1742,6 +1792,179 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                   </div>
                 </div>
               </div>
+
+              {/* Become-a-Supplier applications: full document set + extracted/verified fields */}
+              {selectedRequest.request_type === 'vendor_registration' && (
+                <div className="mb-4">
+                  {reviewLoading && <div className="text-muted small">Loading application details…</div>}
+                  {reviewError && <div className="text-danger small">{reviewError}</div>}
+                  {reviewDetails && (
+                    <>
+                      <label className="text-muted small fw-bold text-uppercase d-block mb-2">Applicant</label>
+                      <div className="bg-light p-3 rounded mb-3">
+                        <div className="fw-bold text-dark">
+                          {reviewDetails.registration.contactName}
+                          <span className="text-muted fw-normal small ms-1">({reviewDetails.registration.designation})</span>
+                        </div>
+                        <div className="small text-muted">{reviewDetails.registration.email} · {reviewDetails.registration.phone}</div>
+                        {reviewDetails.registration.contact2Name && (
+                          <div className="small text-muted mt-1">
+                            Also: {reviewDetails.registration.contact2Name} ({reviewDetails.registration.contact2Role}) — {reviewDetails.registration.contact2Email}
+                          </div>
+                        )}
+                        <div className="row small g-2 mt-2">
+                          <div className="col-4">
+                            <div className="text-muted" style={{ fontSize: '10px' }}>PAN</div>
+                            <div className="fw-bold text-dark">{reviewDetails.registration.panNumber || '—'}</div>
+                          </div>
+                          <div className="col-4">
+                            <div className="text-muted" style={{ fontSize: '10px' }}>GST</div>
+                            <div className="fw-bold text-dark">{reviewDetails.registration.gstNumber || '—'}</div>
+                          </div>
+                          <div className="col-4">
+                            <div className="text-muted" style={{ fontSize: '10px' }}>CIN</div>
+                            <div className="fw-bold text-dark">{reviewDetails.registration.cinNumber || '—'}</div>
+                          </div>
+                        </div>
+                        <div className="row small g-2 mt-2">
+                          <div className="col-4">
+                            <div className="text-muted" style={{ fontSize: '10px' }}>Nature of business</div>
+                            <div>{reviewDetails.registration.businessTypes || '—'}</div>
+                          </div>
+                          <div className="col-4">
+                            <div className="text-muted" style={{ fontSize: '10px' }}>Type of company</div>
+                            <div>{reviewDetails.registration.companyType || '—'}</div>
+                          </div>
+                          <div className="col-4">
+                            <div className="text-muted" style={{ fontSize: '10px' }}>Telephone</div>
+                            <div>{reviewDetails.registration.telephone || '—'}</div>
+                          </div>
+                        </div>
+                        {reviewDetails.registration.businessScope && (
+                          <div className="small mt-2">
+                            <span className="text-muted" style={{ fontSize: '10px' }}>Scope: </span>
+                            {reviewDetails.registration.businessScope}
+                          </div>
+                        )}
+                        {(() => {
+                          let directors = [];
+                          try { directors = JSON.parse(reviewDetails.registration.directorsJson || '[]'); } catch (e) { /* ignore */ }
+                          return !!directors.length && (
+                            <div className="mt-2 pt-2 border-top small">
+                              <div className="text-muted fw-bold" style={{ fontSize: '10px' }}>DIRECTORS / PARTNERS / PROPRIETOR</div>
+                              {directors.map((d, i) => (
+                                <div key={i} className="mt-1">
+                                  {d.name} {d.qualification && `— ${d.qualification}`} {d.experience && `· ${d.experience}`}
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                        {reviewDetails.registration.businessTypes?.includes('Manufacturer') && (
+                          <div className="mt-2 pt-2 border-top small">
+                            <div className="text-muted fw-bold mb-1" style={{ fontSize: '10px' }}>PRODUCTION FACILITIES</div>
+                            <div>
+                              Manpower — Office: {reviewDetails.registration.manpowerOffice || '—'}, Supervisors: {reviewDetails.registration.manpowerSupervisor || '—'}, Workmen: {reviewDetails.registration.manpowerWorkmen || '—'}
+                            </div>
+                            <div>Shifts/day: {reviewDetails.registration.shiftsPerDay || '—'} · Spare capacity: {reviewDetails.registration.spareCapacity || '—'} · Floor space: {reviewDetails.registration.floorSpace || '—'}</div>
+                            {reviewDetails.registration.equipmentFacilities && (
+                              <div className="mt-1">Equipment: {reviewDetails.registration.equipmentFacilities}</div>
+                            )}
+                            {(() => {
+                              let machinery = [];
+                              try { machinery = JSON.parse(reviewDetails.registration.machineryJson || '[]'); } catch (e) { /* ignore */ }
+                              return !!machinery.length && (
+                                <div className="mt-1">
+                                  {machinery.map((m, i) => (
+                                    <div key={i}>{m.description} {m.capacity && `— ${m.capacity}`} {m.numbers && `× ${m.numbers}`}</div>
+                                  ))}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        )}
+                      </div>
+
+                      <label className="text-muted small fw-bold text-uppercase d-block mb-2">Documents</label>
+                      <div className="d-flex flex-column gap-2">
+                        {(reviewDetails.documents || []).map((d) => {
+                          const isOpen = expandedDocType === d.docType;
+                          return (
+                            <div key={d.docType} className="border rounded p-2 bg-light">
+                              <div className="d-flex justify-content-between align-items-center">
+                                <div>
+                                  <div className="small fw-bold text-dark">{d.docName}</div>
+                                  <div className="text-muted" style={{ fontSize: '11px' }}>
+                                    {d.fileName}
+                                    {d.verifyStatus === 'verified' && <span className="badge bg-success-subtle text-success ms-2">Verified</span>}
+                                    {d.verifyStatus === 'error' && <span className="badge bg-danger-subtle text-danger ms-2">Not verified</span>}
+                                  </div>
+                                </div>
+                                <div className="d-flex gap-2">
+                                  {d.previewUrl && (
+                                    <button
+                                      type="button"
+                                      className="btn btn-light btn-sm border text-success fw-bold"
+                                      style={{ fontSize: '11px' }}
+                                      disabled={previewLoadingDoc === d.docType}
+                                      onClick={() => handleViewDocument(d)}
+                                    >
+                                      {previewLoadingDoc === d.docType ? 'Loading…' : 'View'}
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    className="btn btn-light btn-sm border fw-bold"
+                                    style={{ fontSize: '11px' }}
+                                    onClick={() => setExpandedDocType(isOpen ? null : d.docType)}
+                                  >
+                                    {isOpen ? 'Hide details' : 'Details'}
+                                  </button>
+                                </div>
+                              </div>
+                              {isOpen && (
+                                <div className="mt-2 pt-2 border-top">
+                                  <div className="row g-2">
+                                    {(d.fields || []).map((f) => (
+                                      <div className="col-6" key={f.key}>
+                                        <div className="text-muted" style={{ fontSize: '10px' }}>{f.label}</div>
+                                        <div className="small fw-bold text-dark">{f.value || '—'}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {d.verifyKind && (
+                                    <div className="mt-2 pt-2 border-top small">
+                                      {d.verifyStatus === 'verified' && (
+                                        <>
+                                          <span className="badge bg-success-subtle text-success">Verified — {d.verifyMessage}</span>
+                                          {!!(d.verifyDetails || []).length && (
+                                            <div className="row g-2 mt-2">
+                                              {d.verifyDetails.map((vd) => (
+                                                <div className="col-6" key={vd.label}>
+                                                  <div className="text-muted" style={{ fontSize: '10px' }}>{vd.label}</div>
+                                                  <div className="small">{vd.value || '—'}</div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
+                                      {d.verifyStatus === 'error' && (
+                                        <span className="badge bg-danger-subtle text-danger">Could not verify — {d.verifyMessage}</span>
+                                      )}
+                                      {!d.verifyStatus && <span className="text-muted">Not verified yet.</span>}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
 
               {/* Action History timeline */}
               <div className="mb-4">

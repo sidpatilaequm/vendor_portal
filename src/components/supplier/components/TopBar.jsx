@@ -26,7 +26,7 @@ const TopBar = ({ code, email, savedAt, dirty, submitted, onSave }) => {
           <div className="mark">A</div>
           <div>
             <div className="b1">Become a supplier</div>
-            <div className="b2">Aequm</div>
+            <div className="b2">Ankit Aerospace</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>

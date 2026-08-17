@@ -1,6 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// WorkFlow (routers/workflows.py, requests.py, vendors.py, vendor_materials.py, vendor_asns.py,
+// vendor_pr.py, reports.py, ...) is one FastAPI app serving every /api/workflows, /api/requests,
+// /api/stages, /api/vendor*, /api/materials and /api/locations route below — not a separate
+// service. Its port differs per environment (8000 locally, 8001 on the production host), so it's
+// read from WORKFLOW_PORT rather than hardcoded — hardcoding it once already broke the other
+// environment when "fixed" for just one.
+const WORKFLOW_TARGET = `http://localhost:${process.env.WORKFLOW_PORT || 8000}`
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -15,11 +23,11 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/auth\/login\/?/, '/api/users/login')
       },
       '/vendor/register-request/': {
-        target: 'http://localhost:8000',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
       },
       '/api/workflows': {
-        target: 'http://localhost:8000',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
       },
       '/api/users': {
@@ -35,12 +43,12 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/locations': {
-        target: 'http://localhost:8001',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/locations/, '/api/locations/')
       },
       '/api/materials': {
-        target: 'http://localhost:8001',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
       },
       '/api/employee/quote-comparison': {
@@ -56,7 +64,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/vendors/all': {
-        target: 'http://localhost:8001',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/vendors\/all\/?$/, '/api/vendors/all/')
       },
@@ -69,7 +77,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       '^/api/vendor/asns/.+': {
-        target: 'http://localhost:8001',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
       },
       '^/api/vendor/asns/?$': {
@@ -77,11 +85,11 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/vendor/create-pr-options': {
-        target: 'http://localhost:8001',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
       },
       '/api/vendor/selection-list': {
-        target: 'http://localhost:8001',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
       },
       '^/api/vendor/purchase-orders/\\d+/?$': {
@@ -89,7 +97,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       '^/api/vendor/purchase-requisitions/[^/]+/create-rfq/?$': {
-        target: 'http://localhost:8001',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
       },
       '/api/vendor/purchase-requisitions': {
@@ -109,7 +117,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/vendor/all': {
-        target: 'http://localhost:8001',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
       },
       '/api/vendor': {
@@ -117,19 +125,19 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/stages': {
-        target: 'http://localhost:8000',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
       },
       '/api/auth/me': {
-        target: 'http://localhost:8000',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
       },
       '/api/messages': {
-        target: 'http://localhost:8000',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
       },
       '/api/requests': {
-        target: 'http://localhost:8000',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
       },
       '/api/extract-invoice': {

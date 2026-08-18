@@ -40,7 +40,7 @@ export function computeDynamicReadiness(questionnaire, dynamicAnswers) {
       total++;
       const answer = dynamicAnswers[q.questionId] || {};
       const ok =
-        q.questionType === 'short_text'
+        q.questionType === 'short_text' || q.questionType === 'counter'
           ? isFilled(answer.textValue)
           : Array.isArray(answer.optionIds) && answer.optionIds.length > 0;
       if (ok) {

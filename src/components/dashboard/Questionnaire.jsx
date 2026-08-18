@@ -63,12 +63,13 @@ const Questionnaire = () => {
   };
 
   const deleteProcess = async (id) => {
-    if (!window.confirm('Delete this questionnaire? This also deletes any responses recorded against it.')) return;
+    if (!window.confirm('Delete this questionnaire?')) return;
     try {
       await axios.delete(`/api/questionnaire/processes/${id}`, { headers: authHeaders() });
       fetchProcesses();
     } catch (err) {
-      alert('Could not delete this questionnaire.');
+      const detail = err.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : 'Could not delete this questionnaire.');
     }
   };
 

@@ -1,10 +1,11 @@
 import React from 'react';
 
 // Renders whichever questionnaire an admin has published and marked active (Questionnaire tab
-// in the admin panel), generically — short_text / single_choice / multi_choice — since the
-// question set is admin-authored data, not a fixed field list like the rest of this form.
-// Structurally mirrors dynamic_questions/frontend/src/pages/FillForm.jsx's three branches,
-// styled with this page's own supplier-form.css classes instead of Form Studio's CSS.
+// in the admin panel), generically — short_text / single_choice (radio or dropdown) /
+// multi_choice / counter — since the question set is admin-authored data, not a fixed field list
+// like the rest of this form. Structurally mirrors dynamic_questions/frontend/src/pages/
+// FillForm.jsx's branches, styled with this page's own supplier-form.css classes instead of Form
+// Studio's CSS.
 const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
   const { questionnaire, dynamicAnswers } = state;
 
@@ -21,6 +22,15 @@ const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
     const has = current.includes(optionId);
     const next = has ? current.filter((id) => id !== optionId) : [...current, optionId];
     setDynamicAnswer(question.questionId, { optionIds: next });
+  };
+
+  const stepCounter = (question, delta) => {
+    const current = answerFor(question.questionId).textValue;
+    const base = current !== undefined && current !== '' ? Number(current) : (question.minValue ?? 0);
+    let next = base + delta;
+    if (question.minValue != null && next < question.minValue) next = question.minValue;
+    if (question.maxValue != null && next > question.maxValue) next = question.maxValue;
+    setDynamicAnswer(question.questionId, { textValue: String(next) });
   };
 
   return (
@@ -56,7 +66,19 @@ const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
                   />
                 )}
 
-                {q.questionType === 'single_choice' && (
+                {q.questionType === 'single_choice' && q.isDropdown && (
+                  <select
+                    value={selected[0] ?? ''}
+                    onChange={(e) => toggleOption(q, Number(e.target.value))}
+                  >
+                    <option value="" disabled>Select</option>
+                    {q.options.map((o) => (
+                      <option key={o.optionId} value={o.optionId}>{o.label}</option>
+                    ))}
+                  </select>
+                )}
+
+                {q.questionType === 'single_choice' && !q.isDropdown && (
                   <div className="grid g2">
                     {q.options.map((o) => (
                       <label className="chk" key={o.optionId}>
@@ -69,6 +91,36 @@ const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
                         <span>{o.label}</span>
                       </label>
                     ))}
+                  </div>
+                )}
+
+                {q.questionType === 'counter' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <button
+                      className="btn ghost sm"
+                      type="button"
+                      onClick={() => stepCounter(q, -1)}
+                      disabled={q.minValue != null && Number(answer.textValue ?? q.minValue ?? 0) <= q.minValue}
+                    >
+                      −
+                    </button>
+                    <input
+                      className="mono"
+                      style={{ width: 80, textAlign: 'center' }}
+                      value={answer.textValue ?? ''}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/[^0-9-]/g, '');
+                        setDynamicAnswer(q.questionId, { textValue: v });
+                      }}
+                    />
+                    <button
+                      className="btn ghost sm"
+                      type="button"
+                      onClick={() => stepCounter(q, 1)}
+                      disabled={q.maxValue != null && Number(answer.textValue ?? q.minValue ?? 0) >= q.maxValue}
+                    >
+                      +
+                    </button>
                   </div>
                 )}
 

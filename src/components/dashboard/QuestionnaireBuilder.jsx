@@ -9,6 +9,7 @@ const QUESTION_TYPES = [
   { value: 'short_text', label: 'Short text' },
   { value: 'single_choice', label: 'Single choice' },
   { value: 'multi_choice', label: 'Multiple choice' },
+  { value: 'counter', label: 'Counter (number)' },
 ];
 
 const emptyQuestionForm = {
@@ -19,6 +20,9 @@ const emptyQuestionForm = {
   max_length: '',
   min_selections: '',
   max_selections: '',
+  is_dropdown: false,
+  min_value: '',
+  max_value: '',
   options: ['', ''],
 };
 
@@ -141,8 +145,13 @@ const QuestionnaireBuilder = ({ processId, onBack }) => {
     max_length: q.max_length ?? '',
     min_selections: q.min_selections ?? '',
     max_selections: q.max_selections ?? '',
+    is_dropdown: !!q.is_dropdown,
+    min_value: q.min_value ?? '',
+    max_value: q.max_value ?? '',
     options: q.options.length ? q.options.map((o) => o.label) : ['', ''],
   });
+
+  const HAS_OPTIONS = (type) => type === 'single_choice' || type === 'multi_choice';
 
   const saveQuestion = async () => {
     const qm = questionModal;
@@ -154,7 +163,10 @@ const QuestionnaireBuilder = ({ processId, onBack }) => {
       max_length: qm.question_type === 'short_text' && qm.max_length !== '' ? Number(qm.max_length) : null,
       min_selections: qm.question_type === 'multi_choice' && qm.min_selections !== '' ? Number(qm.min_selections) : null,
       max_selections: qm.question_type === 'multi_choice' && qm.max_selections !== '' ? Number(qm.max_selections) : null,
-      options: qm.question_type === 'short_text' ? [] : qm.options.filter((o) => o.trim()).map((label) => ({ label: label.trim() })),
+      is_dropdown: qm.question_type === 'single_choice' ? !!qm.is_dropdown : false,
+      min_value: qm.question_type === 'counter' && qm.min_value !== '' ? Number(qm.min_value) : null,
+      max_value: qm.question_type === 'counter' && qm.max_value !== '' ? Number(qm.max_value) : null,
+      options: HAS_OPTIONS(qm.question_type) ? qm.options.filter((o) => o.trim()).map((label) => ({ label: label.trim() })) : [],
     };
     setSaving(true);
     try {
@@ -200,7 +212,7 @@ const QuestionnaireBuilder = ({ processId, onBack }) => {
 
   if (loading || !detail) return <div className="p-4 text-muted">Loading…</div>;
 
-  const isChoice = questionModal && questionModal.question_type !== 'short_text';
+  const isChoice = questionModal && HAS_OPTIONS(questionModal.question_type);
 
   return (
     <div className="p-4">
@@ -210,6 +222,9 @@ const QuestionnaireBuilder = ({ processId, onBack }) => {
         <div>
           <h4 className="mb-0">{detail.name}</h4>
           {detail.description && <p className="text-muted small mb-0">{detail.description}</p>}
+          <p className="text-muted small mb-0">
+            {detail.response_count} response{detail.response_count === 1 ? '' : 's'}
+          </p>
         </div>
         <div className="d-flex gap-2 align-items-center">
           <span className={`badge ${detail.status === 'published' ? 'bg-success' : detail.status === 'closed' ? 'bg-secondary' : 'bg-warning text-dark'}`}>
@@ -332,6 +347,42 @@ const QuestionnaireBuilder = ({ processId, onBack }) => {
                 value={questionModal.max_length}
                 onChange={(e) => setQuestionModal({ ...questionModal, max_length: e.target.value })}
               />
+            )}
+
+            {questionModal.question_type === 'counter' && (
+              <div className="row">
+                <div className="col-6">
+                  <Input
+                    label="Minimum value (optional)"
+                    id="qMinValue"
+                    type="number"
+                    value={questionModal.min_value}
+                    onChange={(e) => setQuestionModal({ ...questionModal, min_value: e.target.value })}
+                  />
+                </div>
+                <div className="col-6">
+                  <Input
+                    label="Maximum value (optional)"
+                    id="qMaxValue"
+                    type="number"
+                    value={questionModal.max_value}
+                    onChange={(e) => setQuestionModal({ ...questionModal, max_value: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
+
+            {questionModal.question_type === 'single_choice' && (
+              <div className="mb-3 form-check">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="qDropdown"
+                  checked={questionModal.is_dropdown}
+                  onChange={(e) => setQuestionModal({ ...questionModal, is_dropdown: e.target.checked })}
+                />
+                <label className="form-check-label" htmlFor="qDropdown">Show as a dropdown instead of radio buttons</label>
+              </div>
             )}
 
             {isChoice && (

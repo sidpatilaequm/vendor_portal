@@ -12,6 +12,7 @@ const ACTIVE_KEY = 'become_a_supplier';
 
 const Questionnaire = () => {
   const [processes, setProcesses] = useState([]);
+  const [draftCounts, setDraftCounts] = useState({});
   const [loading, setLoading] = useState(false);
   const [selectedProcessId, setSelectedProcessId] = useState(null);
   const [showNewModal, setShowNewModal] = useState(false);
@@ -24,7 +25,20 @@ const Questionnaire = () => {
     setLoading(true);
     try {
       const { data } = await axios.get('/api/questionnaire/processes', { headers: authHeaders() });
-      setProcesses(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      setProcesses(list);
+      // Form Studio's own response_count only counts *submitted* answers — a draft in progress
+      // never becomes a response row until submit, so it needs its own lookup (backend_java,
+      // not Form Studio, since only backend_java's supplier_registration table knows about drafts).
+      const counts = await Promise.all(
+        list.map((p) =>
+          axios
+            .get(`/api/questionnaire/${p.id}/draft-count`, { headers: authHeaders() })
+            .then((r) => [p.id, r.data.draftCount])
+            .catch(() => [p.id, 0])
+        )
+      );
+      setDraftCounts(Object.fromEntries(counts));
     } catch (err) {
       console.error('Failed to load questionnaires', err);
     } finally {
@@ -120,6 +134,7 @@ const Questionnaire = () => {
                 <th>Sections</th>
                 <th>Questions</th>
                 <th>Responses</th>
+                <th>Drafts in progress</th>
                 <th></th>
                 <th></th>
               </tr>
@@ -137,6 +152,13 @@ const Questionnaire = () => {
                   <td>{p.question_count}</td>
                   <td>{p.response_count}</td>
                   <td>
+                    {draftCounts[p.id] > 0 ? (
+                      <span className="badge bg-warning text-dark">{draftCounts[p.id]}</span>
+                    ) : (
+                      0
+                    )}
+                  </td>
+                  <td>
                     {p.external_key === ACTIVE_KEY ? (
                       <span className="badge bg-primary">Active for Become-a-Supplier</span>
                     ) : (
@@ -153,7 +175,14 @@ const Questionnaire = () => {
                   <td className="text-end">
                     <button className="btn btn-sm btn-outline-secondary me-1" onClick={() => setSelectedProcessId(p.id)}>Open</button>
                     <button className="btn btn-sm btn-outline-secondary me-1" onClick={() => duplicateProcess(p.id)}>Duplicate</button>
-                    <button className="btn btn-sm btn-outline-danger" onClick={() => deleteProcess(p.id)}>Delete</button>
+                    <button
+                      className="btn btn-sm btn-outline-danger"
+                      onClick={() => deleteProcess(p.id)}
+                      disabled={p.response_count > 0 || draftCounts[p.id] > 0}
+                      title={p.response_count > 0 || draftCounts[p.id] > 0 ? 'Has responses or drafts in progress — can\'t be deleted' : undefined}
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}

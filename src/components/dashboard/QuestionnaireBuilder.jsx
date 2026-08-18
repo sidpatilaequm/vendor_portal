@@ -32,6 +32,7 @@ const emptyQuestionForm = {
 // same "rebuild natively, don't iframe" precedent the Become-a-Supplier page itself set.
 const QuestionnaireBuilder = ({ processId, onBack }) => {
   const [detail, setDetail] = useState(null);
+  const [draftCount, setDraftCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const [sectionModal, setSectionModal] = useState(null); // { id?, title, description }
@@ -45,6 +46,12 @@ const QuestionnaireBuilder = ({ processId, onBack }) => {
     try {
       const { data } = await axios.get(`/api/questionnaire/processes/${processId}`, { headers: authHeaders() });
       setDetail(data);
+      // Form Studio's own response_count is submitted answers only — a draft never becomes a
+      // response row until submit, so "in progress" drafts need backend_java's own lookup.
+      axios
+        .get(`/api/questionnaire/${processId}/draft-count`, { headers: authHeaders() })
+        .then((r) => setDraftCount(r.data.draftCount))
+        .catch(() => setDraftCount(0));
     } catch (err) {
       alert('Could not load this questionnaire.');
       onBack();
@@ -224,6 +231,9 @@ const QuestionnaireBuilder = ({ processId, onBack }) => {
           {detail.description && <p className="text-muted small mb-0">{detail.description}</p>}
           <p className="text-muted small mb-0">
             {detail.response_count} response{detail.response_count === 1 ? '' : 's'}
+            {draftCount > 0 && (
+              <span className="badge bg-warning text-dark ms-2">{draftCount} draft{draftCount === 1 ? '' : 's'} in progress</span>
+            )}
           </p>
         </div>
         <div className="d-flex gap-2 align-items-center">

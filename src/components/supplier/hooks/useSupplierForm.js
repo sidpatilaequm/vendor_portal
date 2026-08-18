@@ -398,6 +398,7 @@ export function useSupplierForm() {
       dynamicAnswersJson: JSON.stringify(
         Object.entries(state.dynamicAnswers).map(([questionId, a]) => ({ questionId: Number(questionId), ...a }))
       ),
+      dynamicQuestionnaireProcessId: state.questionnaire?.processId ?? null,
       declarationAccepted: state.declaration,
       gstNumber: f.gstin || '',
       panNumber: f.pan || '',

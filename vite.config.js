@@ -140,6 +140,13 @@ export default defineConfig({
         target: WORKFLOW_TARGET,
         changeOrigin: true,
       },
+      // Admin CRUD only — WorkFlow already has real per-user auth, so this goes
+      // straight there (unlike /api/questionnaire, which proxies through
+      // backend_java because Form Studio has no auth of its own).
+      '/api/email-templates': {
+        target: WORKFLOW_TARGET,
+        changeOrigin: true,
+      },
       '/api/extract-invoice': {
         target: 'http://127.0.0.1:5000',
         changeOrigin: true,

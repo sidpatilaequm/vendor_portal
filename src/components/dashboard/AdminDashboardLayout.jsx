@@ -14,6 +14,7 @@ import ASN from './ASN';
 import BudgetApp from './BudgetApp';
 import IndentDashboard from './IndentDashboard';
 import Questionnaire from './Questionnaire';
+import AdminEmailTemplates from './AdminEmailTemplates';
 
 // Unified Coming Soon Component for Unimplemented Admin Screens
 const ComingSoonView = ({ moduleName, iconClass }) => {
@@ -146,6 +147,7 @@ const AdminDashboardLayout = () => {
     { id: 'wf_groups', label: 'Groups', icon: 'fas fa-users' },
     { id: 'wf_analytics', label: 'Analytics', icon: 'fas fa-chart-pie' },
     { id: 'wf_email_action', label: 'Email Action', icon: 'fas fa-envelope-open-text' },
+    { id: 'wf_email_templates', label: 'Email Templates', icon: 'fas fa-envelope' },
     { id: 'wf_settings', label: 'Settings', icon: 'fas fa-cog' }
   ];
 
@@ -178,6 +180,8 @@ const AdminDashboardLayout = () => {
       case 'wf_email_action':
       case 'wf_settings':
         return <AdminWorkflows subTab={activeTab} onNavigate={(tabId) => setActiveTab(tabId)} />;
+      case 'wf_email_templates':
+        return <AdminEmailTemplates />;
       case 'invitations':
         return <AdminInvitations />;
       case 'pr':

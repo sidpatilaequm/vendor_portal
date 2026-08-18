@@ -225,7 +225,33 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
       });
 
       if (response.status === 200 || response.status === 201) {
-        showToast('Purchase Requisition successfully submitted.');
+        // Trigger workflow
+        try {
+          let userId = 1;
+          const userStr = localStorage.getItem('user_data');
+          if (userStr) userId = JSON.parse(userStr).id || 1;
+
+          const prNum = response.data?.prNumber || 'Unknown';
+          const prId = response.data?.prId || response.data?.id || '';
+
+          const requestPayload = {
+            title: `PR Approval for: ${prNum}`,
+            description: `Please approve Purchase Requisition ${prNum}. Total items: ${items.length}`,
+            amount: response.data?.totalAmount || 0,
+            workflow_id: 12, // PR / Indent Approval workflow
+            request_metadata: { prId: prId }
+          };
+          await axios.post(`/api/requests/?user_id=${userId}`, requestPayload, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+        } catch (wfErr) {
+          console.error("Workflow trigger failed for PR:", wfErr);
+        }
+
+        showToast('Purchase Requisition successfully submitted and sent for approval.');
         setShowCreateModal(false);
         setNewPr({
           locationId: '',
@@ -534,37 +560,34 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
       if (userStr) {
         try { userId = JSON.parse(userStr).id || 1; } catch (e) { }
       }
-
-      let formattedWFReqs = [];
+      let rawWfData = [];
       try {
         const wfResponse = await axios.get(`/api/requests/?user_id=${userId}&workflow_id=12`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        const wfData = wfResponse.data || [];
-        formattedWFReqs = wfData.map(wr => {
-          let mappedStatus = wr.status ? wr.status.toUpperCase() : 'PENDING';
-          let statusBadge = 'warning';
-          if (mappedStatus === 'APPROVED') statusBadge = 'success';
-          if (mappedStatus === 'REJECTED') statusBadge = 'danger';
-
-          let dateStr = wr.created_at || '';
-          if (dateStr && dateStr.includes('T')) {
-            dateStr = dateStr.split('T')[0];
-          }
-
-          return {
-            pr_number: `REQ-${wr.id}`,
-            pr_status: mappedStatus,
-            status_slug: mappedStatus.toLowerCase(),
-            status_badge: statusBadge,
-            line_count: 1, // Workflow requests are single entities
-            created_by: `Submitter ${wr.submitter_id}`,
-            created_date: dateStr || 'N/A'
-          };
-        });
+        rawWfData = wfResponse.data || [];
       } catch (err) {
         console.warn('Failed to fetch workflow requests', err);
+      }
+      
+      // Force sync PR status from workflow if Java backend hasn't updated
+      if (rawWfData.length > 0) {
+         try {
+            rawWfData.forEach(wr => {
+               const prIdStr = wr.request_metadata?.prId;
+               if (prIdStr && wr.status === 'approved') {
+                  const prId = parseInt(prIdStr, 10);
+                  const pr = formattedPRs.find(p => p.id === prId);
+                  if (pr && pr.pr_status.toUpperCase() !== 'RELEASED' && pr.pr_status.toUpperCase() !== 'APPROVED') {
+                     pr.pr_status = 'APPROVED';
+                     pr.status_slug = 'approved';
+                     pr.status_badge = 'success';
+                  }
+               }
+            });
+         } catch (e) {
+            console.warn('Failed to sync PR status from WF', e);
+         }
       }
 
       const isVendor = role === 'VENDOR' || role === 'VENDOR_ADMIN';
@@ -579,8 +602,8 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
         }
       } else {
         if (mode === 'rfq') {
-          // Allow employees to see all active requisitions that might become RFQs
-          filteredArray = formattedPRs.filter(pr => pr.pr_status.toUpperCase() !== 'CLOSED');
+          // Allow employees to see ONLY approved/released requisitions for RFQ creation
+          filteredArray = formattedPRs.filter(pr => ['APPROVED', 'RELEASED'].includes(pr.pr_status.toUpperCase()));
         }
       }
 
@@ -674,7 +697,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
     const token = localStorage.getItem('auth_token');
 
     try {
-      const response = await axios.post(`/api/vendor/purchase-requisitions/${activePr.pr_number}/${action}`, {
+      const response = await axios.post(`/api/vendor/purchase-requisitions/${activePr.id}/${action}`, {
         comment: decisionComment
       }, {
         headers: {

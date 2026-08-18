@@ -8,7 +8,7 @@ const Quotation = ({ onBack, onNavigate }) => {
   const [quotations, setQuotations] = useState([]);
   const [showKpis, setShowKpis] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [filter, setFilter] = useState('submitted');
+  const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
 
   const extractPrId = (prStr) => {
@@ -27,6 +27,7 @@ const Quotation = ({ onBack, onNavigate }) => {
   const [showPrSelectModal, setShowPrSelectModal] = useState(false);
   const [availablePrs, setAvailablePrs] = useState([]);
   const [loadingPrs, setLoadingPrs] = useState(false);
+  const [prSearchQuery, setPrSearchQuery] = useState('');
 
   // Admin role states
   const [userRole, setUserRole] = useState('VENDOR');
@@ -62,15 +63,19 @@ const Quotation = ({ onBack, onNavigate }) => {
 
     const userStr = localStorage.getItem('user_data');
     let role = 'VENDOR';
+    let vendorId = 1381;
     if (userStr) {
       try {
         const u = JSON.parse(userStr);
         role = u.role?.toUpperCase() || 'VENDOR';
         setUserRole(role);
+        if (u.vendorId) vendorId = u.vendorId;
+        else if (u.companyId) vendorId = u.companyId;
+        else if (u.company?.companyId) vendorId = u.company.companyId;
       } catch (e) { }
     }
 
-    let apiEndpoint = '/api/vendor/quotations';
+    let apiEndpoint = `/api/vendor/quotations?vendor_id=${vendorId}`;
     if (role !== 'VENDOR' && role !== 'VENDOR_ADMIN') {
       apiEndpoint = `/api/vendor/all`;
     }
@@ -208,8 +213,21 @@ const Quotation = ({ onBack, onNavigate }) => {
   const fetchAvailablePrs = async () => {
     setLoadingPrs(true);
     const token = localStorage.getItem('auth_token');
+    
+    let vId = localStorage.getItem('vendor_id');
+    if (!vId) {
+      const userStr = localStorage.getItem('user_data');
+      if (userStr) {
+        try {
+          const u = JSON.parse(userStr);
+          vId = u.company_id || u.vendor_id || 1381;
+        } catch (e) {}
+      }
+    }
+    vId = vId || 1381;
+
     try {
-      const response = await axios.get('/api/vendor/purchase-requisitions/details', {
+      const response = await axios.get(`/api/vendor/purchase-requisitions/details?vendor_id=${vId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'
@@ -223,16 +241,17 @@ const Quotation = ({ onBack, onNavigate }) => {
         else if (data.data && Array.isArray(data.data)) content = data.data;
         else if (Array.isArray(data)) content = data;
       }
-      // Filter by RELEASED/APPROVED/OPEN/PENDING/ACKNOWLEDGED
+      // Filter by RELEASED/APPROVED/OPEN/PENDING/ACKNOWLEDGED and Vendor ACCEPTED/ACKNOWLEDGED
       const filtered = content.filter(item => {
         const s = (item.status || '').toUpperCase();
-        return ['RELEASED', 'APPROVED', 'OPEN', 'PENDING', 'ACKNOWLEDGED'].includes(s);
+        const vs = (item.vendorStatus || item.assignmentStatus || '').toUpperCase();
+        return ['RELEASED', 'APPROVED', 'OPEN', 'PENDING', 'ACKNOWLEDGED'].includes(s) || ['ACCEPTED', 'ACKNOWLEDGED'].includes(vs);
       });
       setAvailablePrs(filtered);
     } catch (err) {
       console.error('Failed to fetch PRs for selection modal, loading fallback.', err);
       setAvailablePrs([
-        { prNumber: 'PR-2026-0009', requestedBy: 'Inventory Manager', createdAt: '2026-05-07T00:00:00.000Z', items: [{}] }
+        { id: 999, prNumber: 'PR-2026-0009', requestedBy: 'Inventory Manager', createdAt: '2026-05-07T00:00:00.000Z', items: [{}] }
       ]);
     } finally {
       setLoadingPrs(false);
@@ -658,6 +677,21 @@ const Quotation = ({ onBack, onNavigate }) => {
               <button className="custom-modal-close-btn" onClick={() => setShowPrSelectModal(false)}>&times;</button>
             </div>
             <div className="custom-modal-body p-0">
+              <div className="p-3 border-bottom bg-light">
+                <div className="input-group input-group-sm w-100">
+                  <span className="input-group-text bg-white border-end-0 text-muted">
+                    <i className="fas fa-search"></i>
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control border-start-0"
+                    placeholder="Search PR Number..."
+                    value={prSearchQuery}
+                    onChange={(e) => setPrSearchQuery(e.target.value)}
+                    style={{ fontSize: '12px' }}
+                  />
+                </div>
+              </div>
               <div className="table-responsive" style={{ maxHeight: '350px' }}>
                 <table className="table table-hover align-middle mb-0 text-start" style={{ fontSize: '12px' }}>
                   <thead className="bg-light text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>
@@ -676,14 +710,14 @@ const Quotation = ({ onBack, onNavigate }) => {
                           Loading released purchase requisitions...
                         </td>
                       </tr>
-                    ) : availablePrs.length === 0 ? (
+                    ) : availablePrs.filter(pr => (pr.prNumber || pr.pr_number || '').toLowerCase().includes(prSearchQuery.toLowerCase())).length === 0 ? (
                       <tr>
                         <td colSpan="4" className="text-center py-4 text-muted">
-                          No released or approved PRs available.
+                          {prSearchQuery ? 'No matching PRs found.' : 'No released or approved PRs available.'}
                         </td>
                       </tr>
                     ) : (
-                      availablePrs.map((pr) => (
+                      availablePrs.filter(pr => (pr.prNumber || pr.pr_number || '').toLowerCase().includes(prSearchQuery.toLowerCase())).map((pr) => (
                         <tr key={pr.prNumber || pr.pr_number}>
                           <td className="ps-3 fw-bold text-success">{pr.prNumber || pr.pr_number}</td>
                           <td>{pr.createdBy || pr.created_by || 'System'}</td>

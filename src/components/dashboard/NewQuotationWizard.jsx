@@ -64,8 +64,8 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
             id: item.id || (idx + 1) * 10,
             item_code: item.sku || 'ITEM-001',
             description: item.materialDescription || item.sku || 'Material Description',
-            pr_qty: item.itemQuantity || 0,
-            quoted_qty: item.itemQuantity || 0,
+            pr_qty: item.quantity || item.itemQuantity || 0,
+            quoted_qty: item.quantity || item.itemQuantity || 0,
             uom: item.uom || 'MTR',
             unit_price: '',
             gst_percent: 18,
@@ -115,6 +115,7 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
   }, [prId]);
 
   const [vendorCode, setVendorCode] = useState('');
+  const [vendorIdState, setVendorIdState] = useState(null);
   useEffect(() => {
     try {
       const userStr = localStorage.getItem('user_data');
@@ -123,6 +124,7 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
         let cId = user.company_id || user.companyId || user.vendor_id || user.vendorId || user.id;
         if (user.email === 'markjhon@gmail.com' && !cId) cId = 1381;
         if (cId) {
+          setVendorIdState(cId);
           axios.get(`/api/vendors/${cId}`)
             .then(res => {
               if (res.data) setVendorCode(res.data.bp_no);
@@ -188,7 +190,7 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
   const freightTotal = 0; // Mock separate freight
   const grandTotal = subtotal + gstTotal + freightTotal;
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (isDraft = false) => {
     setSubmitting(true);
     setSubmitError('');
     const token = localStorage.getItem('auth_token');
@@ -212,7 +214,8 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
         vendor_reference_no: vendorRef || `REF-${Math.floor(100 + Math.random() * 900)}`,
         currency: currency,
         validity_days: parseInt(validityDays || 30),
-        valid_until: validUntil
+        valid_until: validUntil,
+        status: isDraft ? 'DRAFT' : 'SUBMITTED'
       },
       payment_terms: {
         payment_terms_id: paymentTerms === 'Net 30 Days' ? 1 : paymentTerms === 'Net 45 Days' ? 2 : 3,
@@ -249,16 +252,17 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
         freight_amount: 0
       })),
       documents: {
-        quotation_pdf: '',
-        technical_specification: [],
-        quality_certificate: [],
-        product_brochure: [],
-        other_documents: []
+        quotation_pdf: uploadedFile ? uploadedFile.name : '',
+        technical_specification: Object.keys(additionalDocs).filter(k => k.startsWith('technical')).map(k => ({ file_name: additionalDocs[k].name, file_size: additionalDocs[k].size, file_type: additionalDocs[k].type, file_path: '' })),
+        quality_certificate: Object.keys(additionalDocs).filter(k => k.startsWith('quality')).map(k => ({ file_name: additionalDocs[k].name, file_size: additionalDocs[k].size, file_type: additionalDocs[k].type, file_path: '' })),
+        product_brochure: Object.keys(additionalDocs).filter(k => k.startsWith('product')).map(k => ({ file_name: additionalDocs[k].name, file_size: additionalDocs[k].size, file_type: additionalDocs[k].type, file_path: '' })),
+        other_documents: Object.keys(additionalDocs).filter(k => k.startsWith('other')).map(k => ({ file_name: additionalDocs[k].name, file_size: additionalDocs[k].size, file_type: additionalDocs[k].type, file_path: '' }))
       }
     };
 
     try {
-      const response = await axios.post('/api/vendor/quotations', payload, {
+      const vId = vendorIdState || 1381;
+      const response = await axios.post(`/api/vendor/quotations?vendor_id=${vId}`, payload, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -289,6 +293,18 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
       const hasZeroPrice = lineItems.some(item => parseFloat(item.unit_price || 0) <= 0);
       if (hasZeroPrice) {
         alert("Please ensure all line items have a valid Unit Price greater than 0 before proceeding.");
+        return;
+      }
+    }
+    if (step === 4 && currentStep === 3) {
+      if (!uploadedFile) {
+        alert("Please upload your Quotation PDF before proceeding.");
+        return;
+      }
+      const requiredDocs = ['technical', 'quality', 'brochure', 'other'];
+      const missing = requiredDocs.filter(d => !additionalDocs[d]);
+      if (missing.length > 0) {
+        alert("Please upload all mandatory Additional Supporting Documents before proceeding.");
         return;
       }
     }
@@ -325,15 +341,12 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
             <button className="btn btn-link text-muted text-decoration-none small fw-semibold" onClick={onBack}>
               <i className="fas fa-arrow-left me-1"></i> Back
             </button>
-            <button className="btn btn-white border shadow-sm small fw-semibold" style={{ backgroundColor: '#fff', borderRadius: '6px' }}>
-              <i className="fas fa-save me-1 text-success"></i> Save Draft
-            </button>
             {currentStep === 4 ? (
               <button 
                 className="btn btn-dark shadow-sm px-4 fw-bold" 
                 style={{ borderRadius: '6px', backgroundColor: '#064e3b' }}
                 disabled={submitting}
-                onClick={handleSubmit}
+                onClick={() => handleSubmit(false)}
               >
                 {submitting ? 'Submitting...' : 'Submit Quotation'} <i className="fas fa-arrow-right ms-1"></i>
               </button>
@@ -897,7 +910,7 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
               </div>
             </div>
             <div className="card-body">
-              <label className="form-label text-muted fw-bold text-uppercase mb-3" style={{ fontSize: '10px' }}>Upload Your Quotation PDF <small className="text-muted fw-normal">(optional)</small></label>
+              <label className="form-label text-muted fw-bold text-uppercase mb-3" style={{ fontSize: '10px' }}>Upload Your Quotation PDF <span className="text-danger fw-bold">*</span></label>
               
               <div className="position-relative">
                 <input 
@@ -936,33 +949,27 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
                     <div style={{ fontSize: '12px' }}>{ocrSuccessMsg}</div>
                   </div>
                   {uploadedFile && (
-                    <div className="mt-2 border rounded p-3 bg-white d-flex align-items-center justify-content-between">
-                      <div className="d-flex align-items-center gap-2">
-                        <i className="fas fa-file-pdf text-danger fs-4"></i>
-                        <div>
-                          <p className="mb-0 fw-bold small text-dark">{uploadedFile.name}</p>
-                          <p className="mb-0 text-muted" style={{ fontSize: '10px' }}>{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                    <div className="mt-2 border rounded p-3 bg-white">
+                      <div className="d-flex align-items-center justify-content-between mb-3">
+                        <div className="d-flex align-items-center gap-2">
+                          <i className="fas fa-file-pdf text-danger fs-4"></i>
+                          <div>
+                            <p className="mb-0 fw-bold small text-dark">{uploadedFile.name}</p>
+                            <p className="mb-0 text-muted" style={{ fontSize: '10px' }}>{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                          </div>
+                        </div>
+                        <div className="d-flex gap-2">
+                          <a 
+                            href={URL.createObjectURL(uploadedFile)} 
+                            download={uploadedFile.name}
+                            className="btn btn-sm btn-outline-success fw-semibold"
+                            style={{ fontSize: '12px', borderRadius: '4px' }}
+                          >
+                            <i className="fas fa-download me-1"></i> Download
+                          </a>
                         </div>
                       </div>
-                      <div className="d-flex gap-2">
-                        <a 
-                          href={URL.createObjectURL(uploadedFile)} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="btn btn-sm btn-outline-primary fw-semibold"
-                          style={{ fontSize: '12px', borderRadius: '4px' }}
-                        >
-                          <i className="fas fa-eye me-1"></i> Preview
-                        </a>
-                        <a 
-                          href={URL.createObjectURL(uploadedFile)} 
-                          download={uploadedFile.name}
-                          className="btn btn-sm btn-outline-success fw-semibold"
-                          style={{ fontSize: '12px', borderRadius: '4px' }}
-                        >
-                          <i className="fas fa-download me-1"></i> Download
-                        </a>
-                      </div>
+                      <iframe src={URL.createObjectURL(uploadedFile)} width="100%" height="400px" style={{ border: '1px solid #e2e8f0', borderRadius: '6px' }} title="Quotation PDF Preview"></iframe>
                     </div>
                   )}
                 </div>
@@ -970,7 +977,7 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
 
 
 
-              <label className="form-label text-muted fw-bold text-uppercase mb-3" style={{ fontSize: '10px' }}>Additional Supporting Documents</label>
+              <label className="form-label text-muted fw-bold text-uppercase mb-3 mt-4" style={{ fontSize: '10px' }}>Additional Supporting Documents <span className="text-danger fw-bold">*</span></label>
               
               <input 
                 type="file" 
@@ -983,7 +990,7 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
                 }} 
               />
               
-              <div className="d-flex flex-wrap gap-2">
+              <div className="d-flex flex-column gap-2">
                 {[
                   { id: 'technical', label: 'Technical Specification' },
                   { id: 'quality', label: 'Quality Certificate' },
@@ -996,22 +1003,33 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
                       <div key={docType.id} className="border rounded p-2 bg-white d-flex align-items-center justify-content-between" style={{ minWidth: '220px' }}>
                         <div className="d-flex align-items-center gap-2">
                           <i className="fas fa-file-alt text-primary fs-5"></i>
-                          <div style={{ maxWidth: '120px' }} className="text-truncate">
+                          <div style={{ maxWidth: '200px' }} className="text-truncate">
                             <p className="mb-0 fw-bold text-dark" style={{ fontSize: '11px' }}>{docType.label}</p>
                             <p className="mb-0 text-muted text-truncate" style={{ fontSize: '10px' }} title={file.name}>{file.name}</p>
                           </div>
                         </div>
-                        <button 
-                          className="btn btn-sm btn-light border-0 text-danger ms-2" 
-                          style={{ padding: '2px 6px' }}
-                          onClick={() => {
-                            const newDocs = { ...additionalDocs };
-                            delete newDocs[docType.id];
-                            setAdditionalDocs(newDocs);
-                          }}
-                        >
-                          <i className="fas fa-times"></i>
-                        </button>
+                        <div className="d-flex align-items-center gap-2">
+                          <a 
+                            href={URL.createObjectURL(file)} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="btn btn-sm btn-outline-primary fw-semibold"
+                            style={{ fontSize: '11px', padding: '2px 8px' }}
+                          >
+                            <i className="fas fa-eye me-1"></i> Preview
+                          </a>
+                          <button 
+                            className="btn btn-sm btn-light border-0 text-danger" 
+                            style={{ padding: '2px 8px' }}
+                            onClick={() => {
+                              const newDocs = { ...additionalDocs };
+                              delete newDocs[docType.id];
+                              setAdditionalDocs(newDocs);
+                            }}
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        </div>
                       </div>
                     );
                   }
@@ -1019,14 +1037,14 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
                   return (
                     <button 
                       key={docType.id}
-                      className="btn btn-light border px-3 py-2 fw-semibold" 
+                      className="btn btn-light border px-3 py-2 fw-semibold text-start" 
                       style={{ fontSize: '12px', backgroundColor: '#fff', borderRadius: '6px' }}
                       onClick={() => {
                         setActiveDocType(docType.id);
                         document.getElementById('additional-doc-upload').click();
                       }}
                     >
-                      <i className="fas fa-plus me-1 text-success"></i> {docType.label}
+                      <i className="fas fa-plus me-2 text-success"></i> {docType.label}
                     </button>
                   );
                 })}
@@ -1045,12 +1063,11 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
               <button className="btn btn-link btn-sm text-muted text-decoration-none small fw-semibold" onClick={() => showStep(3)}>
                 <i className="fas fa-arrow-left me-1"></i> Back
               </button>
-              <button className="btn btn-white btn-sm border px-3 fw-bold" style={{ backgroundColor: '#fff', borderRadius: '6px' }}><i className="fas fa-save me-1 text-success"></i> Save Draft</button>
               <button 
                 className="btn btn-dark btn-sm px-4 fw-bold" 
                 style={{ borderRadius: '6px', backgroundColor: '#064e3b', borderColor: '#064e3b' }}
                 disabled={submitting}
-                onClick={handleSubmit}
+                onClick={() => handleSubmit(false)}
               >
                 {submitting ? 'Submitting...' : 'Submit Quotation'} <i className="fas fa-arrow-right ms-1"></i>
               </button>

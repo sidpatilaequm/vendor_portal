@@ -52,11 +52,11 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/employee/quote-comparison': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:8001',
         changeOrigin: true,
       },
       '/api/employee/award-quote': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:8001',
         changeOrigin: true,
       },
       '/api/employee': {

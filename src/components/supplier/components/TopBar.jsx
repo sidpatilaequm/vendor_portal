@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 
 // Ported from become-a-supplier/app/become-a-supplier/components/TopBar.tsx
-// "Ankit Aerospace" (the prototype's fictional demo company) is replaced with
-// this system's real brand, Aequm.
 const TopBar = ({ code, email, savedAt, dirty, submitted, onSave }) => {
   const [copied, setCopied] = useState(false);
 
@@ -23,7 +21,7 @@ const TopBar = ({ code, email, savedAt, dirty, submitted, onSave }) => {
     <div className="bar">
       <div className="bar-in">
         <div className="brand">
-          <div className="mark">A</div>
+          <img src="/ankit-logo.png" alt="Ankit Group" style={{ height: 32, width: 'auto' }} />
           <div>
             <div className="b1">Become a supplier</div>
             <div className="b2">Ankit Aerospace</div>

@@ -26,15 +26,18 @@ export const AuthProvider = ({ children }) => {
 
   const clearAlert = () => setAlert(null);
 
-  const login = async (email, password, loginType) => {
+  // Role comes back from the credentials themselves (data.authName, via the super_admin ->
+  // user_details/user_authentication/authorization lookup chain AuthController.login already
+  // does server-side) — there's no separate "which kind of account" choice for the caller to
+  // make, and no separate endpoint per role either; /api/auth/login/ handles vendor, employee
+  // and administrator credentials all the same way.
+  const login = async (email, password) => {
     setLoading(true);
     setAlert(null);
     try {
-      const endpoint = loginType === 'standard' ? '/api/super-admin/login' : '/api/auth/login/';
-      const response = await axios.post(endpoint, {
+      const response = await axios.post('/api/auth/login/', {
         email,
-        password,
-        login_type: loginType
+        password
       }, {
         headers: { 'Content-Type': 'application/json' }
       });
@@ -50,12 +53,22 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem('auth_token', data.token);
           setAuthToken(data.token);
         }
-        
+
         localStorage.setItem('user_data', JSON.stringify(userData));
         setCurrentUser(userData);
 
+        // Matches RouteGuards'/the "*" fallback route's own role categorization in App.jsx —
+        // computed here rather than trusted from the server, since the server can't know
+        // in advance which of those routing buckets the caller's UI will land them in.
+        const role = String(userData.role).toUpperCase();
+        const redirectUrl = role === 'VENDOR'
+          ? '/vendor/dashboard'
+          : (role === 'EMPLOYEE' || role === 'PURCHASE_DEPT')
+            ? '/employee/dashboard'
+            : '/admin/dashboard';
+
         showAlert('Login successful! Redirecting...', 'success');
-        return { success: true, redirectUrl: data.redirectUrl || '/dashboard' };
+        return { success: true, redirectUrl };
       } else {
         showAlert(data.error || 'Login failed. Please verify credentials.', 'danger');
         return { success: false };

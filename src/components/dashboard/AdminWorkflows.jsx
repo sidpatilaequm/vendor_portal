@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Button from '../common/Button';
+import SecureDocumentViewer from '../common/SecureDocumentViewer';
 
 const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   const currentUserInfo = JSON.parse(localStorage.getItem('user_data') || '{"userId": 1, "firstName": "Admin", "lastName": "User", "email": "admin@company.com", "role": "admin"}');
@@ -361,27 +362,16 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   }, [selectedRequest]);
 
   const [expandedDocType, setExpandedDocType] = useState(null);
-  const [previewLoadingDoc, setPreviewLoadingDoc] = useState(null);
+  const [viewerDoc, setViewerDoc] = useState(null);
 
-  // FolderIt's own presigned link forces a download, so the backend streams the bytes through
-  // /preview instead (inline disposition) — fetched here as a blob so we can attach the JWT,
-  // since that route lives outside /api/public/** and a plain <a href> can't send auth headers.
-  const handleViewDocument = async (doc) => {
+  // Opens the document in SecureDocumentViewer (canvas-rendered, view-only — see that
+  // component) rather than the plain new-tab blob this used to do, so a reviewer can look at a
+  // supplier's document without it being trivially "Save As"-able. The backend still streams
+  // it with an inline disposition through /preview (not FolderIt's own presigned, download-
+  // forcing link) — the viewer component does its own authenticated blob fetch from doc.previewUrl.
+  const handleViewDocument = (doc) => {
     if (!doc.previewUrl) return;
-    setPreviewLoadingDoc(doc.docType);
-    const token = localStorage.getItem('auth_token');
-    try {
-      const res = await axios.get(doc.previewUrl, {
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: 'blob',
-      });
-      const blobUrl = URL.createObjectURL(res.data);
-      window.open(blobUrl, '_blank', 'noopener');
-    } catch (err) {
-      alert('Could not load the document preview.');
-    } finally {
-      setPreviewLoadingDoc(null);
-    }
+    setViewerDoc(doc);
   };
 
   // WORKFLOW CRUD HANDLERS
@@ -1895,10 +1885,9 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                                       type="button"
                                       className="btn btn-light btn-sm border text-success fw-bold"
                                       style={{ fontSize: '11px' }}
-                                      disabled={previewLoadingDoc === d.docType}
                                       onClick={() => handleViewDocument(d)}
                                     >
-                                      {previewLoadingDoc === d.docType ? 'Loading…' : 'View'}
+                                      View
                                     </button>
                                   )}
                                   <button
@@ -1950,6 +1939,29 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                           );
                         })}
                       </div>
+
+                      {!!(reviewDetails.attachments || []).length && (
+                        <div className="mt-3">
+                          <label className="text-muted small fw-bold text-uppercase d-block mb-2">Other documents</label>
+                          <div className="d-flex flex-column gap-2">
+                            {reviewDetails.attachments.map((a) => (
+                              <div key={a.id} className="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                <div className="small fw-bold text-dark">{a.fileName}</div>
+                                {a.previewUrl && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-light btn-sm border text-success fw-bold"
+                                    style={{ fontSize: '11px' }}
+                                    onClick={() => handleViewDocument({ previewUrl: a.previewUrl, docName: a.fileName })}
+                                  >
+                                    View
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {!!(reviewDetails.dynamicAnswers || []).length && (
                         <>
@@ -2006,6 +2018,13 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
           </div>
         </div>
       )}
+
+      <SecureDocumentViewer
+        show={!!viewerDoc}
+        fetchUrl={viewerDoc?.previewUrl}
+        title={viewerDoc?.docName}
+        onClose={() => setViewerDoc(null)}
+      />
     </div>
   );
 };

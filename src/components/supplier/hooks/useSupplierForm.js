@@ -22,6 +22,9 @@ const initialState = {
   registrationId: null,
   email: null,
   docs: {},
+  // Free-form extra files with no fixed slot — array of {localId, id?, name, size, url, status,
+  // remoteStatus}. Keyed by an array, not an object like docs, since there's no docType to key by.
+  extraFiles: [],
   fields: {},
   src: {},
   businessTypes: [],
@@ -114,6 +117,25 @@ function reducer(state, action) {
       return { ...state, docs, fields, src, dirty: true };
     }
 
+    case 'EXTRA_FILE_START':
+      return { ...state, extraFiles: [...state.extraFiles, action.file] };
+
+    case 'EXTRA_FILE_DONE':
+      return {
+        ...state,
+        registrationId: action.registrationId || state.registrationId,
+        extraFiles: state.extraFiles.map((f) =>
+          f.localId === action.localId ? { ...f, status: 'read', remoteStatus: 'uploaded', id: action.id } : f
+        ),
+        dirty: true,
+      };
+
+    case 'EXTRA_FILE_ERROR':
+      return { ...state, extraFiles: state.extraFiles.filter((f) => f.localId !== action.localId) };
+
+    case 'REMOVE_EXTRA_FILE':
+      return { ...state, extraFiles: state.extraFiles.filter((f) => f.localId !== action.localId), dirty: true };
+
     case 'SET_FIELD': {
       const src = { ...state.src };
       if (src[action.key] && src[action.key] !== 'you') src[action.key] = 'you';
@@ -195,6 +217,7 @@ function reducer(state, action) {
         primaryContact: action.primaryContact,
         declaration: action.declaration,
         docs: { ...action.docs },
+        extraFiles: [...action.extraFiles],
         submitted: false,
         dirty: false,
       };
@@ -363,11 +386,70 @@ export function useSupplierForm() {
     [state.docs]
   );
 
-  function buildDraftPayload() {
+  // Extra files: no fixed slot (any number, appended to a list), no OCR/verify — otherwise the
+  // same upload mechanics and "pioneer" registration-id coordination as ingestFile above.
+  let extraFileSeed = 0;
+  const uploadExtraFile = useCallback(
+    async (file) => {
+      const localId = `extra-${Date.now()}-${extraFileSeed++}`;
+      const uploaded = { localId, name: file.name, size: file.size, url: URL.createObjectURL(file), status: 'reading' };
+      dispatch({ type: 'EXTRA_FILE_START', file: uploaded });
+
+      try {
+        let knownId = registrationIdRef.current;
+        if (!knownId && pendingFirstUpload.current) {
+          knownId = await pendingFirstUpload.current;
+        }
+
+        const form = new FormData();
+        form.append('file', file);
+        const params = knownId ? { registrationId: knownId } : {};
+        const uploadPromise = axios.post('/api/public/supplier-registration/attachments', form, {
+          params,
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        const isPioneer = !knownId && !pendingFirstUpload.current;
+        if (isPioneer) {
+          pendingFirstUpload.current = uploadPromise
+            .then((res) => res.data.data?.result?.registrationId)
+            .finally(() => { pendingFirstUpload.current = null; });
+        }
+
+        const { data } = await uploadPromise;
+        const result = data.data?.result || {};
+        if (result.registrationId) registrationIdRef.current = result.registrationId;
+        dispatch({ type: 'EXTRA_FILE_DONE', localId, id: result.attachmentId, registrationId: result.registrationId });
+      } catch (err) {
+        URL.revokeObjectURL(uploaded.url);
+        dispatch({ type: 'EXTRA_FILE_ERROR', localId });
+        showToast(`Could not upload ${file.name}.`);
+      }
+    },
+    [showToast]
+  );
+
+  const removeExtraFile = useCallback(
+    (localId) => {
+      const f = state.extraFiles.find((x) => x.localId === localId);
+      if (f?.url) URL.revokeObjectURL(f.url);
+      dispatch({ type: 'REMOVE_EXTRA_FILE', localId });
+      if (f?.id) {
+        axios.delete(`/api/public/supplier-registration/attachments/${f.id}`).catch(() => {});
+      }
+    },
+    [state.extraFiles]
+  );
+
+  function buildDraftPayload(explicitSave) {
     const f = state.fields;
     return {
       registrationId: state.registrationId,
       resumeCode: state.code,
+      // True only for a deliberate "Save draft" click — never for the silent ~3s background
+      // autosave — so the draft-saved email fires on every explicit save instead of a single
+      // one-time trigger, without turning into an email per keystroke while someone's typing.
+      explicitSave: !!explicitSave,
       contact1Name: f.c1_name || '',
       contact1Role: f.c1_role || '',
       contact1Email: f.c1_email || '',
@@ -416,16 +498,16 @@ export function useSupplierForm() {
     };
   }
 
-  const commitSave = useCallback(async () => {
+  const commitSave = useCallback(async (explicitSave) => {
     try {
-      const { data } = await axios.post('/api/public/supplier-registration/draft', buildDraftPayload());
+      const { data } = await axios.post('/api/public/supplier-registration/draft', buildDraftPayload(explicitSave));
       const result = data.data?.result || {};
       dispatch({ type: 'SET_CODE', code: result.resumeCode });
       dispatch({ type: 'SET_REGISTRATION_ID', registrationId: result.registrationId });
       registrationIdRef.current = result.registrationId;
       const at = 'Saved ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       dispatch({ type: 'MARK_SAVED', at });
-      showToast(`Draft <b>${result.resumeCode}</b> saved and emailed to ${state.email}.`);
+      showToast(`Draft <b>${result.resumeCode}</b> saved${explicitSave ? ` and emailed to ${state.email}` : ''}.`);
     } catch (err) {
       showToast('Could not save your draft — please try again.');
     }
@@ -437,7 +519,7 @@ export function useSupplierForm() {
       setEmailDialogOpen(true);
       return;
     }
-    commitSave();
+    commitSave(true);
   }, [state.email, commitSave]);
 
   const confirmEmailAndSave = useCallback(
@@ -447,7 +529,7 @@ export function useSupplierForm() {
         setField(`c${state.primaryContact}_email`, email);
       }
       setEmailDialogOpen(false);
-      setTimeout(() => commitSave(), 0);
+      setTimeout(() => commitSave(true), 0);
     },
     [state.fields, state.primaryContact, setField, commitSave]
   );
@@ -488,6 +570,10 @@ export function useSupplierForm() {
         Object.keys(d.values || {}).forEach((k) => { src[k] = d.docType; });
       });
       const hasSecondContact = !!(reg.contact2Name || reg.contact2Email || reg.contact2Role || reg.contact2Phone);
+      const extraFiles = (result.attachments || []).map((a) => ({
+        localId: `extra-remote-${a.id}`, id: a.id, name: a.fileName, size: 0, url: null,
+        status: 'read', remoteStatus: 'uploaded',
+      }));
 
       registrationIdRef.current = reg.id;
       dispatch({
@@ -508,6 +594,7 @@ export function useSupplierForm() {
         primaryContact: reg.primaryContact || 1,
         declaration: !!reg.declarationAccepted,
         docs,
+        extraFiles,
       });
       setResumeMessage({ text: 'Draft restored, documents and all.', ok: true });
     } catch (err) {
@@ -579,6 +666,8 @@ export function useSupplierForm() {
     setPrimaryContact,
     ingestFile,
     removeDoc,
+    uploadExtraFile,
+    removeExtraFile,
     saveDraft,
     confirmEmailAndSave,
     resumeDraft,

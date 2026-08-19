@@ -1,23 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { DOCS } from '../data';
 import { fmtSize } from '../lib/utils';
+import SecureDocumentViewer from '../../common/SecureDocumentViewer';
 
 const CHECK_SYMBOL = { ok: '✓', warn: '!', no: '✕' };
 
 // Ported from become-a-supplier/app/become-a-supplier/components/OnFileSection.tsx
 const OnFileSection = ({ state, readiness }) => {
+  const [viewerDoc, setViewerDoc] = useState(null);
   const files = DOCS.filter((d) => state.docs[d.id]?.status === 'read');
-  const total = files.reduce((t, d) => t + (state.docs[d.id].size || 0), 0);
+  const extras = state.extraFiles.filter((f) => f.status === 'read');
+  const total = files.reduce((t, d) => t + (state.docs[d.id].size || 0), 0) + extras.reduce((t, f) => t + (f.size || 0), 0);
+  const rowCount = files.length + extras.length;
 
   return (
     <section className="sec" id="sec-file">
       <div className="sh">
         <h2>On file</h2>
-        <span className="n">02</span>
+        <span className="n">03</span>
       </div>
       <p className="sdesc">Everything you have uploaded, kept with this draft until you submit. Open any of them here.</p>
 
-      {files.length === 0 ? (
+      {rowCount === 0 ? (
         <p className="sm muted">Nothing uploaded yet.</p>
       ) : (
         <>
@@ -42,15 +46,28 @@ const OnFileSection = ({ state, readiness }) => {
                     </td>
                     <td className="sm muted">{f.at}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <button className="btn ghost sm" type="button" onClick={() => f.url && window.open(f.url, '_blank', 'noopener')}>View</button>
+                      <button className="btn ghost sm" type="button" onClick={() => f.url && setViewerDoc({ url: f.url, name: d.name })}>View</button>
                     </td>
                   </tr>
                 );
               })}
+              {extras.map((f) => (
+                <tr key={f.localId}>
+                  <td>Other document</td>
+                  <td>
+                    <span className="sm">{f.name}</span>
+                    {f.size > 0 && <div className="xs muted mono">{fmtSize(f.size)}</div>}
+                  </td>
+                  <td className="sm muted"></td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button className="btn ghost sm" type="button" onClick={() => f.url && setViewerDoc({ url: f.url, name: f.name })}>View</button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
           <p className="sm muted" style={{ marginTop: 10 }}>
-            {files.length} file{files.length > 1 ? 's' : ''} · {fmtSize(total)} · held against {state.code || 'this draft'} until you submit.
+            {rowCount} file{rowCount > 1 ? 's' : ''} · {fmtSize(total)} · held against {state.code || 'this draft'} until you submit.
           </p>
         </>
       )}
@@ -68,6 +85,13 @@ const OnFileSection = ({ state, readiness }) => {
           ))
         )}
       </div>
+
+      <SecureDocumentViewer
+        show={!!viewerDoc}
+        fetchUrl={viewerDoc?.url}
+        title={viewerDoc?.name}
+        onClose={() => setViewerDoc(null)}
+      />
     </section>
   );
 };

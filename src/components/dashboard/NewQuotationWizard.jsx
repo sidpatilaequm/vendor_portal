@@ -210,11 +210,11 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
       vendor_code: vendorCode,
       quotation_header: {
         quotation_number: qtnNumber,
-        quotation_date: qtnDate,
+        quotation_date: qtnDate || null,
         vendor_reference_no: vendorRef || `REF-${Math.floor(100 + Math.random() * 900)}`,
         currency: currency,
         validity_days: parseInt(validityDays || 30),
-        valid_until: validUntil,
+        valid_until: validUntil || null,
         status: isDraft ? 'DRAFT' : 'SUBMITTED'
       },
       payment_terms: {
@@ -246,7 +246,7 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
         uom: item.uom,
         unit_price: parseFloat(item.unit_price || 0),
         gst_percent: parseFloat(item.gst_percent || 18),
-        delivery_date: item.delivery_date,
+        delivery_date: item.delivery_date || null,
         payment_terms_id: null,
         incoterm: null,
         freight_amount: 0

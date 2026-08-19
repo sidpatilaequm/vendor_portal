@@ -753,18 +753,24 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
 
   const filteredPrs = filter === 'all'
     ? prs
-    : prs.filter(item => item.status_slug === filter || (filter === 'open' && item.status_slug === 'new'));
+    : prs.filter(item => {
+        if (filter === 'approved') return item.status_slug === 'approved' || item.status_slug === 'released';
+        if (filter === 'pending') return item.status_slug === 'pending' || item.status_slug === 'in_process';
+        if (filter === 'open') return item.status_slug === 'new' || item.status_slug === 'open' || item.status_slug === 'created';
+        return item.status_slug === filter;
+      });
 
   return (
     <div className="fade-in-slide container-fluid py-4">
       {toastMessage && (
-        <div className="toast-container position-fixed top-0 end-0 p-3" style={{ zIndex: 1055 }}>
-          <div className="toast show align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div className="position-fixed top-0 end-0 p-3" style={{ zIndex: 1080 }}>
+          <div className="toast show align-items-center text-bg-success border-0 shadow-lg" role="alert">
             <div className="d-flex">
-              <div className="toast-body fw-bold">
-                <i className="fas fa-check-circle me-2"></i>{toastMessage}
+              <div className="toast-body fw-medium">
+                <i className="fas fa-check-circle me-2"></i>
+                {toastMessage}
               </div>
-              <button type="button" className="btn-close btn-close-white me-2 m-auto" onClick={() => setToastMessage(null)} aria-label="Close"></button>
+              <button type="button" className="btn-close btn-close-white me-2 m-auto" onClick={() => setToastMessage('')}></button>
             </div>
           </div>
         </div>
@@ -816,8 +822,8 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
             style={{ minWidth: '180px', borderRadius: '8px' }}
           >
             <option value="all">Status: All PRs</option>
-            <option value="released">Approved</option>
-            <option value="in_process">In Progress</option>
+            <option value="approved">Approved</option>
+            <option value="pending">In Progress</option>
             <option value="open">Open / New</option>
           </select>
         </div>
@@ -865,16 +871,16 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
               <table className="table table-hover align-middle mb-0 text-start">
                 <thead className="bg-light text-secondary fs-12 fw-semibold text-uppercase" style={{ letterSpacing: '0.5px' }}>
                   <tr>
-                    <th className="py-3 ps-4 border-0 rounded-start">PR NUMBER</th>
-                    <th className="py-3 border-0">PR DATE</th>
-                    <th className="py-3 border-0 rounded-end">STATUS</th>
+                    <th className="py-3 ps-4 border-0 rounded-start" style={{ width: '40%' }}>PR NUMBER</th>
+                    <th className="py-3 border-0" style={{ width: '30%' }}>PR DATE</th>
+                    <th className="py-3 pe-4 border-0 rounded-end text-end" style={{ width: '30%' }}>STATUS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan="6" className="text-center py-5"><div className="spinner-border text-success" role="status"></div><p className="mt-2 text-muted mb-0">Loading...</p></td></tr>
+                    <tr><td colSpan="3" className="text-center py-5"><div className="spinner-border text-success" role="status"></div><p className="mt-2 text-muted mb-0">Loading...</p></td></tr>
                   ) : filteredPrs.length === 0 ? (
-                    <tr><td colSpan="6" className="text-center text-muted py-5">No records found.</td></tr>
+                    <tr><td colSpan="3" className="text-center text-muted py-5">No records found.</td></tr>
                   ) : (
                     filteredPrs.map(pr => (
                       <tr
@@ -884,7 +890,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
                       >
                         <td className="py-3 fw-bold text-dark ps-4 border-bottom">{pr.pr_number}</td>
                         <td className="py-3 text-secondary border-bottom">{pr.created_date || "N/A"}</td>
-                        <td className="py-3 border-bottom">
+                        <td className="py-3 pe-4 border-bottom text-end">
                           <span className={`badge bg-soft-${pr.status_badge} text-${pr.status_badge} text-uppercase px-3 py-2 rounded-pill`}>{pr.pr_status}</span>
                         </td>
                       </tr>

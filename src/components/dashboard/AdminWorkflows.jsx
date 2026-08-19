@@ -48,6 +48,9 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState('');
   const [actionComment, setActionComment] = useState('');
+  
+  // Requests Filter state
+  const [requestFilter, setRequestFilter] = useState('pending');
 
   // Email Action processing states
   const [emailToken, setEmailToken] = useState('');
@@ -947,9 +950,10 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
             </Button>
           )}
           {isEmployee && (
-            <Button onClick={() => onNavigate ? onNavigate('dashboard') : window.history.back()} className="btn-secondary btn-sm">
-              <i className="fas fa-arrow-left me-1"></i> Back
-            </Button>
+            <div onClick={() => onNavigate ? onNavigate('dashboard') : window.history.back()} className="d-inline-flex align-items-center text-muted cursor-pointer" style={{ cursor: 'pointer' }}>
+              <i className="fas fa-arrow-left me-2"></i>
+              <span className="fw-medium">Back</span>
+            </div>
           )}
         </div>
       </div>
@@ -1031,8 +1035,19 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
               {/* Awaiting My Action requests */}
               <div className="col-lg-8 col-12">
                 <div className="card border-0 shadow-sm">
-                  <div className="card-header bg-white border-0 py-3">
+                  <div className="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
                     <h6 className="fw-bold text-dark mb-0">Active Requests Queue</h6>
+                    <select 
+                      className="form-select form-select-sm w-auto"
+                      value={requestFilter}
+                      onChange={(e) => setRequestFilter(e.target.value)}
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="all">All Statuses</option>
+                    </select>
                   </div>
                   <div className="card-body p-0">
                     <div className="table-responsive">
@@ -1048,8 +1063,8 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                           </tr>
                         </thead>
                         <tbody>
-                          {requests.length > 0 ? (
-                            requests.map(req => (
+                          {requests.filter(req => requestFilter === 'all' ? true : req.status === requestFilter).length > 0 ? (
+                            requests.filter(req => requestFilter === 'all' ? true : req.status === requestFilter).map(req => (
                               <tr key={req.id}>
                                 <td className="ps-4">
                                   <div className="fw-bold text-dark small">{req.title || 'Untitled Request'}</div>
@@ -1074,7 +1089,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                             ))
                           ) : (
                             <tr>
-                              <td colSpan="6" className="text-center py-5 text-muted small">No active requests awaiting approvals.</td>
+                              <td colSpan="6" className="text-center py-5 text-muted small">No active requests matching filter.</td>
                             </tr>
                           )}
                         </tbody>
@@ -1169,6 +1184,20 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
           {/* REQUESTS QUEUE TAB */}
           {currentTab === 'wf_requests' && (
             <div className="card border-0 shadow-sm">
+              <div className="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                <h6 className="fw-bold text-dark mb-0">Workflow Requests</h6>
+                <select 
+                  className="form-select form-select-sm w-auto"
+                  value={requestFilter}
+                  onChange={(e) => setRequestFilter(e.target.value)}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="all">All Statuses</option>
+                </select>
+              </div>
               <div className="card-body p-0">
                 <div className="table-responsive">
                   <table className="table table-hover align-middle mb-0">
@@ -1184,8 +1213,8 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {requests.length > 0 ? (
-                        requests.map(req => (
+                      {requests.filter(req => requestFilter === 'all' ? true : req.status === requestFilter).length > 0 ? (
+                        requests.filter(req => requestFilter === 'all' ? true : req.status === requestFilter).map(req => (
                           <tr key={req.id}>
                             <td className="ps-4 font-monospace small">
                               <div className="fw-bold text-dark">#{req.id}</div>
@@ -1211,7 +1240,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="7" className="text-center py-5 text-muted small">No request flow records initialized yet.</td>
+                          <td colSpan="7" className="text-center py-5 text-muted small">No request flow records matching filter.</td>
                         </tr>
                       )}
                     </tbody>

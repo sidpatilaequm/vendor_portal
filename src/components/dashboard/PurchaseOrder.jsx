@@ -13,8 +13,8 @@ const getStatusBadge = (s) => {
 };
 
 const PurchaseOrder = ({ onBack }) => {
-  const [vendorCodeInput, setVendorCodeInput] = useState('BP-MARK-01');
-  const [appliedVendorCode, setAppliedVendorCode] = useState('BP-MARK-01');
+  const [vendorCodeInput, setVendorCodeInput] = useState('');
+  const [appliedVendorCode, setAppliedVendorCode] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [expandedIdx, setExpandedIdx] = useState(null);
@@ -31,7 +31,7 @@ const PurchaseOrder = ({ onBack }) => {
       if (userStr) {
         const user = JSON.parse(userStr);
         // If it's our mock user Mark Jhon Supplies, default it to BP-MARK-01
-        if (user.email === 'markjhon@gmail.com') {
+        if (user.email === 'markjhon@gmail.com' || user.role === 'VENDOR') {
           setVendorCodeInput('BP-MARK-01');
           setAppliedVendorCode('BP-MARK-01');
         }
@@ -43,39 +43,55 @@ const PurchaseOrder = ({ onBack }) => {
     fetchData();
   }, [appliedVendorCode]);
 
+
   const fetchData = async () => {
     setLoading(true);
     setError('');
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await axios.get('/api/vendor/purchase-orders', {
-        headers: { 'Authorization': `Bearer ${token}` },
-        params: { vendor_code: appliedVendorCode }
+      const userStr = localStorage.getItem('user_data');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const isVendor = user?.role === 'VENDOR' || user?.email === 'markjhon@gmail.com';
+      
+      const endpoint = isVendor ? '/api/vendor/purchase-orders' : '/api/purchase-orders';
+
+      const response = await axios.get(endpoint, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      let finalData;
+      let rawOrders = [];
       if (Array.isArray(response.data)) {
-        const arr = response.data;
-        const totalPOs = arr.length;
-        const poIssued = arr.filter(p => ['CREATED', 'ISSUED', 'OPEN', 'RELEASED'].includes((p.status || p.poStatus || '').toUpperCase())).length;
-        const poDelivered = arr.filter(p => ['DELIVERED', 'COMPLETED', 'CLOSED', 'GR DONE', 'FULLY_SHIPPED'].includes((p.status || p.poStatus || '').toUpperCase())).length;
-        
-        finalData = {
-          vendorInfo: {},
-          summary: {
-            totalPOs,
-            poIssued,
-            poDelivered,
-            poInProcess: totalPOs - poDelivered
-          },
-          orders: arr.map(o => ({
-            ...o,
-            poStatus: o.poStatus || o.status
-          }))
-        };
-      } else {
-        finalData = response.data;
+        rawOrders = response.data;
+      } else if (response.data && response.data.orders) {
+        rawOrders = response.data.orders;
       }
+
+      if (!isVendor && appliedVendorCode) {
+        const searchUpper = appliedVendorCode.toUpperCase();
+        rawOrders = rawOrders.filter(o => 
+          (o.vendorCode && o.vendorCode.toUpperCase().includes(searchUpper)) || 
+          (o.sapVendorCode && o.sapVendorCode.toUpperCase().includes(searchUpper)) ||
+          (o.vendorName && o.vendorName.toUpperCase().includes(searchUpper))
+        );
+      }
+      
+      const totalPOs = rawOrders.length;
+      const poIssued = rawOrders.filter(p => ['CREATED', 'ISSUED', 'OPEN', 'RELEASED'].includes((p.status || p.poStatus || '').toUpperCase())).length;
+      const poDelivered = rawOrders.filter(p => ['DELIVERED', 'COMPLETED', 'CLOSED', 'GR DONE', 'FULLY_SHIPPED'].includes((p.status || p.poStatus || '').toUpperCase())).length;
+      
+      const finalData = {
+        vendorInfo: {},
+        summary: {
+          totalPOs,
+          poIssued,
+          poDelivered,
+          poInProcess: totalPOs - poDelivered
+        },
+        orders: rawOrders.map(o => ({
+          ...o,
+          poStatus: o.poStatus || o.status
+        }))
+      };
       
       setData(finalData);
       setExpandedIdx(null); // Reset expansion on new fetch

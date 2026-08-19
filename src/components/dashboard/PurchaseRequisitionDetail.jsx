@@ -70,10 +70,10 @@ const PurchaseRequisitionDetail = ({ prId, onBack, onAcknowledgeSuccess }) => {
           setSelectedVendors([]);
         }, 2000);
       } else {
-        setRfqAlert({ type: 'danger', message: response.data?.error || 'Failed to create RFQ.' });
+        setRfqAlert({ type: 'danger', message: response.data?.error || response.data?.detail || 'Failed to create RFQ.' });
       }
     } catch (err) {
-      setRfqAlert({ type: 'danger', message: err.response?.data?.error || 'Failed to create RFQ.' });
+      setRfqAlert({ type: 'danger', message: err.response?.data?.error || err.response?.data?.detail || 'Failed to create RFQ.' });
     } finally {
       setRfqLoading(false);
     }

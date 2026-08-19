@@ -152,7 +152,7 @@ const ASN = ({ onBack }) => {
         headers: {
           'Authorization': `Bearer ${token}`
         },
-        params: { vendor_code: 'BP-MARK-01' }
+        params: { vendor_code: '' } // Fetch all POs or let backend decide based on context
       });
       let data = response.data?.orders || response.data?.content || response.data || [];
       if (!Array.isArray(data)) data = [];

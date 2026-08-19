@@ -8,8 +8,6 @@ import Alert from './components/common/Alert';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import AdminDashboardLayout from './components/dashboard/AdminDashboardLayout';
 import SupplierRegistrationPage from './components/supplier/SupplierRegistrationPage';
-import Button from './components/common/Button';
-import Input from './components/common/Input';
 import './App.css';
 
 // Helper to decode JWT payload client-side without verification
@@ -29,67 +27,6 @@ const decodeJwt = (token) => {
     console.error("Failed to decode token", e);
     return null;
   }
-};
-
-// Employee login component
-const EmployeeLogin = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [info, setInfo] = useState('');
-  const { login, loading } = useAuth();
-  const navigate = useNavigate();
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setInfo('');
-    const res = await login(email, password, 'standard');
-    if (res.success) {
-      navigate(res.redirectUrl || '/employee/dashboard');
-    }
-  };
-
-  return (
-    <div className="form-card card fade-in-slide">
-      <div className="form-card-header">
-        <h2 className="form-card-title">Employee Sign in</h2>
-        <p className="form-card-subtitle">Secure access portal for procurement managers and executives</p>
-      </div>
-      <div className="form-card-body text-start">
-        <form onSubmit={handleSubmit}>
-          <Input
-            label="Employee ID / Email"
-            id="employee-email"
-            type="email"
-            placeholder="e.g. employee@company.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <Input
-            label="Password"
-            id="employee-password"
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          {info && (
-            <div className="alert alert-warning py-2 mb-3 small" role="alert">
-              <i className="fas fa-info-circle me-1"></i> {info}
-            </div>
-          )}
-          <Button type="submit" disabled={loading} className="w-100 btn-success" style={{ backgroundColor: '#064e3b', borderColor: '#064e3b' }}>
-            {loading ? (
-              <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Signing in...</>
-            ) : (
-              'Sign In'
-            )}
-          </Button>
-        </form>
-      </div>
-    </div>
-  );
 };
 
 // Route wrapper that guards based on authentications and roles

@@ -1,45 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Input from '../common/Input';
-import Select from '../common/Select';
 import Button from '../common/Button';
 
-const LoginForm = ({ onLoginSuccess, initialLoginType }) => {
+// Single sign-in form for every account type — the backend resolves the role from the
+// credentials themselves (see AuthContext.login), so there's nothing for the person signing in
+// to pre-select here. Whichever dashboard their account actually belongs to is where they land.
+const LoginForm = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
   const { login, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loginType, setLoginType] = useState(initialLoginType || 'vendor');
   const [keepSignedIn, setKeepSignedIn] = useState(false);
-
-  useEffect(() => {
-    if (initialLoginType) {
-      setLoginType(initialLoginType);
-    }
-  }, [initialLoginType]);
-
-  const accountOptions = [
-    { value: 'vendor',   label: 'Vendor Portal' },
-    { value: 'employee', label: 'Employee (Requester / Purchase Dept)' },
-    { value: 'standard', label: 'Administrator' }
-  ];
-
-  const getTitle = () => {
-    if (loginType === 'vendor')   return 'Vendor Sign in';
-    if (loginType === 'employee') return 'Employee Sign in';
-    return 'Administrator Sign in';
-  };
-
-  const getSubtitle = () => {
-    if (loginType === 'vendor')   return 'Access your secure supplier portal dashboard';
-    if (loginType === 'employee') return 'Create purchase requisitions and track approvals';
-    return 'Access the global procurement & administrative engine';
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const result = await login(email, password, loginType);
+    const result = await login(email, password);
     if (result.success) {
       if (onLoginSuccess) {
         onLoginSuccess(result.redirectUrl);
@@ -52,21 +29,11 @@ const LoginForm = ({ onLoginSuccess, initialLoginType }) => {
   return (
     <div className="form-card card fade-in-slide">
       <div className="form-card-header">
-        <h2 className="form-card-title">{getTitle()}</h2>
-        <p className="form-card-subtitle">{getSubtitle()}</p>
+        <h2 className="form-card-title">Sign in</h2>
+        <p className="form-card-subtitle">Access your account</p>
       </div>
       <div className="form-card-body">
         <form onSubmit={handleSubmit}>
-          {!initialLoginType && (
-            <Select
-              label="Account Type"
-              id="loginType"
-              options={accountOptions}
-              value={loginType}
-              onChange={(e) => setLoginType(e.target.value)}
-            />
-          )}
-
           <Input
             label="Work email"
             id="email"

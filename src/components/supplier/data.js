@@ -12,20 +12,20 @@ export const DOCS = [
     fields: [{ k: 'cin', label: 'CIN or LLPIN', req: true, mono: true, upper: true }],
   },
   {
-    id: 'pan',
-    name: 'PAN card',
-    req: true,
-    gives: 'PAN, verified against the Income Tax Department',
-    verifyKind: 'pan',
-    fields: [{ k: 'pan', label: 'PAN', req: true, mono: true, upper: true }],
-  },
-  {
     id: 'gst',
     name: 'GST registration certificate',
     req: true,
     gives: 'GSTIN, verified against the GST portal',
     verifyKind: 'gstin',
     fields: [{ k: 'gstin', label: 'GSTIN', req: true, mono: true, upper: true }],
+  },
+  {
+    id: 'pan',
+    name: 'PAN card',
+    req: true,
+    gives: 'PAN, verified against the Income Tax Department',
+    verifyKind: 'pan',
+    fields: [{ k: 'pan', label: 'PAN', req: true, mono: true, upper: true }],
   },
   {
     id: 'chq',

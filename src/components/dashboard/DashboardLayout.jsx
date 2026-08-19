@@ -10,6 +10,7 @@ import Reports from './Reports';
 import MaterialModule from './MaterialModule';
 import AdminVendors from './AdminVendors';
 import OnboardingComplianceDashboard from './OnboardingComplianceDashboard';
+import VendorMyProfile from './VendorMyProfile';
 import PrApprovalReport from './PrApprovalReport';
 import QuotationCycleReport from './QuotationCycleReport';
 import AdminWorkflows from './AdminWorkflows';
@@ -71,8 +72,13 @@ const DashboardLayout = () => {
         return <AdminVendors onBack={() => setActiveTab('dashboard')} />;
       case 'reports':
         return <Reports onNavigate={navigate} />;
-      case 'vendor-data':
+      case 'vendor-data': {
+        const role = getRoleFromStorage();
+        if (role === 'VENDOR' || role === 'VENDOR_ADMIN') {
+          return <VendorMyProfile onBack={() => setActiveTab('dashboard')} />;
+        }
         return <OnboardingComplianceDashboard onBack={() => setActiveTab('dashboard')} />;
+      }
       case 'admin-workflows':
         return <AdminWorkflows subTab="wf_dashboard" onNavigate={setActiveTab} />;
       case 'pr-approval-report':

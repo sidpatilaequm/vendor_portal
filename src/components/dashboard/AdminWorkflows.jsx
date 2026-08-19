@@ -358,6 +358,22 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
       .finally(() => setReviewLoading(false));
   }, [selectedRequest]);
 
+  // A vendor's self-service "change my document/answer" request — same webhook/approval
+  // mechanics as vendor_registration above, carrying changeRequestId instead of registrationId.
+  const [changeRequestDetail, setChangeRequestDetail] = useState(null);
+  useEffect(() => {
+    setChangeRequestDetail(null);
+    const changeRequestId = selectedRequest?.request_metadata?.changeRequestId;
+    if (!selectedRequest || selectedRequest.request_type !== 'vendor_change_request' || !changeRequestId) return;
+
+    setReviewLoading(true);
+    const token = localStorage.getItem('auth_token');
+    axios.get(`/api/supplier-registration/change-request/${changeRequestId}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => setChangeRequestDetail(data.data?.result || null))
+      .catch(() => setReviewError('Could not load the change request details.'))
+      .finally(() => setReviewLoading(false));
+  }, [selectedRequest]);
+
   const [expandedDocType, setExpandedDocType] = useState(null);
   const [viewerDoc, setViewerDoc] = useState(null);
 
@@ -1782,6 +1798,54 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                   </div>
                 </div>
               </div>
+
+              {/* A vendor's self-service request to change one already-approved document/attachment/answer */}
+              {selectedRequest.request_type === 'vendor_change_request' && (
+                <div className="mb-4">
+                  {reviewLoading && <div className="text-muted small">Loading change request…</div>}
+                  {reviewError && <div className="text-danger small">{reviewError}</div>}
+                  {changeRequestDetail && (
+                    <>
+                      <label className="text-muted small fw-bold text-uppercase d-block mb-2">Reason given</label>
+                      <div className="bg-light p-3 rounded mb-3 small text-dark">{changeRequestDetail.reason}</div>
+
+                      <div className="row g-3">
+                        <div className="col-6">
+                          <label className="text-muted small fw-bold text-uppercase d-block mb-1">Current value</label>
+                          <div className="border rounded p-2 small text-dark bg-light">{changeRequestDetail.oldValueSummary || '—'}</div>
+                        </div>
+                        <div className="col-6">
+                          <label className="text-muted small fw-bold text-uppercase d-block mb-1">Proposed new value</label>
+                          <div className="border rounded p-2 small text-dark bg-light">
+                            {changeRequestDetail.newFileName ? (
+                              <>
+                                <div className="mb-1">{changeRequestDetail.newFileName}</div>
+                                {changeRequestDetail.newFilePreviewUrl && (
+                                  <button
+                                    className="btn btn-sm btn-outline-primary"
+                                    onClick={() => setViewerDoc({ previewUrl: changeRequestDetail.newFilePreviewUrl, docName: changeRequestDetail.newFileName })}
+                                  >
+                                    View
+                                  </button>
+                                )}
+                              </>
+                            ) : changeRequestDetail.newAnswerJson ? (
+                              (() => {
+                                try {
+                                  const parsed = JSON.parse(changeRequestDetail.newAnswerJson);
+                                  if (parsed.rows) return `${parsed.rows.length} row${parsed.rows.length === 1 ? '' : 's'}`;
+                                  if (parsed.optionIds) return `Option id(s): ${parsed.optionIds.join(', ')}`;
+                                  return parsed.textValue || '—';
+                                } catch { return changeRequestDetail.newAnswerJson; }
+                              })()
+                            ) : '—'}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
 
               {/* Become-a-Supplier applications: full document set + extracted/verified fields */}
               {selectedRequest.request_type === 'vendor_registration' && (

@@ -138,6 +138,7 @@ export const REVIEW_FLOW = [
 
 export const SECTIONS = [
   { id: 'sec-docs', name: 'Documents and details' },
+  { id: 'sec-other', name: 'Other documents' },
   { id: 'sec-file', name: 'On file' },
   { id: 'sec-you', name: 'Only you can answer' },
   { id: 'sec-questions', name: 'Additional questions' },

@@ -7,6 +7,7 @@ import TopBar from './components/TopBar';
 import Rail from './components/Rail';
 import ResumeStrip from './components/ResumeStrip';
 import DocumentsSection from './components/DocumentsSection';
+import ExtraDocumentsSection from './components/ExtraDocumentsSection';
 import OnFileSection from './components/OnFileSection';
 import YouSection from './components/YouSection';
 import DynamicQuestionsSection from './components/DynamicQuestionsSection';
@@ -49,7 +50,7 @@ const SupplierRegistrationPage = () => {
   useEffect(() => {
     if (state.dirty) form.scheduleAutosave();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.dirty, state.fields, state.businessTypes, state.equipmentFacilities, state.directors, state.machinery, state.dynamicAnswers, state.docs, state.declaration]);
+  }, [state.dirty, state.fields, state.businessTypes, state.equipmentFacilities, state.directors, state.machinery, state.dynamicAnswers, state.docs, state.extraFiles, state.declaration]);
 
   // Warn on unload if there is unsaved work.
   useEffect(() => {
@@ -106,6 +107,7 @@ const SupplierRegistrationPage = () => {
             <>
               <ResumeStrip onResume={form.resumeDraft} message={resumeMessage} />
               <DocumentsSection form={form} />
+              <ExtraDocumentsSection form={form} />
               <OnFileSection state={state} readiness={readiness} />
               <YouSection form={form} />
               {hasQuestionnaire && (

@@ -52,7 +52,7 @@ const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
     <section className="sec" id="sec-questions">
       <div className="sh">
         <h2>{questionnaire.name}</h2>
-        <span className="n">04</span>
+        <span className="n">05</span>
       </div>
       <p className="sdesc">A few more questions before we can review your application.</p>
 

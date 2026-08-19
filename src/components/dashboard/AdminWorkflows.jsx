@@ -1894,6 +1894,29 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                         })}
                       </div>
 
+                      {!!(reviewDetails.attachments || []).length && (
+                        <div className="mt-3">
+                          <label className="text-muted small fw-bold text-uppercase d-block mb-2">Other documents</label>
+                          <div className="d-flex flex-column gap-2">
+                            {reviewDetails.attachments.map((a) => (
+                              <div key={a.id} className="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+                                <div className="small fw-bold text-dark">{a.fileName}</div>
+                                {a.previewUrl && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-light btn-sm border text-success fw-bold"
+                                    style={{ fontSize: '11px' }}
+                                    onClick={() => handleViewDocument({ previewUrl: a.previewUrl, docName: a.fileName })}
+                                  >
+                                    View
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {!!(reviewDetails.dynamicAnswers || []).length && (
                         <>
                           <label className="text-muted small fw-bold text-uppercase d-block mb-2 mt-3">Additional Questions</label>

@@ -36,11 +36,9 @@ const Header = ({ onNavigate }) => {
   return (
     <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top px-4 py-2" style={{ height: '70px', zIndex: 1000 }}>
       <div className="container-fluid d-flex justify-content-between align-items-center">
-        {/* Brand logo matching legacy styling */}
+        {/* Brand logo */}
         <div className="d-flex align-items-center">
-          <span className="fw-bold fs-4 text-uppercase d-flex align-items-center gap-2" style={{ color: '#064e3b', letterSpacing: '0.5px', fontFamily: "'Inter', sans-serif" }}>
-            <i className="fas fa-cubes text-success"></i> AEQUM
-          </span>
+          <img src="/ankit-logo.png" alt="Ankit Group" style={{ height: 34, width: 'auto' }} />
         </div>
 
         {/* Right side profile info */}

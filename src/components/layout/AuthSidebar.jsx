@@ -5,8 +5,7 @@ const AuthSidebar = () => {
     <div className="auth-sidebar">
       <div className="sidebar-content">
         <a href="/" className="brand-logo">
-          <i className="fa-solid fa-layer-group me-2"></i>
-          <span>Aequm</span>
+          <img src="/ankit-logo.png" alt="Ankit Group" style={{ height: 34, width: 'auto' }} />
         </a>
         
         <div className="sidebar-middle">

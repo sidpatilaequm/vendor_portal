@@ -441,11 +441,15 @@ export function useSupplierForm() {
     [state.extraFiles]
   );
 
-  function buildDraftPayload() {
+  function buildDraftPayload(explicitSave) {
     const f = state.fields;
     return {
       registrationId: state.registrationId,
       resumeCode: state.code,
+      // True only for a deliberate "Save draft" click — never for the silent ~3s background
+      // autosave — so the draft-saved email fires on every explicit save instead of a single
+      // one-time trigger, without turning into an email per keystroke while someone's typing.
+      explicitSave: !!explicitSave,
       contact1Name: f.c1_name || '',
       contact1Role: f.c1_role || '',
       contact1Email: f.c1_email || '',
@@ -494,16 +498,16 @@ export function useSupplierForm() {
     };
   }
 
-  const commitSave = useCallback(async () => {
+  const commitSave = useCallback(async (explicitSave) => {
     try {
-      const { data } = await axios.post('/api/public/supplier-registration/draft', buildDraftPayload());
+      const { data } = await axios.post('/api/public/supplier-registration/draft', buildDraftPayload(explicitSave));
       const result = data.data?.result || {};
       dispatch({ type: 'SET_CODE', code: result.resumeCode });
       dispatch({ type: 'SET_REGISTRATION_ID', registrationId: result.registrationId });
       registrationIdRef.current = result.registrationId;
       const at = 'Saved ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       dispatch({ type: 'MARK_SAVED', at });
-      showToast(`Draft <b>${result.resumeCode}</b> saved and emailed to ${state.email}.`);
+      showToast(`Draft <b>${result.resumeCode}</b> saved${explicitSave ? ` and emailed to ${state.email}` : ''}.`);
     } catch (err) {
       showToast('Could not save your draft — please try again.');
     }
@@ -515,7 +519,7 @@ export function useSupplierForm() {
       setEmailDialogOpen(true);
       return;
     }
-    commitSave();
+    commitSave(true);
   }, [state.email, commitSave]);
 
   const confirmEmailAndSave = useCallback(
@@ -525,7 +529,7 @@ export function useSupplierForm() {
         setField(`c${state.primaryContact}_email`, email);
       }
       setEmailDialogOpen(false);
-      setTimeout(() => commitSave(), 0);
+      setTimeout(() => commitSave(true), 0);
     },
     [state.fields, state.primaryContact, setField, commitSave]
   );

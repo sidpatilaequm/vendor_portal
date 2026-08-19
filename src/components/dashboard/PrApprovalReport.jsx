@@ -50,11 +50,14 @@ export default function PrApprovalReport({ onBack }) {
     setLoading(true);
     setError(null);
     try {
-      const endpoint = vendorId
-        ? `/api/vendor/purchase-requisitions?vendor_id=${vendorId}`
-        : `/api/vendor/purchase-requisitions?vendor_code=${realVendorCode || 'BP-MARK-01'}`;
+      const vId = vendorId || 1381; // fallback to 1381 if vendorId is somehow missing
+      const endpoint = `/api/vendor/purchase-requisitions?vendor_id=${vId}`;
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(endpoint, {
-        headers: { 'X-Employee-Id': 'EMP001' } // Keep your existing header logic
+        headers: {
+          'X-Employee-Id': 'EMP001',
+          'Authorization': `Bearer ${token}`
+        }
       });
       const resData = await response.json();
 

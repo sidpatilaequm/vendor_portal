@@ -112,9 +112,15 @@ export default function QuotationCycleReport({ onBack }) {
         { headers: { 'X-Employee-Id': 'EMP001' } }
       );
       const resData = await response.json();
-      const content = resData.prs || [];
+      let content = [];
+      if (Array.isArray(resData)) {
+        content = resData;
+      } else if (resData && Array.isArray(resData.prs)) {
+        content = resData.prs;
+      }
+      
       const filtered = content.filter(item => {
-        const s = (item.status || item.vendorStatus || item.vendor_status || '').toUpperCase();
+        const s = (item.status || item.vendorStatus || item.assignmentStatus || item.vendor_status || '').toUpperCase();
         return s === 'ACCEPTED' || s === 'ACKNOWLEDGED' || s === 'WON'; // Also including WON in case backend maps it
       });
       setAvailablePrs(filtered);

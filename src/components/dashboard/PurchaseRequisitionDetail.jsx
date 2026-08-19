@@ -64,38 +64,16 @@ const PurchaseRequisitionDetail = ({ prId, onBack, onAcknowledgeSuccess }) => {
         }
       });
       if (response.data?.status === 'success' || response.status === 200) {
-        try {
-          let userId = 1;
-          const userStr = localStorage.getItem('user_data');
-          if (userStr) userId = JSON.parse(userStr).id || 1;
-
-          const requestPayload = {
-            title: `RFQ Creation for PR: ${prData?.prNumber || prId}`,
-            description: `Please approve RFQ for PR ${prData?.prNumber || prId}. Total items: ${prData?.itemCount || prData?.items?.length || 0}`,
-            amount: prData?.totalAmount || 0,
-            workflow_id: 12,
-            request_metadata: {}
-          };
-          await axios.post(`/api/requests/?user_id=${userId}`, requestPayload, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-        } catch (wfErr) {
-          console.error("Workflow trigger failed for RFQ:", wfErr);
-        }
-
         setRfqAlert({ type: 'success', message: 'RFQ created successfully! PR is now visible to selected vendors.' });
         setTimeout(() => {
           setShowRfqModal(false);
           setSelectedVendors([]);
         }, 2000);
       } else {
-        setRfqAlert({ type: 'danger', message: response.data?.error || 'Failed to create RFQ.' });
+        setRfqAlert({ type: 'danger', message: response.data?.error || response.data?.detail || 'Failed to create RFQ.' });
       }
     } catch (err) {
-      setRfqAlert({ type: 'danger', message: err.response?.data?.error || 'Failed to create RFQ.' });
+      setRfqAlert({ type: 'danger', message: err.response?.data?.error || err.response?.data?.detail || 'Failed to create RFQ.' });
     } finally {
       setRfqLoading(false);
     }

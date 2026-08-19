@@ -30,18 +30,26 @@ const QuotationDetail = ({ qtnId, onBack, qtnDataFromList }) => {
     // Check if user is Admin
     const userStr = localStorage.getItem('user_data');
     let role = 'VENDOR';
+    let vendorId = 1381;
     if (userStr) {
       try {
         const u = JSON.parse(userStr);
         role = u.role?.toUpperCase() || 'VENDOR';
         setUserRole(role);
+        if (u.vendorId) vendorId = u.vendorId;
+        else if (u.companyId) vendorId = u.companyId;
+        else if (u.company?.companyId) vendorId = u.company.companyId;
       } catch (e) {}
     }
     
-    const isAdmin = role !== 'VENDOR';
+    const isAdmin = role !== 'VENDOR' && role !== 'VENDOR_ADMIN';
     const basePath = isAdmin ? '/api/admin/quotations' : '/api/vendor/quotations';
     const isNumeric = !isNaN(qtnId);
     let apiEndpoint = isNumeric ? `${basePath}/${qtnId}` : `${basePath}/number/${qtnId}`;
+    
+    if (!isAdmin) {
+      apiEndpoint += `?vendor_id=${vendorId}`;
+    }
 
     try {
       const response = await axios.get(apiEndpoint, {
@@ -247,7 +255,8 @@ const QuotationDetail = ({ qtnId, onBack, qtnDataFromList }) => {
     setAwardAlert(null);
     const token = localStorage.getItem('auth_token');
     try {
-      await axios.post(`/api/vendor/purchase-orders/from-awarded-quotation/${qtnData.id || qtnId}`, {
+      const targetId = qtnData.quotation_id || qtnData.id || qtnId;
+      await axios.post(`/api/admin/quotations/${targetId}/award`, {
         remarks: awardRemarks
       }, {
         headers: {
@@ -283,7 +292,8 @@ const QuotationDetail = ({ qtnId, onBack, qtnDataFromList }) => {
     setPoAlert(null);
     const token = localStorage.getItem('auth_token');
     try {
-      await axios.post(`/api/vendor/purchase-orders/from-awarded-quotation/${qtnData.id || qtnId}`, {
+      const targetId = qtnData.quotation_id || qtnData.id || qtnId;
+      await axios.post(`/api/purchase-orders/from-awarded-quotation/${targetId}`, {
         deliveryAddress,
         shippingInstructions,
         remarks: poRemarks

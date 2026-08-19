@@ -225,7 +225,33 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
       });
 
       if (response.status === 200 || response.status === 201) {
-        showToast('Purchase Requisition successfully submitted.');
+        // Trigger workflow
+        try {
+          let userId = 1;
+          const userStr = localStorage.getItem('user_data');
+          if (userStr) userId = JSON.parse(userStr).id || 1;
+
+          const prNum = response.data?.prNumber || 'Unknown';
+          const prId = response.data?.prId || response.data?.id || '';
+
+          const requestPayload = {
+            title: `PR Approval for: ${prNum}`,
+            description: `Please approve Purchase Requisition ${prNum}. Total items: ${items.length}`,
+            amount: response.data?.totalAmount || 0,
+            workflow_id: 12, // PR / Indent Approval workflow
+            request_metadata: { prId: prId }
+          };
+          await axios.post(`/api/requests/?user_id=${userId}`, requestPayload, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+        } catch (wfErr) {
+          console.error("Workflow trigger failed for PR:", wfErr);
+        }
+
+        showToast('Purchase Requisition successfully submitted and sent for approval.');
         setShowCreateModal(false);
         setNewPr({
           locationId: '',
@@ -534,37 +560,34 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
       if (userStr) {
         try { userId = JSON.parse(userStr).id || 1; } catch (e) { }
       }
-
-      let formattedWFReqs = [];
+      let rawWfData = [];
       try {
         const wfResponse = await axios.get(`/api/requests/?user_id=${userId}&workflow_id=12`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        const wfData = wfResponse.data || [];
-        formattedWFReqs = wfData.map(wr => {
-          let mappedStatus = wr.status ? wr.status.toUpperCase() : 'PENDING';
-          let statusBadge = 'warning';
-          if (mappedStatus === 'APPROVED') statusBadge = 'success';
-          if (mappedStatus === 'REJECTED') statusBadge = 'danger';
-
-          let dateStr = wr.created_at || '';
-          if (dateStr && dateStr.includes('T')) {
-            dateStr = dateStr.split('T')[0];
-          }
-
-          return {
-            pr_number: `REQ-${wr.id}`,
-            pr_status: mappedStatus,
-            status_slug: mappedStatus.toLowerCase(),
-            status_badge: statusBadge,
-            line_count: 1, // Workflow requests are single entities
-            created_by: `Submitter ${wr.submitter_id}`,
-            created_date: dateStr || 'N/A'
-          };
-        });
+        rawWfData = wfResponse.data || [];
       } catch (err) {
         console.warn('Failed to fetch workflow requests', err);
+      }
+      
+      // Force sync PR status from workflow if Java backend hasn't updated
+      if (rawWfData.length > 0) {
+         try {
+            rawWfData.forEach(wr => {
+               const prIdStr = wr.request_metadata?.prId;
+               if (prIdStr && wr.status === 'approved') {
+                  const prId = parseInt(prIdStr, 10);
+                  const pr = formattedPRs.find(p => p.id === prId);
+                  if (pr && pr.pr_status.toUpperCase() !== 'RELEASED' && pr.pr_status.toUpperCase() !== 'APPROVED') {
+                     pr.pr_status = 'APPROVED';
+                     pr.status_slug = 'approved';
+                     pr.status_badge = 'success';
+                  }
+               }
+            });
+         } catch (e) {
+            console.warn('Failed to sync PR status from WF', e);
+         }
       }
 
       const isVendor = role === 'VENDOR' || role === 'VENDOR_ADMIN';
@@ -579,8 +602,8 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
         }
       } else {
         if (mode === 'rfq') {
-          // Allow employees to see all active requisitions that might become RFQs
-          filteredArray = formattedPRs.filter(pr => pr.pr_status.toUpperCase() !== 'CLOSED');
+          // Allow employees to see ONLY approved/released requisitions for RFQ creation
+          filteredArray = formattedPRs.filter(pr => ['APPROVED', 'RELEASED'].includes(pr.pr_status.toUpperCase()));
         }
       }
 
@@ -674,7 +697,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
     const token = localStorage.getItem('auth_token');
 
     try {
-      const response = await axios.post(`/api/vendor/purchase-requisitions/${activePr.pr_number}/${action}`, {
+      const response = await axios.post(`/api/vendor/purchase-requisitions/${activePr.id}/${action}`, {
         comment: decisionComment
       }, {
         headers: {
@@ -730,18 +753,24 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
 
   const filteredPrs = filter === 'all'
     ? prs
-    : prs.filter(item => item.status_slug === filter || (filter === 'open' && item.status_slug === 'new'));
+    : prs.filter(item => {
+        if (filter === 'approved') return item.status_slug === 'approved' || item.status_slug === 'released';
+        if (filter === 'pending') return item.status_slug === 'pending' || item.status_slug === 'in_process';
+        if (filter === 'open') return item.status_slug === 'new' || item.status_slug === 'open' || item.status_slug === 'created';
+        return item.status_slug === filter;
+      });
 
   return (
     <div className="fade-in-slide container-fluid py-4">
       {toastMessage && (
-        <div className="toast-container position-fixed top-0 end-0 p-3" style={{ zIndex: 1055 }}>
-          <div className="toast show align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div className="position-fixed top-0 end-0 p-3" style={{ zIndex: 1080 }}>
+          <div className="toast show align-items-center text-bg-success border-0 shadow-lg" role="alert">
             <div className="d-flex">
-              <div className="toast-body fw-bold">
-                <i className="fas fa-check-circle me-2"></i>{toastMessage}
+              <div className="toast-body fw-medium">
+                <i className="fas fa-check-circle me-2"></i>
+                {toastMessage}
               </div>
-              <button type="button" className="btn-close btn-close-white me-2 m-auto" onClick={() => setToastMessage(null)} aria-label="Close"></button>
+              <button type="button" className="btn-close btn-close-white me-2 m-auto" onClick={() => setToastMessage('')}></button>
             </div>
           </div>
         </div>
@@ -793,8 +822,8 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
             style={{ minWidth: '180px', borderRadius: '8px' }}
           >
             <option value="all">Status: All PRs</option>
-            <option value="released">Approved</option>
-            <option value="in_process">In Progress</option>
+            <option value="approved">Approved</option>
+            <option value="pending">In Progress</option>
             <option value="open">Open / New</option>
           </select>
         </div>
@@ -842,16 +871,16 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
               <table className="table table-hover align-middle mb-0 text-start">
                 <thead className="bg-light text-secondary fs-12 fw-semibold text-uppercase" style={{ letterSpacing: '0.5px' }}>
                   <tr>
-                    <th className="py-3 ps-4 border-0 rounded-start">PR NUMBER</th>
-                    <th className="py-3 border-0">PR DATE</th>
-                    <th className="py-3 border-0 rounded-end">STATUS</th>
+                    <th className="py-3 ps-4 border-0 rounded-start" style={{ width: '40%' }}>PR NUMBER</th>
+                    <th className="py-3 border-0" style={{ width: '30%' }}>PR DATE</th>
+                    <th className="py-3 pe-4 border-0 rounded-end text-end" style={{ width: '30%' }}>STATUS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan="6" className="text-center py-5"><div className="spinner-border text-success" role="status"></div><p className="mt-2 text-muted mb-0">Loading...</p></td></tr>
+                    <tr><td colSpan="3" className="text-center py-5"><div className="spinner-border text-success" role="status"></div><p className="mt-2 text-muted mb-0">Loading...</p></td></tr>
                   ) : filteredPrs.length === 0 ? (
-                    <tr><td colSpan="6" className="text-center text-muted py-5">No records found.</td></tr>
+                    <tr><td colSpan="3" className="text-center text-muted py-5">No records found.</td></tr>
                   ) : (
                     filteredPrs.map(pr => (
                       <tr
@@ -861,7 +890,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
                       >
                         <td className="py-3 fw-bold text-dark ps-4 border-bottom">{pr.pr_number}</td>
                         <td className="py-3 text-secondary border-bottom">{pr.created_date || "N/A"}</td>
-                        <td className="py-3 border-bottom">
+                        <td className="py-3 pe-4 border-bottom text-end">
                           <span className={`badge bg-soft-${pr.status_badge} text-${pr.status_badge} text-uppercase px-3 py-2 rounded-pill`}>{pr.pr_status}</span>
                         </td>
                       </tr>

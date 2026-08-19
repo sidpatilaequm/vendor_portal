@@ -7,7 +7,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   const currentUserInfo = JSON.parse(localStorage.getItem('user_data') || '{"userId": 1, "firstName": "Admin", "lastName": "User", "email": "admin@company.com", "role": "admin"}');
   const userRole = String(currentUserInfo?.role || '').toUpperCase();
   const isEmployee = (userRole === 'EMPLOYEE' || userRole === 'PURCHASE_DEPT' || userRole === 'SUBMITTER' || userRole === 'APPROVER');
-  
+
   const currentTab = isEmployee ? 'wf_requests' : (subTab.startsWith('wf_') ? subTab : `wf_${subTab}`);
 
   const [loading, setLoading] = useState(false);
@@ -16,7 +16,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   const [users, setUsers] = useState([]);
   const [requests, setRequests] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
-  
+
   // Modals & form states
   const [showWfModal, setShowWfModal] = useState(false);
   const [editingWfId, setEditingWfId] = useState(null);
@@ -37,7 +37,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   const [reqEntity, setReqEntity] = useState('');
   const [reqAmount, setReqAmount] = useState('');
   const [reqContext, setReqContext] = useState('');
-  
+
   // Group modal states
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
@@ -49,6 +49,9 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState('');
   const [actionComment, setActionComment] = useState('');
+  
+  // Requests Filter state
+  const [requestFilter, setRequestFilter] = useState('pending');
 
   // Email Action processing states
   const [emailToken, setEmailToken] = useState('');
@@ -304,15 +307,15 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
       if (!isEmployee) {
         try {
           const res = await axios.get(`/api/messages/?user_id=${userId}`, { headers });
-        if (res.data && Array.isArray(res.data)) {
-          setActiveBroadcasts(res.data);
-          setLocalData('workflows_broadcasts', res.data);
-        } else {
+          if (res.data && Array.isArray(res.data)) {
+            setActiveBroadcasts(res.data);
+            setLocalData('workflows_broadcasts', res.data);
+          } else {
+            setActiveBroadcasts(getLocalData('workflows_broadcasts'));
+          }
+        } catch (err) {
           setActiveBroadcasts(getLocalData('workflows_broadcasts'));
         }
-      } catch (err) {
-        setActiveBroadcasts(getLocalData('workflows_broadcasts'));
-      }
       }
 
       // Fetch OOO config
@@ -581,11 +584,32 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
     const wfAction = action === 'approve' ? 'approved' : 'rejected';
 
     try {
-      await axios.post(`/api/requests/action/${selectedRequest.id}`, null, {
-        params: { action: wfAction, user_id: userId, comment: actionComment },
+      const mappedAction = action === 'approve' ? 'approved' : 'rejected';
+      const response = await axios.post(`/api/requests/action/${selectedRequest.id}`, null, {
+        params: { action: mappedAction, user_id: userId, comment: actionComment },
         headers,
       });
+
       logActivity(`Processed action "${action}" on Request #${selectedRequest.id}`);
+
+      if (response.data && response.data.status === 'approved') {
+        const prId = response.data.request_metadata?.prId || selectedRequest.request_metadata?.prId;
+        if (prId) {
+          try {
+            await axios.post(`/api/purchase-requisitions/${prId}/status`, { status: 'APPROVED' }, { headers });
+            console.log(`Updated PR ${prId} status to APPROVED`);
+          } catch (e) { console.error('Failed to update PR status', e); }
+        }
+      } else if (response.data && response.data.status === 'rejected') {
+        const prId = response.data.request_metadata?.prId || selectedRequest.request_metadata?.prId;
+        if (prId) {
+          try {
+            await axios.post(`/api/purchase-requisitions/${prId}/status`, { status: 'REJECTED' }, { headers });
+            console.log(`Updated PR ${prId} status to REJECTED`);
+          } catch (e) { console.error('Failed to update PR status', e); }
+        }
+      }
+
       setSelectedRequest(null);
       setActionComment('');
       fetchAllData();
@@ -675,7 +699,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
     const headers = { 'Authorization': `Bearer ${token}` };
 
     try {
-        await axios.post(`/api/stages/approver-groups/${groupId}/members?user_id=${userId}`, { user_id: targetUserId, sequential_order: 1, is_optional: false }, { headers });
+      await axios.post(`/api/stages/approver-groups/${groupId}/members?user_id=${userId}`, { user_id: targetUserId, sequential_order: 1, is_optional: false }, { headers });
       logActivity(`Added user ${targetUserId} to Approver Group ${groupId}`);
       fetchAllData();
     } catch (err) {
@@ -932,42 +956,42 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
             </Button>
           )}
           {isEmployee && (
-            <Button onClick={() => onNavigate ? onNavigate('dashboard') : window.history.back()} className="btn-secondary btn-sm">
-              <i className="fas fa-arrow-left me-1"></i> Back
-            </Button>
+            <div onClick={() => onNavigate ? onNavigate('dashboard') : window.history.back()} className="d-inline-flex align-items-center text-muted cursor-pointer" style={{ cursor: 'pointer' }}>
+              <i className="fas fa-arrow-left me-2"></i>
+              <span className="fw-medium">Back</span>
+            </div>
           )}
         </div>
       </div>
 
       {/* Tabs list inside screen (dual routing support) */}
       {!isEmployee && (
-      <div className="card border-0 shadow-sm mb-4">
-        <div className="card-body p-2">
-          <ul className="nav nav-pills gap-1">
-            {[
-              { id: 'wf_dashboard', label: 'Dashboard', icon: 'fas fa-tachometer-alt' },
-              { id: 'wf_list', label: 'Workflows', icon: 'fas fa-project-diagram' },
-              { id: 'wf_requests', label: 'Requests', icon: 'fas fa-tasks' },
-              { id: 'wf_groups', label: 'Groups', icon: 'fas fa-users' },
-              { id: 'wf_analytics', label: 'Analytics', icon: 'fas fa-chart-pie' },
-              { id: 'wf_email_action', label: 'Email Action', icon: 'fas fa-envelope-open-text' },
-              { id: 'wf_settings', label: 'Settings', icon: 'fas fa-cog' }
-            ].map(tab => (
-              <li key={tab.id} className="nav-item">
-                <button
-                  className={`nav-link border-0 py-2 px-3 rounded fw-semibold small d-flex align-items-center gap-2 ${
-                    currentTab === tab.id ? 'active-tab-style' : 'text-dark hover-tab-style'
-                  }`}
-                  onClick={() => onNavigate ? onNavigate(tab.id) : null}
-                >
-                  <i className={tab.icon} style={{ fontSize: '12px' }}></i>
-                  {tab.label}
-                </button>
-              </li>
-            ))}
-          </ul>
+        <div className="card border-0 shadow-sm mb-4">
+          <div className="card-body p-2">
+            <ul className="nav nav-pills gap-1">
+              {[
+                { id: 'wf_dashboard', label: 'Dashboard', icon: 'fas fa-tachometer-alt' },
+                { id: 'wf_list', label: 'Workflows', icon: 'fas fa-project-diagram' },
+                { id: 'wf_requests', label: 'Requests', icon: 'fas fa-tasks' },
+                { id: 'wf_groups', label: 'Groups', icon: 'fas fa-users' },
+                { id: 'wf_analytics', label: 'Analytics', icon: 'fas fa-chart-pie' },
+                { id: 'wf_email_action', label: 'Email Action', icon: 'fas fa-envelope-open-text' },
+                { id: 'wf_settings', label: 'Settings', icon: 'fas fa-cog' }
+              ].map(tab => (
+                <li key={tab.id} className="nav-item">
+                  <button
+                    className={`nav-link border-0 py-2 px-3 rounded fw-semibold small d-flex align-items-center gap-2 ${currentTab === tab.id ? 'active-tab-style' : 'text-dark hover-tab-style'
+                      }`}
+                    onClick={() => onNavigate ? onNavigate(tab.id) : null}
+                  >
+                    <i className={tab.icon} style={{ fontSize: '12px' }}></i>
+                    {tab.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-      </div>
       )}
 
       {loading ? (
@@ -1017,8 +1041,19 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
               {/* Awaiting My Action requests */}
               <div className="col-lg-8 col-12">
                 <div className="card border-0 shadow-sm">
-                  <div className="card-header bg-white border-0 py-3">
+                  <div className="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
                     <h6 className="fw-bold text-dark mb-0">Active Requests Queue</h6>
+                    <select 
+                      className="form-select form-select-sm w-auto"
+                      value={requestFilter}
+                      onChange={(e) => setRequestFilter(e.target.value)}
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="all">All Statuses</option>
+                    </select>
                   </div>
                   <div className="card-body p-0">
                     <div className="table-responsive">
@@ -1034,8 +1069,8 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                           </tr>
                         </thead>
                         <tbody>
-                          {requests.length > 0 ? (
-                            requests.map(req => (
+                          {requests.filter(req => requestFilter === 'all' ? true : req.status === requestFilter).length > 0 ? (
+                            requests.filter(req => requestFilter === 'all' ? true : req.status === requestFilter).map(req => (
                               <tr key={req.id}>
                                 <td className="ps-4">
                                   <div className="fw-bold text-dark small">{req.title || 'Untitled Request'}</div>
@@ -1045,10 +1080,9 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                                 <td><span className="badge bg-success-subtle text-success">{req.pending_group_name || 'Completed'}</span></td>
                                 <td><span className="small text-muted">{formatTimeAgo(req.submitted_at)}</span></td>
                                 <td>
-                                  <span className={`badge ${
-                                    req.status === 'approved' ? 'bg-success text-white' :
-                                    req.status === 'rejected' ? 'bg-danger text-white' : 'bg-warning text-dark'
-                                  } px-2.5 py-1 rounded-pill small`}>
+                                  <span className={`badge ${req.status === 'approved' ? 'bg-success text-white' :
+                                      req.status === 'rejected' ? 'bg-danger text-white' : 'bg-warning text-dark'
+                                    } px-2.5 py-1 rounded-pill small`}>
                                     {req.status}
                                   </span>
                                 </td>
@@ -1061,7 +1095,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                             ))
                           ) : (
                             <tr>
-                              <td colSpan="6" className="text-center py-5 text-muted small">No active requests awaiting approvals.</td>
+                              <td colSpan="6" className="text-center py-5 text-muted small">No active requests matching filter.</td>
                             </tr>
                           )}
                         </tbody>
@@ -1156,6 +1190,20 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
           {/* REQUESTS QUEUE TAB */}
           {currentTab === 'wf_requests' && (
             <div className="card border-0 shadow-sm">
+              <div className="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                <h6 className="fw-bold text-dark mb-0">Workflow Requests</h6>
+                <select 
+                  className="form-select form-select-sm w-auto"
+                  value={requestFilter}
+                  onChange={(e) => setRequestFilter(e.target.value)}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="all">All Statuses</option>
+                </select>
+              </div>
               <div className="card-body p-0">
                 <div className="table-responsive">
                   <table className="table table-hover align-middle mb-0">
@@ -1171,8 +1219,8 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {requests.length > 0 ? (
-                        requests.map(req => (
+                      {requests.filter(req => requestFilter === 'all' ? true : req.status === requestFilter).length > 0 ? (
+                        requests.filter(req => requestFilter === 'all' ? true : req.status === requestFilter).map(req => (
                           <tr key={req.id}>
                             <td className="ps-4 font-monospace small">
                               <div className="fw-bold text-dark">#{req.id}</div>
@@ -1183,10 +1231,9 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                             <td><span className="badge bg-success-subtle text-success">{req.pending_group_name || 'Completed'}</span></td>
                             <td><span className="small text-muted">{formatTimeAgo(req.submitted_at)}</span></td>
                             <td>
-                              <span className={`badge ${
-                                req.status === 'approved' ? 'bg-success text-white' :
-                                req.status === 'rejected' ? 'bg-danger text-white' : 'bg-warning text-dark'
-                              } px-2.5 py-1 rounded-pill small`}>
+                              <span className={`badge ${req.status === 'approved' ? 'bg-success text-white' :
+                                  req.status === 'rejected' ? 'bg-danger text-white' : 'bg-warning text-dark'
+                                } px-2.5 py-1 rounded-pill small`}>
                                 {req.status}
                               </span>
                             </td>
@@ -1199,7 +1246,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="7" className="text-center py-5 text-muted small">No request flow records initialized yet.</td>
+                          <td colSpan="7" className="text-center py-5 text-muted small">No request flow records matching filter.</td>
                         </tr>
                       )}
                     </tbody>
@@ -1789,10 +1836,9 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                 <div className="col-6">
                   <div className="bg-light p-3 rounded">
                     <label className="text-muted small fw-bold text-uppercase d-block mb-1">Current State</label>
-                    <span className={`badge ${
-                      selectedRequest.status === 'approved' ? 'bg-success text-white' :
-                      selectedRequest.status === 'rejected' ? 'bg-danger text-white' : 'bg-warning text-dark'
-                    } px-2 py-0.5 rounded small`}>
+                    <span className={`badge ${selectedRequest.status === 'approved' ? 'bg-success text-white' :
+                        selectedRequest.status === 'rejected' ? 'bg-danger text-white' : 'bg-warning text-dark'
+                      } px-2 py-0.5 rounded small`}>
                       {selectedRequest.status}
                     </span>
                   </div>

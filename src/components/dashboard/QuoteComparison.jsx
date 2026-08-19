@@ -45,7 +45,12 @@ export default function QuoteComparison({ onBack, initialPrNumber }) {
     }
     
     setLoading(true);
-    fetch(url)
+    const token = localStorage.getItem('auth_token');
+    fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
       .then(res => res.json())
       .then(resData => {
         setData(resData);
@@ -70,9 +75,14 @@ export default function QuoteComparison({ onBack, initialPrNumber }) {
     setAwarding(true);
     setAwardResult(null);
     try {
-      const res = await fetch('/api/employee/award-quote', {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`/api/employee/award-quote`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Employee-Id': String(employeeId) },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'X-Employee-Id': String(employeeId),
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ employee_id: String(employeeId), quotation_id: cmp.recommendation.quotationId }),
       });
       const body = await res.json().catch(() => null);

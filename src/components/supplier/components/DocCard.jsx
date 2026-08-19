@@ -1,10 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { fmtSize } from '../lib/utils';
 import DocFieldInput from './DocField';
+import SecureDocumentViewer from '../../common/SecureDocumentViewer';
 
 // Ported from become-a-supplier/app/become-a-supplier/components/DocCard.tsx
 const DocCard = ({ doc, file, fields, src, errors, onFile, onRemove, onFieldChange }) => {
   const [dragOver, setDragOver] = useState(false);
+  const [showViewer, setShowViewer] = useState(false);
   const inputRef = useRef(null);
 
   const status = file?.status;
@@ -68,7 +70,7 @@ const DocCard = ({ doc, file, fields, src, errors, onFile, onRemove, onFieldChan
             <div className="fm">{fmtSize(file.size)} · uploaded {file.at}</div>
           </div>
           <div className="acts">
-            <button className="btn ghost sm" type="button" onClick={() => file.url && window.open(file.url, '_blank', 'noopener')}>View</button>
+            <button className="btn ghost sm" type="button" onClick={() => file.url && setShowViewer(true)}>View</button>
             <button className="btn ghost sm" type="button" onClick={() => inputRef.current?.click()}>Replace</button>
             <button className="btn ghost sm" type="button" onClick={onRemove}>Remove</button>
           </div>
@@ -122,6 +124,13 @@ const DocCard = ({ doc, file, fields, src, errors, onFile, onRemove, onFieldChan
           )}
         </div>
       )}
+
+      <SecureDocumentViewer
+        show={showViewer}
+        fetchUrl={file?.url}
+        title={doc.name}
+        onClose={() => setShowViewer(false)}
+      />
     </div>
   );
 };

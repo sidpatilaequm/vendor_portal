@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { DOCS } from '../data';
 import { fmtSize } from '../lib/utils';
+import SecureDocumentViewer from '../../common/SecureDocumentViewer';
 
 const CHECK_SYMBOL = { ok: '✓', warn: '!', no: '✕' };
 
 // Ported from become-a-supplier/app/become-a-supplier/components/OnFileSection.tsx
 const OnFileSection = ({ state, readiness }) => {
+  const [viewerDoc, setViewerDoc] = useState(null);
   const files = DOCS.filter((d) => state.docs[d.id]?.status === 'read');
   const total = files.reduce((t, d) => t + (state.docs[d.id].size || 0), 0);
 
@@ -42,7 +44,7 @@ const OnFileSection = ({ state, readiness }) => {
                     </td>
                     <td className="sm muted">{f.at}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <button className="btn ghost sm" type="button" onClick={() => f.url && window.open(f.url, '_blank', 'noopener')}>View</button>
+                      <button className="btn ghost sm" type="button" onClick={() => f.url && setViewerDoc({ url: f.url, name: d.name })}>View</button>
                     </td>
                   </tr>
                 );
@@ -68,6 +70,13 @@ const OnFileSection = ({ state, readiness }) => {
           ))
         )}
       </div>
+
+      <SecureDocumentViewer
+        show={!!viewerDoc}
+        fetchUrl={viewerDoc?.url}
+        title={viewerDoc?.name}
+        onClose={() => setViewerDoc(null)}
+      />
     </section>
   );
 };

@@ -39,10 +39,18 @@ export function computeDynamicReadiness(questionnaire, dynamicAnswers) {
       if (!q.isMandatory) continue;
       total++;
       const answer = dynamicAnswers[q.questionId] || {};
-      const ok =
-        q.questionType === 'short_text' || q.questionType === 'counter'
-          ? isFilled(answer.textValue)
-          : Array.isArray(answer.optionIds) && answer.optionIds.length > 0;
+      let ok;
+      if (q.questionType === 'short_text' || q.questionType === 'counter') {
+        ok = isFilled(answer.textValue);
+      } else if (q.questionType === 'table') {
+        const floor = q.minRows || 1;
+        const complete = (answer.rows || []).filter((row) =>
+          q.columns.every((c) => !c.isRequired || isFilled(row[String(c.columnId)]))
+        );
+        ok = complete.length >= floor;
+      } else {
+        ok = Array.isArray(answer.optionIds) && answer.optionIds.length > 0;
+      }
       if (ok) {
         filled++;
       } else {

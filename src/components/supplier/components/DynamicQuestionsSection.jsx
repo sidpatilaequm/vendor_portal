@@ -33,6 +33,21 @@ const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
     setDynamicAnswer(question.questionId, { textValue: String(next) });
   };
 
+  const blankRow = (question) => Object.fromEntries(question.columns.map((c) => [String(c.columnId), '']));
+  const rowsFor = (question) => {
+    const rows = answerFor(question.questionId).rows;
+    return rows && rows.length ? rows : [blankRow(question)];
+  };
+  const setCell = (question, rowIndex, columnId, value) => {
+    const rows = rowsFor(question).map((row, i) => (i === rowIndex ? { ...row, [columnId]: value } : row));
+    setDynamicAnswer(question.questionId, { rows });
+  };
+  const addRow = (question) => setDynamicAnswer(question.questionId, { rows: [...rowsFor(question), blankRow(question)] });
+  const removeRow = (question, rowIndex) => {
+    const rows = rowsFor(question).filter((_, i) => i !== rowIndex);
+    setDynamicAnswer(question.questionId, { rows: rows.length ? rows : [blankRow(question)] });
+  };
+
   return (
     <section className="sec" id="sec-questions">
       <div className="sh">
@@ -136,6 +151,69 @@ const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
                         <span>{o.label}</span>
                       </label>
                     ))}
+                  </div>
+                )}
+
+                {q.questionType === 'table' && (
+                  <div>
+                    <div style={{ overflowX: 'auto', border: '1px solid var(--line, #dee4e6)', borderRadius: 6 }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                        <thead>
+                          <tr>
+                            {q.columns.map((c) => (
+                              <th
+                                key={c.columnId}
+                                style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid var(--line, #dee4e6)', whiteSpace: 'nowrap' }}
+                              >
+                                {c.label}{c.isRequired && <span className="req">*</span>}
+                              </th>
+                            ))}
+                            <th style={{ width: 1 }} />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rowsFor(q).map((row, rowIndex) => (
+                            <tr key={rowIndex}>
+                              {q.columns.map((c) => (
+                                <td key={c.columnId} style={{ padding: '4px 6px', borderBottom: '1px solid var(--line, #dee4e6)' }}>
+                                  <input
+                                    type={c.columnType === 'number' ? 'number' : c.columnType === 'date' ? 'date' : 'text'}
+                                    value={row[String(c.columnId)] ?? ''}
+                                    onChange={(e) => setCell(q, rowIndex, String(c.columnId), e.target.value)}
+                                    style={{ minWidth: 120 }}
+                                  />
+                                </td>
+                              ))}
+                              <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--line, #dee4e6)' }}>
+                                <button
+                                  className="btn ghost sm" type="button"
+                                  onClick={() => removeRow(q, rowIndex)}
+                                  disabled={rowsFor(q).length <= 1}
+                                >
+                                  Remove
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div style={{ marginTop: 8 }}>
+                      <button
+                        className="btn ghost sm" type="button"
+                        onClick={() => addRow(q)}
+                        disabled={q.maxRows != null && rowsFor(q).length >= q.maxRows}
+                      >
+                        + Add row
+                      </button>
+                      {(q.minRows || q.maxRows) && (
+                        <span className="sm muted" style={{ marginLeft: 10 }}>
+                          {q.minRows ? `At least ${q.minRows} row${q.minRows === 1 ? '' : 's'}` : ''}
+                          {q.minRows && q.maxRows ? ' · ' : ''}
+                          {q.maxRows ? `At most ${q.maxRows} row${q.maxRows === 1 ? '' : 's'}` : ''}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
 

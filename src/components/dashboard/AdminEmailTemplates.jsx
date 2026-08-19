@@ -3,18 +3,24 @@ import axios from 'axios';
 import Button from '../common/Button';
 import Input from '../common/Input';
 
-// Admin editor for the 3 live transactional emails WorkFlow sends (VO.2 draft
-// saved, VO.4 application received, VO.6 supplier approved) — mirrors the
+// Admin editor for the live transactional emails WorkFlow sends — mirrors the
 // three-pane shape of the original mockup (rail / editor / live preview) but
-// scoped to only what actually exists today: one process, 3 mails, no
-// "create new template" flow, since each row maps 1:1 to a fixed code
-// trigger point rather than an admin-creatable ad-hoc process.
+// scoped to only what actually exists today: each row maps 1:1 to a fixed
+// code trigger point rather than an admin-creatable ad-hoc process, so
+// there's no "create new template" flow. The rail groups rows by
+// process_key so unrelated flows (e.g. vendor onboarding vs. a vendor's own
+// change requests) read as separate sections instead of one flat list.
 const TONE_OPTIONS = [
   { value: 'info', label: 'Neutral (blue)' },
   { value: 'ok', label: 'Good (green)' },
   { value: 'warn', label: 'Attention (amber)' },
   { value: 'bad', label: 'Problem (red)' },
 ];
+
+const PROCESS_LABELS = {
+  vendor_onboarding: 'Vendor Onboarding',
+  vendor_change_request: 'Vendor Change Requests',
+};
 
 const AdminEmailTemplates = () => {
   const currentUser = JSON.parse(localStorage.getItem('user_data') || '{"userId": 1}');
@@ -144,35 +150,44 @@ const AdminEmailTemplates = () => {
     return <div className="p-4 text-muted">Loading email templates…</div>;
   }
 
+  const groups = templates.reduce((acc, t) => {
+    (acc[t.process_key] = acc[t.process_key] || []).push(t);
+    return acc;
+  }, {});
+
   return (
     <div className="d-flex" style={{ minHeight: 'calc(100vh - 60px)' }}>
       {/* Rail */}
-      <div style={{ width: 240, borderRight: '1px solid #e4ebf0', background: '#fff', flexShrink: 0 }} className="py-3">
-        <p className="text-muted px-3 mb-2" style={{ fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase' }}>
-          Vendor Onboarding
-        </p>
-        {templates.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setSelectedId(t.id)}
-            className="btn w-100 text-start border-0 rounded-0 d-flex align-items-center gap-2 px-3 py-2"
-            style={{
-              background: selectedId === t.id ? '#e3eef9' : 'transparent',
-              borderLeft: selectedId === t.id ? '3px solid #10508c' : '3px solid transparent',
-              fontSize: 13,
-            }}
-          >
-            <span className="text-muted" style={{ fontFamily: 'monospace', fontSize: 10.5 }}>{t.mail_key}</span>
-            <span className="flex-grow-1">{t.mail_label}</span>
-            <span
-              title={t.enabled ? 'Sending' : 'Not sending'}
-              style={{
-                width: 7, height: 7, borderRadius: '50%',
-                background: t.enabled ? '#1c6047' : '#d3dde5',
-                flexShrink: 0,
-              }}
-            />
-          </button>
+      <div style={{ width: 240, borderRight: '1px solid #e4ebf0', background: '#fff', flexShrink: 0, overflowY: 'auto' }} className="py-3">
+        {Object.entries(groups).map(([processKey, group]) => (
+          <div key={processKey} className="mb-2">
+            <p className="text-muted px-3 mb-2" style={{ fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase' }}>
+              {PROCESS_LABELS[processKey] || processKey}
+            </p>
+            {group.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setSelectedId(t.id)}
+                className="btn w-100 text-start border-0 rounded-0 d-flex align-items-center gap-2 px-3 py-2"
+                style={{
+                  background: selectedId === t.id ? '#e3eef9' : 'transparent',
+                  borderLeft: selectedId === t.id ? '3px solid #10508c' : '3px solid transparent',
+                  fontSize: 13,
+                }}
+              >
+                <span className="text-muted" style={{ fontFamily: 'monospace', fontSize: 10.5 }}>{t.mail_key}</span>
+                <span className="flex-grow-1">{t.mail_label}</span>
+                <span
+                  title={t.enabled ? 'Sending' : 'Not sending'}
+                  style={{
+                    width: 7, height: 7, borderRadius: '50%',
+                    background: t.enabled ? '#1c6047' : '#d3dde5',
+                    flexShrink: 0,
+                  }}
+                />
+              </button>
+            ))}
+          </div>
         ))}
       </div>
 

@@ -3,328 +3,220 @@ import { useAuth } from '../../context/AuthContext';
 import AdminVendors from './AdminVendors';
 import AdminProspects from './AdminProspects';
 import AdminInvitations from './AdminInvitations';
-import AdminMasterData from './AdminMasterData';
 import AdminUsers from './AdminUsers';
+import AdminMasterData from './AdminMasterData';
 import AdminWorkflows from './AdminWorkflows';
-import DashboardHome from './DashboardHome';
+import AdminEmailTemplates from './AdminEmailTemplates';
+import Questionnaire from './Questionnaire';
+import BudgetApp from './BudgetApp';
 import PurchaseRequisition from './PurchaseRequisition';
 import Quotation from './Quotation';
 import PurchaseOrder from './PurchaseOrder';
 import ASN from './ASN';
-import BudgetApp from './BudgetApp';
-import IndentDashboard from './IndentDashboard';
-import Questionnaire from './Questionnaire';
-import AdminEmailTemplates from './AdminEmailTemplates';
+import GateEntry from './GateEntry';
+import MaterialReport from './MaterialReport';
+import VendorPaymentReport from './VendorPaymentReport';
+import VendorReturnsReport from './VendorReturnsReport';
+import CreditNotesReport from './CreditNotesReport';
 import './admin-launcher.css';
 
 /* ============================================================
-   Supplier Portal — Admin launcher.
-   Pixel-perfect port of the provided mockup's tile-based module
-   launcher, with the tile menu trimmed to only what this app
-   actually has built (per explicit scope decision) — every leaf
-   tile resolves to a real screen, or the same ComingSoonView the
-   old sidebar used for features still in progress. No mockup-only
-   modules (Budget audit trail, SSO, etc.) that don't exist here.
+   NexD Support Portal — admin. Pixel-perfect port of the provided
+   mockup's chrome (top rail, one-line nav, breadcrumb, tiles, section
+   landing pages, stub-page design) — see admin-launcher.css for the
+   full style port.
+
+   Every leaf either mounts a real, working screen already built in
+   this app, or shows the mockup's own "reserved — not defined yet"
+   stub (no fake data, no simulated connect/save flows) when nothing
+   real backs it. See MENU below for exactly which is which.
    ============================================================ */
 
-/* ---------------- icons — one line-drawn glyph per concept, 24x24 ---------------- */
-const S = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
-const I = {
-  grid:     S + '<rect x="3.5" y="3.5" width="7" height="7" rx="1"/><rect x="13.5" y="3.5" width="7" height="7" rx="1"/><rect x="3.5" y="13.5" width="7" height="7" rx="1"/><rect x="13.5" y="13.5" width="7" height="7" rx="1"/></svg>',
-  factory:  S + '<path d="M3.5 20.5V11l5 3.2V11l5 3.2V11l5 3.2v6.3z"/><path d="M18.5 11 18 3.5h-3l-.4 7"/></svg>',
-  userPlus: S + '<circle cx="10" cy="8.5" r="3.5"/><path d="M3.5 19.5a6.5 6.5 0 0 1 13 0"/><path d="M19 8v5M16.5 10.5h5"/></svg>',
-  cart:     S + '<path d="M3 4h2.2l2.3 10.5h9.6L19 7H6"/><circle cx="9.5" cy="19" r="1.4"/><circle cx="17" cy="19" r="1.4"/></svg>',
-  clipboard:S + '<rect x="5" y="5" width="14" height="16" rx="1.5"/><path d="M9 5V3.5h6V5"/><path d="M9 11h6M9 15h4"/></svg>',
-  tag:      S + '<path d="M3.5 11.2V4.5h6.7l9.3 9.3-6.7 6.7z"/><circle cx="7.5" cy="8.5" r="1.3"/></svg>',
-  truck:    S + '<path d="M3 6.5h10v9H3z"/><path d="M13 9.5h4l3 3.2v2.8h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/></svg>',
-  money:    S + '<rect x="3" y="6" width="18" height="12" rx="1.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6.5 12h.01M17.5 12h.01"/></svg>',
-  refresh:  S + '<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4h-4"/></svg>',
-  tree:     S + '<rect x="9" y="3.5" width="6" height="4.5" rx="1"/><rect x="3" y="16" width="6" height="4.5" rx="1"/><rect x="15" y="16" width="6" height="4.5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/></svg>',
-  gauge:    S + '<path d="M4.5 17a8 8 0 1 1 15 0"/><path d="M12 17l3.5-4.5"/></svg>',
-  flag:     S + '<path d="M6 21V4"/><path d="M6 4.5h11l-2 3.5 2 3.5H6"/></svg>',
-  users:    S + '<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 6.2a3 3 0 0 1 0 5.6M17.5 19a5.6 5.6 0 0 0-2-4"/></svg>',
-  trend:    S + '<path d="M4 20V4"/><path d="M4 20h16"/><path d="M7 16l3.5-4 3 2.5L20 8"/></svg>',
-  mail:     S + '<rect x="3" y="5.5" width="18" height="13" rx="1.5"/><path d="M3.5 7l8.5 6 8.5-6"/></svg>',
-  bell:     S + '<path d="M6.5 10a5.5 5.5 0 0 1 11 0c0 4 1.5 5.5 1.5 5.5H5S6.5 14 6.5 10z"/><path d="M10.2 19a2 2 0 0 0 3.6 0"/></svg>',
-  gear:     S + '<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2M12 18.5v2M20.5 12h-2M5.5 12h-2M18 6l-1.4 1.4M7.4 16.6 6 18M18 18l-1.4-1.4M7.4 7.4 6 6"/></svg>',
-  box:      S + '<path d="M12 3.5l8 4v9l-8 4-8-4v-9z"/><path d="M4 7.5l8 4 8-4M12 11.5v9"/></svg>',
-  layers:   S + '<path d="M12 3.5l8.5 4.3L12 12 3.5 7.8z"/><path d="M3.5 12.2 12 16.5l8.5-4.3M3.5 16.4 12 20.7l8.5-4.3"/></svg>',
-  question: S + '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.8-.9 1.4v.4"/><path d="M12 17h.01"/></svg>',
-  clock:    S + '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg>',
-  wallet:   S + '<rect x="3" y="7" width="18" height="12" rx="1.5"/><path d="M16 13h3"/><path d="M6 7V5.5a1.5 1.5 0 0 1 1.5-1.5H18"/></svg>',
-  search:   S + '<circle cx="11" cy="11" r="6.5"/><path d="M15.8 15.8 20.5 20.5"/></svg>',
+const TAGS = {
+  active: 't-good', released: 't-good', open: 't-good', approved: 't-good', posted: 't-good',
+  paid: 't-good', received: 't-good', cleared: 't-good', connected: 't-good', enabled: 't-good',
+  pending: 't-warn', draft: 't-warn', locked: 't-warn', on_hold: 't-warn', partial: 't-warn',
+  submitted: 't-warn', overdue: 't-warn',
+  blacklisted: 't-bad', obsolete: 't-bad', rejected: 't-bad', disputed: 't-bad', blocked: 't-bad',
+  closed: 't-off', cancelled: 't-off', inactive: 't-off', 'not connected': 't-off', disabled: 't-off',
+};
+const Tag = ({ v }) => <span className={`tag ${TAGS[String(v).toLowerCase()] || 't-off'}`}>{String(v).replace(/_/g, ' ')}</span>;
+
+/* ---------------- menu ----------------
+   `real`: a function returning the JSX for that leaf's actual screen.
+   `stub`: true when nothing real backs it yet — renders the mockup's
+   own reserved-page design instead of fabricating a working screen.
+------------------------------------------------- */
+const MENU = {
+  budget: {
+    name: 'Budget Maintenance', eyebrow: '01',
+    desc: 'Allocations by cost centre, what is committed against them, and what remains.',
+    real: () => <BudgetApp />,
+  },
+  master: {
+    name: 'Master Data', eyebrow: '02',
+    desc: 'The records everything else refers to — suppliers, parts and assemblies.',
+    children: {
+      vendors: { name: 'Vendors', desc: 'Suppliers, payment terms and contacts.', real: (onBack) => <AdminVendors onBack={onBack} /> },
+      prospects: { name: 'Vendor Prospects', desc: 'Applicants still in onboarding review.', real: () => <AdminProspects /> },
+      invitations: { name: 'Invitations', desc: 'Invite a new supplier to register.', real: () => <AdminInvitations /> },
+      materials: { name: 'Materials', desc: 'Part master with cost, stock and lead time.', stub: true,
+        table: 'material_master', endpoint: '/api/materials' },
+      boms: { name: 'Bill of Materials', desc: 'Assemblies and their component lines, with rolled-up cost.', stub: true,
+        table: 'bom_header / bom_lines', endpoint: '/api/boms' },
+      orgdata: { name: 'Organisation Data', desc: 'Companies, departments, projects and activities behind the budget module.',
+        real: () => <AdminMasterData /> },
+    },
+  },
+  settings: {
+    name: 'System Settings', eyebrow: '03',
+    desc: 'How the portal identifies your company, who can sign in, and what it sends out.',
+    children: {
+      company: { name: 'Company Profile', desc: 'Legal entity, tax registration and registered address.', stub: true,
+        table: 'company_profile', endpoint: '/api/company-profile' },
+      users: { name: 'User Accounts', desc: 'People who can sign in, and their role.', real: () => <AdminUsers /> },
+      directory: { name: 'Directory (SSO)', desc: "Sign in with the organisation's Google or Microsoft account.", stub: true,
+        table: 'sso_directory_config', endpoint: '/api/sso/directories' },
+      workflows: { name: 'Workflow Templates', desc: 'Approval routes for requisitions, orders and invoices.',
+        real: (_, onNavigate) => <AdminWorkflows subTab="wf_dashboard" onNavigate={onNavigate} /> },
+      emails: { name: 'Email Templates', desc: 'Messages the portal sends to vendors and staff.', real: () => <AdminEmailTemplates /> },
+      questionnaires: { name: 'Questionnaires', desc: 'Forms vendors fill in at onboarding and audit.', real: () => <Questionnaire /> },
+      folderit: {
+        name: 'FolderIT Integration', desc: 'Document storage for vendor files, orders and invoices.',
+        blurb: 'Cloud document storage. The portal already files vendor certificates through Folderit during onboarding — this settings hub for connection/credential management is not built yet.',
+        hub: true,
+        children: {
+          connection: { name: 'Connection', desc: 'Account credentials, workspace selection and a connection test.', stub: true, table: 'integrations', endpoint: '/api/integrations/folderit/connection' },
+          credentials: { name: 'API Credentials', desc: 'Endpoint, authentication and key storage, sandbox and production side by side.', stub: true, table: 'integration_credentials', endpoint: '/api/integrations/folderit/credentials' },
+          foldermap: { name: 'Folder Mapping', desc: 'Which folder each document type is filed into.', stub: true, table: 'folderit_folder_map', endpoint: '/api/integrations/folderit/folder-map' },
+          syncrules: { name: 'Sync Rules', desc: 'Which events push a document, immediate or batched.', stub: true, table: 'folderit_sync_rules', endpoint: '/api/integrations/folderit/sync-rules' },
+          retention: { name: 'Retention Policy', desc: 'How long each document class is kept.', stub: true, table: 'folderit_retention', endpoint: '/api/integrations/folderit/retention' },
+          activity: { name: 'Activity Log', desc: 'Every upload, failure and retry.', stub: true, table: 'integration_events', endpoint: '/api/integrations/folderit/activity' },
+        },
+      },
+      slack: {
+        name: 'Slack', desc: "Push portal events into your team's channels.",
+        blurb: 'Portal events land in the channels your team already watches. Only a "Slack" label exists today, inside the workflow notification-channel picker — nothing behind it sends anything yet.',
+        hub: true,
+        children: {
+          connection: { name: 'Connection', desc: 'Authorise the portal against a Slack workspace.', stub: true, table: 'integrations', endpoint: '/api/integrations/slack/connection' },
+          credentials: { name: 'API Credentials', desc: 'Endpoint, authentication and token storage.', stub: true, table: 'integration_credentials', endpoint: '/api/integrations/slack/credentials' },
+          channels: { name: 'Channel Routing', desc: 'Map each portal event to a channel.', stub: true, table: 'slack_channel_routes', endpoint: '/api/integrations/slack/channels' },
+          events: { name: 'Event Subscriptions', desc: 'Pick which events post at all.', stub: true, table: 'slack_event_subs', endpoint: '/api/integrations/slack/events' },
+          commands: { name: 'Slash Commands', desc: 'Which lookups staff can run from Slack.', stub: true, table: 'slack_commands', endpoint: '/api/integrations/slack/commands' },
+          activity: { name: 'Activity Log', desc: 'Messages posted, delivery failures and command usage.', stub: true, table: 'integration_events', endpoint: '/api/integrations/slack/activity' },
+        },
+      },
+    },
+  },
+  analytics: {
+    name: 'Analytics', eyebrow: '04',
+    desc: 'Registers across the procure-to-pay chain, from requisition through to reconciliation.',
+    children: {
+      'vendor-list': { name: 'Vendor List', desc: 'Every registered supplier with terms, category and compliance state.', real: (onBack) => <AdminVendors onBack={onBack} /> },
+      'material-list': { name: 'Material List', desc: 'Materials with standard cost and usage.', real: (onBack) => <MaterialReport onBack={onBack} /> },
+      'purchase-requisition': { name: 'Purchase Requisitions', desc: 'Requisitions raised and how long they waited.', real: (onBack) => <PurchaseRequisition mode="pr" onBack={onBack} /> },
+      quotation: { name: 'Quotations', desc: 'Quotes received and which was accepted.', real: (onBack) => <Quotation onBack={onBack} onNavigate={() => {}} /> },
+      'purchase-orders': { name: 'Purchase Orders', desc: 'Released orders and delivery position.', real: (onBack) => <PurchaseOrder onBack={onBack} /> },
+      asn: { name: 'Advance Shipping Notices', desc: 'ASNs and how they reconciled.', real: (onBack) => <ASN onBack={onBack} /> },
+      'gate-entry': { name: 'Gate Entry', desc: 'Vehicles logged at the plant gate against inbound shipments.', real: (onBack) => <GateEntry onBack={onBack} /> },
+      'goods-receipt': { name: 'Goods Receipt', desc: 'What was received against what was ordered.', stub: true, table: 'goods_receipt_notes', endpoint: '/api/reports/goods-receipt' },
+      invoice: { name: 'Invoices', desc: 'Invoices and their position in approval.', stub: true, table: 'invoices', endpoint: '/api/reports/invoices' },
+      'vendor-payments': { name: 'Vendor Payments', desc: 'Payments released to suppliers.', real: (onBack) => <VendorPaymentReport onBack={onBack} /> },
+      'vendor-returns': { name: 'Vendor Returns', desc: 'Material sent back to suppliers.', real: (onBack) => <VendorReturnsReport onBack={onBack} /> },
+      'credit-note': { name: 'Credit Notes', desc: 'Credits raised against returns, rate differences and short supply.', real: (onBack) => <CreditNotesReport onBack={onBack} /> },
+      'service-entry': { name: 'Service Entry', desc: 'Service sheets confirming work done against service orders.', stub: true, table: 'service_entry_sheets', endpoint: '/api/reports/service-entry' },
+      subcontracting: { name: 'Sub-contracting Reconciliation', desc: 'Material issued to job workers against what came back.', stub: true, table: 'subcontracting_jobs', endpoint: '/api/reports/subcontracting' },
+    },
+  },
 };
 
-/* One tint per module, colour values reused directly from the mockup's palette. */
-const TINTS = {
-  D:{bg:'#e2edf9', ink:'#10508c'},   V:{bg:'#dcefec', ink:'#0f7264'},
-  P:{bg:'#fdeade', ink:'#b0561d'},   W:{bg:'#eae7fa', ink:'#6152cc'},
-  B:{bg:'#fbf0d5', ink:'#8a6a12'},   M:{bg:'#e0f0e4', ink:'#1c6047'},
-  U:{bg:'#e7eafc', ink:'#4551b5'},   Q:{bg:'#fbe5ee', ink:'#ad3a70'},
-};
-const tintOf = codes => TINTS[(codes[0] || 'D').split('.')[0]] || TINTS.D;
-
-/* ---------------- the menu — every leaf maps to a real screen ---------------- */
-const MENU = [
-  { code:'D', name:'Dashboard', icon:'grid', activeTab:'dashboard',
-    desc:'Live metrics across the whole portal.' },
-
-  { code:'V', name:'Vendors', icon:'factory',
-    desc:'Supplier accounts and applicants still in onboarding.',
-    items:[
-      { code:'V.1', name:'All vendors', icon:'factory', activeTab:'vendors', desc:'Every approved and active supplier.' },
-      { code:'V.2', name:'Vendor prospects', icon:'userPlus', activeTab:'prospects', desc:'Applicants still in onboarding review.' },
-      { code:'V.3', name:'Invitations', icon:'mail', activeTab:'invitations', desc:'Invite a new supplier to register.' },
-    ]},
-
-  { code:'P', name:'Procure to Pay', icon:'cart',
-    desc:'Requisitions through to payment.',
-    items:[
-      { code:'P.1', name:'Purchase requisition', icon:'clipboard', activeTab:'pr', desc:'Requisitions raised across the business.' },
-      { code:'P.2', name:'Indent', icon:'clipboard', activeTab:'indent', desc:'Internal stock and material requests.' },
-      { code:'P.3', name:'Quotation', icon:'tag', activeTab:'quotation', desc:'Quotes requested and received.' },
-      { code:'P.4', name:'Purchase order', icon:'cart', activeTab:'po', desc:'Released orders and their status.' },
-      { code:'P.5', name:'ASN', icon:'truck', activeTab:'asn', desc:'Advance shipping notices from suppliers.' },
-      { code:'P.6', name:'Invoice', icon:'money', activeTab:'invoice', comingSoon:true, desc:'Invoices and their approval position.' },
-      { code:'P.7', name:'Vendor payments', icon:'wallet', activeTab:'vendor_payments', comingSoon:true, desc:'Payments released to suppliers.' },
-      { code:'P.8', name:'Vendor returns', icon:'refresh', activeTab:'vendor_returns', comingSoon:true, desc:'Goods returned to a supplier.' },
-      { code:'P.9', name:'Credit', icon:'money', activeTab:'credit', comingSoon:true, desc:'Credit notes issued.' },
-      { code:'P.10', name:'Credit payment', icon:'wallet', activeTab:'credit_payment', comingSoon:true, desc:'Settlement against credit notes.' },
-    ]},
-
-  { code:'W', name:'Workflow Configurations', icon:'tree',
-    desc:'Approval routing, service levels and everything in flight.',
-    items:[
-      { code:'W.1', name:'Workflow dashboard', icon:'gauge', activeTab:'wf_dashboard', desc:'Where every open request currently sits.' },
-      { code:'W.2', name:'Workflows', icon:'tree', activeTab:'wf_list', desc:'Every configured approval workflow.' },
-      { code:'W.3', name:'Requests', icon:'flag', activeTab:'wf_requests', desc:'Act on individual requests.' },
-      { code:'W.4', name:'Groups', icon:'users', activeTab:'wf_groups', desc:'Approver groups used by workflow stages.' },
-      { code:'W.5', name:'Analytics', icon:'trend', activeTab:'wf_analytics', desc:'Where time is actually being spent.' },
-      { code:'W.6', name:'Email action', icon:'mail', activeTab:'wf_email_action', desc:'Approving straight from the inbox.' },
-      { code:'W.7', name:'Email templates', icon:'mail', activeTab:'wf_email_templates', desc:'Wording of every transactional email.' },
-      { code:'W.8', name:'Settings', icon:'gear', activeTab:'wf_settings', desc:'Rules that apply to every workflow.' },
-    ]},
-
-  { code:'B', name:'Budget', icon:'money', activeTab:'budget',
-    desc:'Allocations per cost centre, and what happens when one runs out.' },
-
-  { code:'M', name:'Master Data', icon:'box',
-    desc:'The records everything else refers to.',
-    items:[
-      { code:'M.1', name:'Master data', icon:'box', activeTab:'masterdata', desc:'Vendor and material master records.' },
-      { code:'M.2', name:'Material BOM', icon:'layers', activeTab:'material_bom', comingSoon:true, desc:'How a finished item is built.' },
-    ]},
-
-  { code:'U', name:'Users', icon:'users', activeTab:'users',
-    desc:'Accounts and exactly what each may do.' },
-
-  { code:'Q', name:'Questionnaires', icon:'question', activeTab:'questionnaires',
-    desc:'Build the questionnaires suppliers complete, and decide who is asked.' },
+const NAV = [
+  ['budget', 'Budget Maintenance'],
+  ['master', 'Master Data'],
+  ['settings', 'System Settings'],
+  ['analytics', 'Analytics'],
 ];
 
-/* ---------------- alphabetical everywhere ---------------- */
-const byName = (a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' });
-const sorted = list => [...list].sort(byName);
-
-function resolve(codes) {
-  const chain = [];
-  let level = MENU;
-  for (const code of codes) {
-    const node = (level || []).find((n) => n.code === code);
-    if (!node) break;
-    chain.push(node);
-    level = node.items;
-  }
-  return chain;
-}
-
-const ALL = [];
-(function walk(list, trail) {
-  sorted(list).forEach((n) => {
-    const here = [...trail, n];
-    ALL.push({ node: n, trail: here, codes: here.map((x) => x.code) });
-    if (n.items) walk(n.items, here);
-  });
-})(MENU, []);
-
-const ACTIVE_TAB_PATH = Object.fromEntries(
-  ALL.filter((e) => e.node.activeTab).map((e) => [e.node.activeTab, e.codes])
-);
-
 /* ---------------- small pieces ---------------- */
-const Icon = ({ name }) => <span className="tile__ico" dangerouslySetInnerHTML={{ __html: I[name] || I.grid }} />;
-const ScreenIcon = ({ name }) => <span className="screen__ico" dangerouslySetInnerHTML={{ __html: I[name] || I.grid }} />;
-
-function Tile({ node, codes, onOpen }) {
-  const t = tintOf(codes);
-  const branch = !!node.items;
-  const sub = branch ? `${node.items.length} options` : 'Open';
+function Tile({ go, eyebrow, name, desc, foot, stub, big, onOpen }) {
   return (
-    <li>
-      <button
-        className={`tile ${branch ? 'tile--branch' : ''}`}
-        style={{ '--tint-bg': t.bg, '--tint-ink': t.ink }}
-        title={`${node.code} · ${node.desc || node.name}`}
-        onClick={() => onOpen(codes)}
-      >
-        {node.comingSoon && <span className="tile__soon">Soon</span>}
-        <Icon name={node.icon} />
-        <span className="tile__label">{node.name}</span>
-        <span className="tile__sub">{sub}</span>
-      </button>
-    </li>
+    <button className={`tile ${stub ? 'stub' : ''}`} onClick={() => onOpen(go)}>
+      <span className="go" aria-hidden="true">→</span>
+      {eyebrow && <div className="eyebrow">{eyebrow}</div>}
+      {big ? <h2>{name}</h2> : <h3>{name}</h3>}
+      <p>{desc}</p>
+      {foot && (
+        <dl className="foot">
+          {foot.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+        </dl>
+      )}
+    </button>
   );
 }
 
-function GroupCard({ node, parentCodes, onOpen }) {
-  const t = tintOf([node.code]);
-  const kids = node.items ? sorted(node.items) : [node];
-  const count = node.items ? `${node.items.length} items` : 'No submenu';
+function Crumbs({ trail, onOpen }) {
+  if (!trail.length) return null;
   return (
-    <section className="group" style={{ '--tint-bg': t.bg, '--tint-ink': t.ink }}>
-      <header className="group__head">
-        <span className="group__code">{node.code}</span>
-        <h2 className="group__name">{node.name}</h2>
-        <span className="group__count">{count}</span>
-      </header>
-      <div className="group__body">
-        <ul className="tiles">
-          {kids.map((k) => (
-            <Tile
-              key={k.code}
-              node={k}
-              codes={node.items ? [...parentCodes, node.code, k.code] : [...parentCodes, node.code]}
-              onOpen={onOpen}
-            />
-          ))}
-        </ul>
-      </div>
-    </section>
-  );
-}
-
-function Trail({ chain, onOpen }) {
-  if (!chain.length) return null;
-  return (
-    <nav className="trail" aria-label="Breadcrumb">
-      <button onClick={() => onOpen([])}>All modules</button>
-      {chain.map((node, i) => {
-        const codes = chain.slice(0, i + 1).map((n) => n.code);
-        const isLast = i === chain.length - 1;
-        return (
-          <React.Fragment key={node.code}>
-            <span className="sep">›</span>
-            {isLast ? <span className="here">{node.name}</span> : <button onClick={() => onOpen(codes)}>{node.name}</button>}
-          </React.Fragment>
-        );
-      })}
+    <nav className="crumbs" aria-label="Breadcrumb">
+      {trail.map((c, i) => (
+        <React.Fragment key={c.go ?? c.name}>
+          {i === trail.length - 1
+            ? <span className="now">{c.name}</span>
+            : <><button onClick={() => onOpen(c.go)}>{c.name}</button><span aria-hidden="true">/</span></>}
+        </React.Fragment>
+      ))}
     </nav>
   );
 }
 
-function Finder({ value, onChange }) {
+/* The mockup's own honest "reserved — not defined yet" page for anything with no real screen. */
+function StubPage({ node, path }) {
   return (
-    <div className="finder">
-      <input
-        type="search"
-        placeholder="Jump to a menu item or code"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-label="Find a menu item"
-        autoComplete="off"
-      />
-      <span className="finder__hint">try “W.2” or “vendor”</span>
-    </div>
-  );
-}
-
-/* Same "coming soon" placeholder the old sidebar used for unbuilt features. */
-function ComingSoonView({ moduleName }) {
-  const [emailInput, setEmailInput] = useState('');
-  const [notified, setNotified] = useState(false);
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (emailInput.trim()) setNotified(true);
-  };
-  return (
-    <div className="fade-in-slide container-fluid py-5 text-start" style={{ fontFamily: '"Inter", sans-serif' }}>
-      <div className="row justify-content-center mt-4">
-        <div className="col-lg-6 col-md-8 col-sm-10 col-12">
-          <div className="card border-0 shadow-lg" style={{ borderRadius: '24px', overflow: 'hidden' }}>
-            <div
-              className="p-5 text-center position-relative"
-              style={{ background: 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)', color: '#ffffff' }}
-            >
-              <div className="position-absolute" style={{ top: '-40px', right: '-40px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.15)' }}></div>
-              <div className="position-absolute" style={{ bottom: '-30px', left: '-30px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)' }}></div>
-              <div
-                className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-4 bg-white bg-opacity-10 shadow-sm"
-                style={{ width: '80px', height: '80px', color: '#10b981' }}
-              >
-                <i className="fas fa-cogs fs-2"></i>
-              </div>
-              <span className="badge px-3 py-2 text-uppercase mb-2" style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)', fontSize: '10px', letterSpacing: '1px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>Coming Soon</span>
-              <h3 className="fw-bold mb-2">{moduleName} Module</h3>
-              <p className="text-light text-opacity-75 mb-0 small mx-auto" style={{ maxWidth: '400px' }}>
-                The administrative panel and workflow automation for <strong>{moduleName}</strong> is currently being migrated to React.
-              </p>
-            </div>
-            <div className="card-body p-5">
-              <div className="mb-4">
-                <div className="d-flex justify-content-between mb-1" style={{ fontSize: '11px' }}>
-                  <span className="text-muted fw-semibold">Migration Progress</span>
-                  <span className="text-success fw-bold">90% Completed</span>
-                </div>
-                <div className="progress" style={{ height: '8px', borderRadius: '4px' }}>
-                  <div className="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style={{ width: '90%', backgroundColor: '#10b981' }} aria-valuenow="90" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-              </div>
-              {!notified ? (
-                <form onSubmit={handleSubmit} className="mt-4">
-                  <h6 className="fw-bold text-dark mb-2 text-center" style={{ fontSize: '13px' }}>Notify when live?</h6>
-                  <p className="text-muted text-center mb-3" style={{ fontSize: '11px' }}>Enter your email below to get notified of release details.</p>
-                  <div className="d-flex gap-2">
-                    <input type="email" className="form-control border-light-subtle py-2 px-3" placeholder="name@company.com" required value={emailInput} onChange={(e) => setEmailInput(e.target.value)} style={{ borderRadius: '8px', fontSize: '12px' }} />
-                    <button type="submit" className="btn btn-success px-4 fw-bold shadow-sm" style={{ backgroundColor: '#064e3b', borderColor: '#064e3b', borderRadius: '8px', fontSize: '12px' }}>Subscribe</button>
-                  </div>
-                </form>
-              ) : (
-                <div className="text-center py-3">
-                  <div className="text-success mb-2"><i className="fas fa-check-circle fs-3"></i></div>
-                  <h6 className="fw-bold text-dark mb-1" style={{ fontSize: '13px' }}>Subscribed!</h6>
-                  <p className="text-muted mb-0" style={{ fontSize: '11px' }}>We will notify you at <strong>{emailInput}</strong> as soon as this feature goes live.</p>
-                </div>
-              )}
-            </div>
+    <>
+      <div className="hero" style={{ marginBottom: 18 }}>
+        <h1 style={{ fontSize: 21 }}>{node.name}</h1>
+        <p>{node.desc}</p>
+      </div>
+      <section className="card">
+        <h2 className="card-head">Not defined yet <Tag v="pending" /></h2>
+        <div className="card-body">
+          <p style={{ fontSize: 13.5, margin: '0 0 18px', maxWidth: '70ch' }}>
+            This page is reserved. The route and breadcrumb exist so the screen can be dropped in without
+            touching navigation. What is missing is the backend behind it.
+          </p>
+          <div className="form-grid" style={{ display: 'grid', gap: 15, gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))' }}>
+            <div className="stub-route"><span className="code" style={{ color: 'var(--muted)' }}>Route</span><div>{path}</div></div>
+            {node.table && <div className="stub-route"><span className="code" style={{ color: 'var(--muted)' }}>Would need</span><div>{node.table}</div></div>}
+            {node.endpoint && <div className="stub-route"><span className="code" style={{ color: 'var(--muted)' }}>API endpoint</span><div>{node.endpoint}</div></div>}
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </>
   );
 }
 
-/* Real screen for one activeTab id — mirrors AdminDashboardLayout's old switch. */
-function RealScreen({ activeTab, onNavigate }) {
-  switch (activeTab) {
-    case 'dashboard': return <DashboardHome isAdmin onNavigate={onNavigate} />;
-    case 'vendors': return <AdminVendors />;
-    case 'prospects': return <AdminProspects />;
-    case 'invitations': return <AdminInvitations />;
-    case 'masterdata': return <AdminMasterData />;
-    case 'users': return <AdminUsers />;
-    case 'wf_dashboard': case 'wf_list': case 'wf_requests': case 'wf_groups':
-    case 'wf_analytics': case 'wf_email_action': case 'wf_settings':
-      return <AdminWorkflows subTab={activeTab} onNavigate={onNavigate} />;
-    case 'wf_email_templates': return <AdminEmailTemplates />;
-    case 'pr': return <PurchaseRequisition />;
-    case 'indent': return <IndentDashboard />;
-    case 'quotation': return <Quotation />;
-    case 'po': return <PurchaseOrder />;
-    case 'asn': return <ASN />;
-    case 'budget': return <BudgetApp />;
-    case 'questionnaires': return <Questionnaire />;
-    default: return null;
-  }
+function IntegrationHub({ node, path, onOpen }) {
+  const kids = Object.entries(node.children);
+  const done = 0; // nothing behind any of these yet — see StubPage
+  return (
+    <>
+      <div className="card" style={{ display: 'flex', gap: 16, alignItems: 'flex-start', padding: '18px 20px', marginBottom: 22 }}>
+        <div style={{ minWidth: 0 }}>
+          <h3 style={{ fontSize: 14.5 }}>{node.name}</h3>
+          <p style={{ fontSize: 12.5, color: 'var(--muted)', margin: '5px 0 0', maxWidth: '66ch' }}>{node.blurb}</p>
+        </div>
+        <div style={{ marginLeft: 'auto', flexShrink: 0 }}><Tag v="not connected" /></div>
+      </div>
+      <div className="eyebrow-row"><h2>Configuration pages · {done} of {kids.length} defined</h2></div>
+      <div className="tiles compact">
+        {kids.map(([key, p]) => (
+          <Tile key={key} go={`${path}:${key}`} eyebrow="" name={p.name} desc={p.desc} stub onOpen={onOpen}
+            foot={[['Status', 'To be defined']]} />
+        ))}
+      </div>
+    </>
+  );
 }
 
 /* ============================================================
@@ -332,26 +224,19 @@ function RealScreen({ activeTab, onNavigate }) {
    ============================================================ */
 export default function AdminLauncher() {
   const { currentUser, logout } = useAuth();
-  const [path, setPath] = useState([]);
-  const [query, setQuery] = useState('');
+  const [path, setPath] = useState('');
 
-  const goTo = (codes) => {
-    setPath(codes);
-    setQuery('');
-    document.getElementById('splauncher-main')?.focus({ preventScroll: true });
+  const goTo = (p) => {
+    setPath(p);
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
-  const onNavigate = (tabId) => goTo(ACTIVE_TAB_PATH[tabId] || []);
-
   useEffect(() => {
     const onKey = (e) => {
-      const typing = e.target.tagName === 'INPUT';
-      if (typing && e.key !== 'Escape') return;
-      if (e.key === 'Escape' && typing && e.target.value) { setQuery(''); return; }
-      if ((e.key === 'Escape' || e.key === 'Backspace') && path.length) {
+      if (e.key === 'Escape' && path) {
         e.preventDefault();
-        goTo(path.slice(0, -1));
+        const parts = path.split(':');
+        goTo(parts.slice(0, -1).join(':'));
       }
     };
     document.addEventListener('keydown', onKey);
@@ -359,191 +244,140 @@ export default function AdminLauncher() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path]);
 
-  const chain = resolve(path);
-  const node = chain[chain.length - 1];
-
   const user = currentUser || JSON.parse(localStorage.getItem('user_data') || '{}');
   const displayName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || 'Admin';
   const initials = displayName.split(/\s+/).map((s) => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'AD';
-  const roleLabel = (user.role || 'Portal administrator').replace(/_/g, ' ');
 
-  const q = query.trim().toLowerCase();
+  const parts = path ? path.split(':') : [];
+  const top = parts[0];
+
+  /* resolve current node + breadcrumb trail */
+  let node = null;
+  const trail = [{ name: 'Admin portal', go: '' }];
+  if (top && MENU[top]) {
+    node = MENU[top];
+    trail.push({ name: node.name, go: top });
+    let cursor = node;
+    for (let i = 1; i < parts.length; i++) {
+      const key = parts[i];
+      const kids = cursor.children;
+      if (!kids || !kids[key]) { node = null; break; }
+      cursor = kids[key];
+      node = cursor;
+      trail.push({ name: cursor.name, go: parts.slice(0, i + 1).join(':') });
+    }
+  }
 
   let content;
+  const onBack = () => goTo(parts.slice(0, -1).join(':'));
+  const onNavigate = () => {}; // AdminWorkflows may ask to jump tabs internally; not part of this shell's routing
 
-  if (q) {
-    const hits = ALL.filter((e) =>
-      e.node.name.toLowerCase().includes(q) ||
-      e.node.code.toLowerCase().includes(q) ||
-      (e.node.desc || '').toLowerCase().includes(q)
-    ).slice(0, 32);
+  if (!path) {
+    /* home — 4 big tiles */
+    const realCount = (n) => {
+      if (n.real) return [1, 0];
+      if (!n.children) return [0, 1];
+      return Object.values(n.children).reduce((a, c) => {
+        const [r, s] = realCount(c);
+        return [a[0] + r, a[1] + s];
+      }, [0, 0]);
+    };
     content = (
       <>
-        <div className="pagehead">
-          <div>
-            <span className="codechip">FIND</span>
-            <h1>Results for “{query}”</h1>
-            <p className="lede">Every match at any level, in alphabetical order.</p>
-          </div>
-          <Finder value={query} onChange={setQuery} />
+        <div className="hero">
+          <h1>Admin portal</h1>
+          <p>Four areas run the portal. Pick one to go in.</p>
         </div>
-        {hits.length ? (
-          <>
-            <p className="resulthead">{hits.length} match{hits.length === 1 ? '' : 'es'}</p>
-            <section className="group">
-              <div className="group__body">
-                <ul className="tiles">
-                  {hits.map((h) => {
-                    const t = tintOf(h.codes);
-                    return (
-                      <li key={h.codes.join('/')}>
-                        <button
-                          className={`tile ${h.node.items ? 'tile--branch' : ''}`}
-                          style={{ '--tint-bg': t.bg, '--tint-ink': t.ink }}
-                          onClick={() => goTo(h.codes)}
-                        >
-                          {h.node.comingSoon && <span className="tile__soon">Soon</span>}
-                          <Icon name={h.node.icon} />
-                          <span className="tile__label">{h.node.name}</span>
-                          <span className="crumbpath">{h.trail.slice(0, -1).map((n) => n.code).join(' › ') || 'Top'}</span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            </section>
-          </>
-        ) : (
-          <div className="empty">
-            <p className="empty__title">Nothing matches “{query}”.</p>
-            <p>Try a code such as W.2 or M.1, or a word like “budget”, “vendor” or “requests”.</p>
-          </div>
-        )}
-      </>
-    );
-  } else if (node && !node.items) {
-    /* leaf — breadcrumb, then the real screen (or its coming-soon placeholder) */
-    const t = tintOf(path);
-    const sibs = chain.length > 1 ? sorted(chain[chain.length - 2].items) : sorted(MENU);
-    const base = chain.slice(0, -1).map((n) => n.code);
-    const parentLabel = chain.length > 1 ? chain[chain.length - 2] : null;
-    content = (
-      <>
-        <Trail chain={chain} onOpen={goTo} />
-        <div className="pagehead">
-          <div>
-            <span className="codechip">{node.code}</span>
-            <h1>{node.name}</h1>
-            <p className="lede">{node.desc || ''}</p>
-          </div>
-          <Finder value={query} onChange={setQuery} />
+        <div className="tiles four">
+          {NAV.map(([key]) => {
+            const n = MENU[key];
+            const [real, stub] = realCount(n);
+            return (
+              <Tile key={key} go={key} big eyebrow={n.eyebrow} name={n.name} desc={n.desc} onOpen={goTo}
+                foot={[['Live screens', real], ['Reserved', stub]]} />
+            );
+          })}
         </div>
-        {node.comingSoon ? (
-          <div className="real-screen"><ComingSoonView moduleName={node.name} /></div>
-        ) : (
-          <div className="real-screen">
-            <RealScreen activeTab={node.activeTab} onNavigate={onNavigate} />
-          </div>
-        )}
-        <section className="group" style={{ marginTop: 18 }}>
-          <header className="group__head">
-            <span className="group__code" style={{ '--tint-bg': t.bg, '--tint-ink': t.ink }}>
-              {parentLabel ? parentLabel.code : 'ADMIN'}
-            </span>
-            <h2 className="group__name">Also under {parentLabel ? parentLabel.name : 'the top level'}</h2>
-          </header>
-          <div className="group__body">
-            <ul className="tiles">
-              {sibs.map((s) => (
-                <Tile key={s.code} node={s} codes={[...base, s.code]} onOpen={goTo} />
-              ))}
-            </ul>
-          </div>
-        </section>
       </>
     );
   } else if (!node) {
-    /* home — every module as a card */
+    content = <p style={{ color: 'var(--muted)', fontSize: 13 }}>Nothing here.</p>;
+  } else if (node.real) {
     content = (
       <>
-        <div className="pagehead">
-          <div>
-            <span className="codechip">ADMIN</span>
-            <h1>Supplier Portal administration</h1>
-            <p className="lede">
-              Every module, in alphabetical order, with its menu items shown. A tile with a ring
-              around it opens another set of options; the rest open a screen.
-            </p>
-          </div>
-          <Finder value={query} onChange={setQuery} />
+        <Crumbs trail={trail} onOpen={goTo} />
+        <div className="hero" style={{ marginBottom: 18 }}>
+          <h1 style={{ fontSize: 21 }}>{node.name}</h1>
+          <p>{node.desc}</p>
         </div>
-        {sorted(MENU).map((m) => (
-          <GroupCard key={m.code} node={m} parentCodes={[]} onOpen={goTo} />
-        ))}
+        <div className="real-screen">{node.real(onBack, onNavigate)}</div>
       </>
     );
-  } else {
-    /* a module or submenu opened on its own */
-    const t = tintOf(path);
-    const branches = sorted(node.items).filter((c) => c.items);
-    const leaves = sorted(node.items).filter((c) => !c.items);
+  } else if (node.stub) {
     content = (
       <>
-        <Trail chain={chain} onOpen={goTo} />
-        <div className="pagehead">
-          <div>
-            <span className="codechip">{node.code}</span>
-            <h1>{node.name}</h1>
-            <p className="lede">{node.desc || ''}</p>
-          </div>
-          <Finder value={query} onChange={setQuery} />
+        <Crumbs trail={trail} onOpen={goTo} />
+        <StubPage node={node} path={'#' + path} />
+      </>
+    );
+  } else if (node.hub) {
+    content = (
+      <>
+        <Crumbs trail={trail} onOpen={goTo} />
+        <IntegrationHub node={node} path={path} onOpen={goTo} />
+      </>
+    );
+  } else if (node.children) {
+    /* section landing — tile grid of children */
+    const kids = Object.entries(node.children);
+    content = (
+      <>
+        <Crumbs trail={trail} onOpen={goTo} />
+        <div className="hero">
+          <h1>{node.name}</h1>
+          <p>{node.desc}</p>
         </div>
-        {branches.map((child) => (
-          <GroupCard key={child.code} node={child} parentCodes={path} onOpen={goTo} />
-        ))}
-        {leaves.length > 0 && (
-          <section className="group" style={{ '--tint-bg': t.bg, '--tint-ink': t.ink }}>
-            <header className="group__head">
-              <span className="group__code">{node.code}</span>
-              <h2 className="group__name">{node.name}</h2>
-              <span className="group__count">{leaves.length} items</span>
-            </header>
-            <div className="group__body">
-              <ul className="tiles">
-                {leaves.map((c) => (
-                  <Tile key={c.code} node={c} codes={[...path, c.code]} onOpen={goTo} />
-                ))}
-              </ul>
-            </div>
-          </section>
-        )}
+        <div className={`tiles ${top === 'analytics' ? 'compact' : ''}`}>
+          {kids.map(([key, c], i) => (
+            <Tile
+              key={key}
+              go={path ? `${path}:${key}` : key}
+              eyebrow={String(i + 1).padStart(2, '0')}
+              name={c.name}
+              desc={c.desc}
+              stub={!!(c.stub || c.hub)}
+              onOpen={goTo}
+              foot={c.stub || c.hub ? [['Status', 'Reserved']] : null}
+            />
+          ))}
+        </div>
       </>
     );
   }
 
   return (
-    <div className="splauncher">
-      <header className="topbar">
-        <button className="mark" onClick={() => goTo([])} aria-label="Back to all modules">
-          <span className="mark__badge">SP</span>
-          <span>
-            <span className="mark__name">Supplier Portal</span>{' '}
-            <span className="mark__sub">Admin</span>
-          </span>
-        </button>
-        <div className="spacer"></div>
-        <span className="env">Production</span>
-        <div className="session">
-          <span className="avatar">{initials}</span>
-          <span>
-            <span className="session__name">{displayName}</span><br />
-            <span className="session__role">{roleLabel}</span>
-          </span>
-          <button className="signout" onClick={logout}>Sign out</button>
+    <div className="nexdadmin">
+      <header className="rail">
+        <div className="wrap">
+          <div className="rail-top">
+            <button className="brand" onClick={() => goTo('')}>
+              <b>NEXD</b><span>Support Portal</span>
+            </button>
+            <div className="who">
+              <span className="fy">Admin</span>
+              <span className="sep"></span>
+              <span>{displayName}</span>
+              <span className="av">{initials}</span>
+            </div>
+          </div>
+          <nav className="nav" aria-label="Portal sections">
+            {NAV.map(([key, label]) => (
+              <button key={key} className="nav-item" aria-current={top === key} onClick={() => goTo(key)}>{label}</button>
+            ))}
+          </nav>
         </div>
       </header>
-      <main id="splauncher-main" tabIndex={-1}>{content}</main>
+      <main>{content}</main>
     </div>
   );
 }

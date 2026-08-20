@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import AdminVendors from './AdminVendors';
 import AdminProspects from './AdminProspects';
@@ -82,17 +83,8 @@ const MENU = {
       emails: { name: 'Email Templates', desc: 'Messages the portal sends to vendors and staff.', real: () => <AdminEmailTemplates /> },
       questionnaires: { name: 'Questionnaires', desc: 'Forms vendors fill in at onboarding and audit.', real: () => <Questionnaire /> },
       folderit: {
-        name: 'FolderIT Integration', desc: 'Document storage for vendor files, orders and invoices.',
-        blurb: 'Cloud document storage. The portal already files vendor certificates through Folderit during onboarding — this settings hub for connection/credential management is not built yet.',
-        hub: true,
-        children: {
-          connection: { name: 'Connection', desc: 'Account credentials, workspace selection and a connection test.', stub: true, table: 'integrations', endpoint: '/api/integrations/folderit/connection' },
-          credentials: { name: 'API Credentials', desc: 'Endpoint, authentication and key storage, sandbox and production side by side.', stub: true, table: 'integration_credentials', endpoint: '/api/integrations/folderit/credentials' },
-          foldermap: { name: 'Folder Mapping', desc: 'Which folder each document type is filed into.', stub: true, table: 'folderit_folder_map', endpoint: '/api/integrations/folderit/folder-map' },
-          syncrules: { name: 'Sync Rules', desc: 'Which events push a document, immediate or batched.', stub: true, table: 'folderit_sync_rules', endpoint: '/api/integrations/folderit/sync-rules' },
-          retention: { name: 'Retention Policy', desc: 'How long each document class is kept.', stub: true, table: 'folderit_retention', endpoint: '/api/integrations/folderit/retention' },
-          activity: { name: 'Activity Log', desc: 'Every upload, failure and retry.', stub: true, table: 'integration_events', endpoint: '/api/integrations/folderit/activity' },
-        },
+        name: 'FolderIT Integration', desc: 'The credentials FolderIt and Microvista document/KYC verification actually use — view and change them here.',
+        real: () => <PlatformCredentialsPanel />,
       },
       slack: {
         name: 'Slack', desc: "Push portal events into your team's channels.",
@@ -179,7 +171,7 @@ function StubPage({ node, path }) {
         <p>{node.desc}</p>
       </div>
       <section className="card">
-        <h2 className="card-head">Not defined yet <Tag v="pending" /></h2>
+        <h2 className="card-head">Not defined yet</h2>
         <div className="card-body">
           <p style={{ fontSize: 13.5, margin: '0 0 18px', maxWidth: '70ch' }}>
             This page is reserved. The route and breadcrumb exist so the screen can be dropped in without
@@ -198,7 +190,6 @@ function StubPage({ node, path }) {
 
 function IntegrationHub({ node, path, onOpen }) {
   const kids = Object.entries(node.children);
-  const done = 0; // nothing behind any of these yet — see StubPage
   return (
     <>
       <div className="card" style={{ display: 'flex', gap: 16, alignItems: 'flex-start', padding: '18px 20px', marginBottom: 22 }}>
@@ -206,16 +197,115 @@ function IntegrationHub({ node, path, onOpen }) {
           <h3 style={{ fontSize: 14.5 }}>{node.name}</h3>
           <p style={{ fontSize: 12.5, color: 'var(--muted)', margin: '5px 0 0', maxWidth: '66ch' }}>{node.blurb}</p>
         </div>
-        <div style={{ marginLeft: 'auto', flexShrink: 0 }}><Tag v="not connected" /></div>
       </div>
-      <div className="eyebrow-row"><h2>Configuration pages · {done} of {kids.length} defined</h2></div>
+      <div className="eyebrow-row"><h2>Configuration pages</h2></div>
       <div className="tiles compact">
         {kids.map(([key, p]) => (
-          <Tile key={key} go={`${path}:${key}`} eyebrow="" name={p.name} desc={p.desc} stub onOpen={onOpen}
-            foot={[['Status', 'To be defined']]} />
+          <Tile key={key} go={`${path}:${key}`} eyebrow="" name={p.name} desc={p.desc} stub onOpen={onOpen} />
         ))}
       </div>
     </>
+  );
+}
+
+const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}` });
+
+/* One editable box per external service (FolderIt, Microvista) — shows the credentials the
+   backend is actually using right now (PlatformCredentialService, replacing what used to be a
+   hardcoded constant / env var read once at boot) and saves changes straight back to it. */
+function CredentialGroupCard({ title, desc, fields, onSave }) {
+  const [values, setValues] = useState(() => Object.fromEntries(fields.map((f) => [f.key, f.value])));
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState('');
+
+  useEffect(() => {
+    setValues(Object.fromEntries(fields.map((f) => [f.key, f.value])));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields.map((f) => f.value).join('|')]);
+
+  const save = async () => {
+    setSaving(true);
+    setStatus('');
+    try {
+      await onSave(values);
+      setStatus('Saved.');
+    } catch (err) {
+      setStatus(err.response?.data?.detail || 'Could not save.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="card">
+      <h2 className="card-head">{title}</h2>
+      <div className="card-body">
+        <p style={{ fontSize: 12.5, color: 'var(--muted)', margin: '0 0 14px' }}>{desc}</p>
+        <div style={{ display: 'grid', gap: 14 }}>
+          {fields.map((f) => (
+            <label key={f.key} style={{ display: 'block' }}>
+              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 5 }}>
+                {f.label}
+              </span>
+              <input
+                className="field"
+                style={{ width: '100%' }}
+                value={values[f.key] ?? ''}
+                onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                spellCheck={false}
+                autoComplete="off"
+              />
+            </label>
+          ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16 }}>
+          <button className="btn" disabled={saving} onClick={save}>{saving ? 'Saving…' : 'Save'}</button>
+          {status && <span style={{ fontSize: 12, color: 'var(--muted)' }}>{status}</span>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PlatformCredentialsPanel() {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState('');
+
+  const load = () => {
+    setError('');
+    axios.get('/api/admin/platform-credentials', { headers: authHeaders() })
+      .then((res) => setData(res.data))
+      .catch((err) => setError(err.response?.data?.detail || 'Could not load credentials.'));
+  };
+
+  useEffect(load, []);
+
+  const saveGroup = (group) => async (values) => {
+    const payload = Object.fromEntries(Object.entries(values).map(([field, value]) => [`${group}.${field}`, value]));
+    await axios.patch('/api/admin/platform-credentials', payload, { headers: authHeaders() });
+    load();
+  };
+
+  if (error) return <div className="card"><div className="card-body"><p style={{ color: 'var(--iron)', fontSize: 13.5, margin: 0 }}>{error}</p></div></div>;
+  if (!data) return <p style={{ color: 'var(--muted)', fontSize: 13 }}>Loading…</p>;
+
+  const fieldsFor = (group) => Object.entries(data[group] || {}).map(([field, f]) => ({ key: field, label: f.label, value: f.value }));
+
+  return (
+    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(360px,1fr))' }}>
+      <CredentialGroupCard
+        title="FolderIt"
+        desc="Used to file vendor certificates and other documents during onboarding."
+        fields={fieldsFor('folderit')}
+        onSave={saveGroup('folderit')}
+      />
+      <CredentialGroupCard
+        title="Microvista"
+        desc="Used to verify PAN, GSTIN, CIN, Udyam/MSME and bank details during KYC."
+        fields={fieldsFor('microvista')}
+        onSave={saveGroup('microvista')}
+      />
+    </div>
   );
 }
 
@@ -274,14 +364,6 @@ export default function AdminLauncher() {
 
   if (!path) {
     /* home — 4 big tiles */
-    const realCount = (n) => {
-      if (n.real) return [1, 0];
-      if (!n.children) return [0, 1];
-      return Object.values(n.children).reduce((a, c) => {
-        const [r, s] = realCount(c);
-        return [a[0] + r, a[1] + s];
-      }, [0, 0]);
-    };
     content = (
       <>
         <div className="hero">
@@ -291,11 +373,7 @@ export default function AdminLauncher() {
         <div className="tiles four">
           {NAV.map(([key]) => {
             const n = MENU[key];
-            const [real, stub] = realCount(n);
-            return (
-              <Tile key={key} go={key} big eyebrow={n.eyebrow} name={n.name} desc={n.desc} onOpen={goTo}
-                foot={[['Live screens', real], ['Reserved', stub]]} />
-            );
+            return <Tile key={key} go={key} big eyebrow={n.eyebrow} name={n.name} desc={n.desc} onOpen={goTo} />;
           })}
         </div>
       </>
@@ -347,7 +425,6 @@ export default function AdminLauncher() {
               desc={c.desc}
               stub={!!(c.stub || c.hub)}
               onOpen={goTo}
-              foot={c.stub || c.hub ? [['Status', 'Reserved']] : null}
             />
           ))}
         </div>

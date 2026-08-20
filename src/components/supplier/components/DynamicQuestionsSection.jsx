@@ -50,12 +50,6 @@ const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
 
   return (
     <section className="sec" id="sec-questions">
-      <div className="sh">
-        <h2>Additional questions</h2>
-        <span className="n">05</span>
-      </div>
-      <p className="sdesc">A few more questions before we can review your application.</p>
-
       {questionnaire.sections.map((section) => (
         <div key={section.sectionId} style={{ marginBottom: 20 }}>
           {section.title && (

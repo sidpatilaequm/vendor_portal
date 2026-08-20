@@ -36,6 +36,9 @@
 .nexdadmin .who .sep{width:1px;height:15px;background:#33403E}
 .nexdadmin .who .av{width:27px;height:27px;border-radius:50%;background:var(--oxide);display:grid;
          place-items:center;font-family:var(--mono);font-size:11.5px}
+.nexdadmin .who .signout{font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:2px;
+         border:1px solid #33403E;background:none;color:#8B9A98;cursor:pointer;letter-spacing:.04em}
+.nexdadmin .who .signout:hover{border-color:var(--iron);color:#E8A69F}
 
 /* ---------- one-line nav ---------- */
 .nexdadmin .nav{display:flex;overflow-x:auto;scrollbar-width:none}

@@ -368,6 +368,7 @@ export default function AdminLauncher() {
               <span className="sep"></span>
               <span>{displayName}</span>
               <span className="av">{initials}</span>
+              <button className="signout" onClick={logout}>Sign out</button>
             </div>
           </div>
           <nav className="nav" aria-label="Portal sections">

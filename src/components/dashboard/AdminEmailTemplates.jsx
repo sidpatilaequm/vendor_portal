@@ -4,12 +4,14 @@ import Button from '../common/Button';
 import Input from '../common/Input';
 
 // Admin editor for the live transactional emails WorkFlow sends — mirrors the
-// three-pane shape of the original mockup (rail / editor / live preview) but
-// scoped to only what actually exists today: each row maps 1:1 to a fixed
-// code trigger point rather than an admin-creatable ad-hoc process, so
-// there's no "create new template" flow. The rail groups rows by
-// process_key so unrelated flows (e.g. vendor onboarding vs. a vendor's own
-// change requests) read as separate sections instead of one flat list.
+// three-pane shape of the original mockup (rail / editor / live preview). A
+// new template starts as a bare mail_key/label/process stub (disabled by
+// default) — everything else is filled in through this same editor
+// afterward. Creating a row here does not wire it up to anything; actually
+// sending it still needs a send_triggered_email(mail_key, ...) call added in
+// code at whatever point should trigger it, same as every other template.
+// The rail groups rows by process_key so unrelated flows (e.g. vendor
+// onboarding vs. a vendor's own change requests) read as separate sections.
 const TONE_OPTIONS = [
   { value: 'info', label: 'Neutral (blue)' },
   { value: 'ok', label: 'Good (green)' },
@@ -39,6 +41,10 @@ const AdminEmailTemplates = () => {
   const [testEmail, setTestEmail] = useState('');
   const [testSending, setTestSending] = useState(false);
   const [testStatus, setTestStatus] = useState('');
+
+  const [creating, setCreating] = useState(null); // null = modal closed, else {mailKey, mailLabel, processKey}
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createError, setCreateError] = useState('');
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -146,6 +152,29 @@ const AdminEmailTemplates = () => {
 
   const usedFooterCount = (footerId) => templates.filter((t) => t.footer_id === footerId && !t.footer_override_reason).length;
 
+  const createTemplate = async () => {
+    if (!creating.mailKey.trim() || !creating.mailLabel.trim() || !creating.processKey.trim()) {
+      setCreateError('Fill in all three fields.');
+      return;
+    }
+    setCreateBusy(true);
+    setCreateError('');
+    try {
+      const { data } = await axios.post(
+        `/api/email-templates/?user_id=${userId}`,
+        { mail_key: creating.mailKey.trim(), mail_label: creating.mailLabel.trim(), process_key: creating.processKey.trim() },
+        { headers: authHeaders() }
+      );
+      setTemplates((list) => [...list, data]);
+      setSelectedId(data.id);
+      setCreating(null);
+    } catch (err) {
+      setCreateError(err.response?.data?.detail || 'Could not create this template.');
+    } finally {
+      setCreateBusy(false);
+    }
+  };
+
   if (loading) {
     return <div className="p-4 text-muted">Loading email templates…</div>;
   }
@@ -159,6 +188,14 @@ const AdminEmailTemplates = () => {
     <div className="d-flex" style={{ minHeight: 'calc(100vh - 60px)' }}>
       {/* Rail */}
       <div style={{ width: 240, borderRight: '1px solid #e4ebf0', background: '#fff', flexShrink: 0, overflowY: 'auto' }} className="py-3">
+        <div className="px-3 mb-3">
+          <button
+            className="btn btn-sm btn-outline-primary w-100"
+            onClick={() => { setCreating({ mailKey: '', mailLabel: '', processKey: '' }); setCreateError(''); }}
+          >
+            + New template
+          </button>
+        </div>
         {Object.entries(groups).map(([processKey, group]) => (
           <div key={processKey} className="mb-2">
             <p className="text-muted px-3 mb-2" style={{ fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase' }}>
@@ -354,6 +391,50 @@ const AdminEmailTemplates = () => {
           <pre style={{ background: '#fff', padding: 14, fontSize: 11.5, borderRadius: 4, whiteSpace: 'pre-wrap' }}>{preview.text}</pre>
         )}
       </div>
+
+      {/* New template modal */}
+      {creating && (
+        <>
+          <div className="modal-backdrop fade show" style={{ zIndex: 1040 }}></div>
+          <div className="modal fade show d-block" tabIndex="-1" role="dialog" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
+            <div className="modal-dialog modal-dialog-centered" role="document">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">New template</h5>
+                  <button type="button" className="btn-close" onClick={() => setCreating(null)}></button>
+                </div>
+                <div className="modal-body">
+                  <p className="text-muted small">
+                    Creates a disabled stub with these three fields — everything else (subject, body,
+                    footer) is filled in on the next screen. Wiring this mail_key up to an actual send
+                    still needs a code change wherever it should trigger.
+                  </p>
+                  <Input
+                    label="Mail key" id="newMailKey" value={creating.mailKey}
+                    onChange={(e) => setCreating((c) => ({ ...c, mailKey: e.target.value }))}
+                    placeholder="e.g. PR.1"
+                  />
+                  <Input
+                    label="Label" id="newMailLabel" value={creating.mailLabel}
+                    onChange={(e) => setCreating((c) => ({ ...c, mailLabel: e.target.value }))}
+                    placeholder="e.g. Requisition submitted"
+                  />
+                  <Input
+                    label="Process key" id="newProcessKey" value={creating.processKey}
+                    onChange={(e) => setCreating((c) => ({ ...c, processKey: e.target.value }))}
+                    placeholder="e.g. purchase_requisition"
+                  />
+                  {createError && <div className="text-danger small mt-2">{createError}</div>}
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-outline-secondary" onClick={() => setCreating(null)}>Cancel</button>
+                  <Button onClick={createTemplate} loading={createBusy}>Create</Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

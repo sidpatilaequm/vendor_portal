@@ -49,6 +49,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState('');
   const [actionComment, setActionComment] = useState('');
+  const [actionError, setActionError] = useState('');
   const [vendorCategoryChoice, setVendorCategoryChoice] = useState('');
   const [vendorCategoryError, setVendorCategoryError] = useState('');
   const [decidingCategory, setDecidingCategory] = useState(false);
@@ -355,6 +356,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
     setExpandedDocType(null);
     setVendorCategoryChoice('');
     setVendorCategoryError('');
+    setActionError('');
     const registrationId = selectedRequest?.request_metadata?.registrationId;
     if (!selectedRequest || selectedRequest.request_type !== 'vendor_registration' || !registrationId) return;
 
@@ -587,6 +589,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
     // comment as query params (not a JSON body) — action here is "approve"/"reject" from the
     // buttons below, but the API expects "approved"/"rejected".
     const wfAction = action === 'approve' ? 'approved' : 'rejected';
+    setActionError('');
 
     try {
       const mappedAction = action === 'approve' ? 'approved' : 'rejected';
@@ -619,6 +622,14 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
       setActionComment('');
       fetchAllData();
     } catch (err) {
+      // A real response (e.g. the backend's 400 "You have already acted on this stage") means
+      // the server understood and refused the action — showing that to the user beats silently
+      // faking a local "success" via the offline fallback below, which used to make a rejected
+      // second vote look like it worked while actually changing nothing.
+      if (err.response) {
+        setActionError(err.response.data?.detail || err.response.data?.statusMsg || 'Could not process this action. It may already have been recorded.');
+        return;
+      }
       console.warn('API Action processing failed. Acting locally.');
       const localReqs = getLocalData('workflows_requests');
       const idx = localReqs.findIndex(r => r.id === selectedRequest.id);
@@ -687,6 +698,21 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
       setDecidingCategory(false);
     }
   };
+
+  // The stage currently blocking the request, its recorded votes (actions), and the full
+  // required-approver roster for it (from workflow_snapshot — see workflow_snapshot.py on the
+  // WorkFlow service: this stays "frozen" as of submission even if the workflow is edited
+  // later). Used both to render an approval trail everyone in the group can see, and to stop
+  // showing an active Approve/Reject control to someone who already voted on this stage —
+  // the backend already rejects a second vote with 400, this just keeps the UI honest about it.
+  const activeStage = selectedRequest?.stages?.find(s => s.stage_order === selectedRequest.current_stage);
+  const activeStageMembers = selectedRequest?.workflow_snapshot?.stages
+    ?.find(s => s.order === selectedRequest.current_stage)?.members || [];
+  const activeStageActions = activeStage?.actions || [];
+  const myStageAction = activeStageActions.find(a => a.approver_id === userId);
+  const outstandingApprovers = activeStageMembers.filter(
+    m => !activeStageActions.some(a => a.approver_id === m.user_id)
+  );
 
   // GROUP CRUD HANDLERS
   const handleGroupCreate = async (e) => {
@@ -2142,20 +2168,87 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                 </div>
               )}
 
-              {/* Approve / Reject Controls */}
-              {selectedRequest.status === 'pending' && (
-                <div className="border-top pt-3 mt-3">
-                  <label className="form-label fw-bold text-muted small">Approval / Rejection Comment *</label>
-                  <textarea className="form-control mb-3" rows="2" placeholder="Provide feedback notes..." value={actionComment} onChange={(e) => setActionComment(e.target.value)} required />
-                  <div className="d-flex gap-2">
-                    <button onClick={handleApproveClick} disabled={decidingCategory} className="btn btn-success flex-grow-1 py-2 fw-bold" style={{ backgroundColor: '#064e3b', borderColor: '#064e3b' }}>
-                      <i className="fas fa-check-circle me-1"></i> {decidingCategory ? 'Saving…' : 'Approve Stage'}
-                    </button>
-                    <button onClick={() => processRequestAction('reject')} className="btn btn-danger flex-grow-1 py-2 fw-bold">
-                      <i className="fas fa-times-circle me-1"></i> Reject Request
-                    </button>
+              {/* Current stage's approval trail — who in the group has voted, their comment and
+                  when, plus who's still outstanding. Visible to everyone in the trail, not just
+                  whoever hasn't voted yet, so a "unanimous"/"sequential" group can see progress
+                  instead of just a flat "pending". */}
+              {activeStage && activeStageMembers.length > 1 && (
+                <div className="mb-4">
+                  <label className="text-muted small fw-bold text-uppercase d-block mb-2">
+                    Approval Progress
+                    {activeStage.voting_rule && (
+                      <span className="badge bg-light text-muted fw-normal ms-2 text-lowercase" style={{ fontSize: '10px' }}>
+                        {activeStage.voting_rule === 'all' ? 'unanimous' : activeStage.voting_rule}
+                      </span>
+                    )}
+                  </label>
+                  <div className="d-flex flex-column gap-2">
+                    {[...activeStageMembers]
+                      .sort((a, b) => (a.sequential_order || 0) - (b.sequential_order || 0))
+                      .map((member) => {
+                        const vote = activeStageActions.find(a => a.approver_id === member.user_id);
+                        const isMe = member.user_id === userId;
+                        return (
+                          <div key={member.user_id} className="d-flex align-items-start justify-content-between bg-light p-2 rounded">
+                            <div className="text-start">
+                              <div className="small fw-bold text-dark">
+                                {member.name}{isMe && <span className="text-muted fw-normal"> (you)</span>}
+                              </div>
+                              {vote?.comment && (
+                                <p className="mb-0 text-muted small" style={{ fontSize: '11.5px' }}>{vote.comment}</p>
+                              )}
+                              {vote && (
+                                <small className="text-muted" style={{ fontSize: '10px' }}>
+                                  {new Date(vote.acted_at).toLocaleString()}
+                                </small>
+                              )}
+                            </div>
+                            {vote ? (
+                              <span className={`badge ${vote.decision === 'approved' ? 'bg-success' : 'bg-danger'} bg-opacity-10 ${vote.decision === 'approved' ? 'text-success' : 'text-danger'} border ${vote.decision === 'approved' ? 'border-success' : 'border-danger'} border-opacity-25 px-2 py-1 flex-shrink-0`} style={{ fontSize: '10px' }}>
+                                {vote.decision === 'approved' ? 'Approved' : 'Rejected'}
+                              </span>
+                            ) : (
+                              <span className="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1 flex-shrink-0" style={{ fontSize: '10px' }}>
+                                Pending
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
+              )}
+
+              {/* Approve / Reject Controls */}
+              {selectedRequest.status === 'pending' && (
+                myStageAction ? (
+                  <div className="border-top pt-3 mt-3">
+                    <div className="bg-light p-3 rounded small">
+                      <span className={`badge ${myStageAction.decision === 'approved' ? 'bg-success' : 'bg-danger'} bg-opacity-10 ${myStageAction.decision === 'approved' ? 'text-success' : 'text-danger'} border ${myStageAction.decision === 'approved' ? 'border-success' : 'border-danger'} border-opacity-25 px-3 py-2`}>
+                        You already {myStageAction.decision === 'approved' ? 'approved' : 'rejected'} this stage
+                      </span>
+                      <div className="text-muted mt-2" style={{ fontSize: '11.5px' }}>
+                        {outstandingApprovers.length > 0
+                          ? `Waiting on ${outstandingApprovers.map(m => m.name).join(', ')} before this stage moves on.`
+                          : 'Waiting for the stage to finish processing.'}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border-top pt-3 mt-3">
+                    {actionError && <div className="alert alert-danger py-2 small mb-3">{actionError}</div>}
+                    <label className="form-label fw-bold text-muted small">Approval / Rejection Comment *</label>
+                    <textarea className="form-control mb-3" rows="2" placeholder="Provide feedback notes..." value={actionComment} onChange={(e) => setActionComment(e.target.value)} required />
+                    <div className="d-flex gap-2">
+                      <button onClick={handleApproveClick} disabled={decidingCategory} className="btn btn-success flex-grow-1 py-2 fw-bold" style={{ backgroundColor: '#064e3b', borderColor: '#064e3b' }}>
+                        <i className="fas fa-check-circle me-1"></i> {decidingCategory ? 'Saving…' : 'Approve Stage'}
+                      </button>
+                      <button onClick={() => processRequestAction('reject')} className="btn btn-danger flex-grow-1 py-2 fw-bold">
+                        <i className="fas fa-times-circle me-1"></i> Reject Request
+                      </button>
+                    </div>
+                  </div>
+                )
               )}
             </div>
           </div>

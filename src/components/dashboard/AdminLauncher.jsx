@@ -83,8 +83,12 @@ const MENU = {
       emails: { name: 'Email Templates', desc: 'Messages the portal sends to vendors and staff.', real: () => <AdminEmailTemplates /> },
       questionnaires: { name: 'Questionnaires', desc: 'Forms vendors fill in at onboarding and audit.', real: () => <Questionnaire /> },
       folderit: {
-        name: 'FolderIT Integration', desc: 'The credentials FolderIt and Microvista document/KYC verification actually use — view and change them here.',
-        real: () => <PlatformCredentialsPanel />,
+        name: 'FolderIT Integration', desc: 'The credentials FolderIt document storage actually uses — view and change them here.',
+        real: () => <PlatformCredentialsPanel group="folderit" />,
+      },
+      microvista: {
+        name: 'Microvista', desc: 'The credentials Microvista KYC verification actually uses — view and change them here.',
+        real: () => <PlatformCredentialsPanel group="microvista" />,
       },
       slack: {
         name: 'Slack', desc: "Push portal events into your team's channels.",
@@ -267,7 +271,12 @@ function CredentialGroupCard({ title, desc, fields, onSave }) {
   );
 }
 
-function PlatformCredentialsPanel() {
+const GROUP_META = {
+  folderit: { title: 'FolderIt', desc: 'Used to file vendor certificates and other documents during onboarding.' },
+  microvista: { title: 'Microvista', desc: 'Used to verify PAN, GSTIN, CIN, Udyam/MSME and bank details during KYC.' },
+};
+
+function PlatformCredentialsPanel({ group }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
 
@@ -280,7 +289,7 @@ function PlatformCredentialsPanel() {
 
   useEffect(load, []);
 
-  const saveGroup = (group) => async (values) => {
+  const save = async (values) => {
     const payload = Object.fromEntries(Object.entries(values).map(([field, value]) => [`${group}.${field}`, value]));
     await axios.patch('/api/admin/platform-credentials', payload, { headers: authHeaders() });
     load();
@@ -289,22 +298,12 @@ function PlatformCredentialsPanel() {
   if (error) return <div className="card"><div className="card-body"><p style={{ color: 'var(--iron)', fontSize: 13.5, margin: 0 }}>{error}</p></div></div>;
   if (!data) return <p style={{ color: 'var(--muted)', fontSize: 13 }}>Loading…</p>;
 
-  const fieldsFor = (group) => Object.entries(data[group] || {}).map(([field, f]) => ({ key: field, label: f.label, value: f.value }));
+  const fields = Object.entries(data[group] || {}).map(([field, f]) => ({ key: field, label: f.label, value: f.value }));
+  const meta = GROUP_META[group];
 
   return (
     <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(360px,1fr))' }}>
-      <CredentialGroupCard
-        title="FolderIt"
-        desc="Used to file vendor certificates and other documents during onboarding."
-        fields={fieldsFor('folderit')}
-        onSave={saveGroup('folderit')}
-      />
-      <CredentialGroupCard
-        title="Microvista"
-        desc="Used to verify PAN, GSTIN, CIN, Udyam/MSME and bank details during KYC."
-        fields={fieldsFor('microvista')}
-        onSave={saveGroup('microvista')}
-      />
+      <CredentialGroupCard title={meta.title} desc={meta.desc} fields={fields} onSave={save} />
     </div>
   );
 }
@@ -448,14 +447,17 @@ export default function AdminLauncher() {
               <button className="signout" onClick={logout}>Sign out</button>
             </div>
           </div>
-          <nav className="nav" aria-label="Portal sections">
-            {NAV.map(([key, label]) => (
-              <button key={key} className="nav-item" aria-current={top === key} onClick={() => goTo(key)}>{label}</button>
-            ))}
-          </nav>
         </div>
       </header>
-      <main>{content}</main>
+      <main>
+        {path && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+            <button className="btn quiet" onClick={() => goTo('')}>← Back to menu</button>
+            <button className="btn quiet" onClick={() => goTo(parts.slice(0, -1).join(':'))}>← Back</button>
+          </div>
+        )}
+        {content}
+      </main>
     </div>
   );
 }

@@ -79,7 +79,7 @@ const MENU = {
       directory: { name: 'Directory (SSO)', desc: "Sign in with the organisation's Google or Microsoft account.", stub: true,
         table: 'sso_directory_config', endpoint: '/api/sso/directories' },
       workflows: { name: 'Workflow Templates', desc: 'Approval routes for requisitions, orders and invoices.',
-        real: (_, onNavigate) => <AdminWorkflows subTab="wf_dashboard" onNavigate={onNavigate} /> },
+        real: (_, subTab, onNavigate) => <AdminWorkflows subTab={subTab} onNavigate={onNavigate} /> },
       emails: { name: 'Email Templates', desc: 'Messages the portal sends to vendors and staff.', real: () => <AdminEmailTemplates /> },
       questionnaires: { name: 'Questionnaires', desc: 'Forms vendors fill in at onboarding and audit.', real: () => <Questionnaire /> },
       folderit: {
@@ -314,6 +314,10 @@ function PlatformCredentialsPanel({ group }) {
 export default function AdminLauncher() {
   const { currentUser, logout } = useAuth();
   const [path, setPath] = useState('');
+  // AdminWorkflows manages its own sub-tabs (Dashboard/Workflows/Requests/Groups/Analytics/...)
+  // via a subTab prop + an onNavigate callback it calls on every internal tab click — this has
+  // to be real state here, not a no-op, or clicking any tab inside it does nothing.
+  const [wfSubTab, setWfSubTab] = useState('wf_dashboard');
 
   const goTo = (p) => {
     setPath(p);
@@ -359,7 +363,6 @@ export default function AdminLauncher() {
 
   let content;
   const onBack = () => goTo(parts.slice(0, -1).join(':'));
-  const onNavigate = () => {}; // AdminWorkflows may ask to jump tabs internally; not part of this shell's routing
 
   if (!path) {
     /* home — 4 big tiles */
@@ -387,7 +390,7 @@ export default function AdminLauncher() {
           <h1 style={{ fontSize: 21 }}>{node.name}</h1>
           <p>{node.desc}</p>
         </div>
-        <div className="real-screen">{node.real(onBack, onNavigate)}</div>
+        <div className="real-screen">{node.real(onBack, wfSubTab, setWfSubTab)}</div>
       </>
     );
   } else if (node.stub) {

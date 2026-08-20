@@ -12,6 +12,7 @@ const Questionnaire = () => {
   const [processes, setProcesses] = useState([]);
   const [draftCounts, setDraftCounts] = useState({});
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [selectedProcessId, setSelectedProcessId] = useState(null);
   const [creatingName, setCreatingName] = useState(null); // null = modal closed, '' = open+empty
   const [creating, setCreating] = useState(false);
@@ -20,6 +21,7 @@ const Questionnaire = () => {
 
   const fetchProcesses = useCallback(async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const { data } = await axios.get('/api/questionnaire/processes', { headers: authHeaders() });
       const list = Array.isArray(data) ? data : [];
@@ -38,6 +40,12 @@ const Questionnaire = () => {
       setDraftCounts(Object.fromEntries(counts));
     } catch (err) {
       console.error('Failed to load questionnaires', err);
+      const status = err.response?.status;
+      setLoadError(
+        status === 401 || status === 403
+          ? 'Your session could not be verified — try signing in again.'
+          : 'Could not reach the server — check your connection and try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -120,6 +128,12 @@ const Questionnaire = () => {
 
           {loading ? (
             <p className="qs-muted">Loading…</p>
+          ) : loadError ? (
+            <div className="qs-empty">
+              <p className="qs-empty__title" style={{ color: 'var(--stamp)' }}>Couldn't load questionnaires.</p>
+              <p className="qs-muted">{loadError}</p>
+              <button className="btn" style={{ marginTop: 10 }} onClick={fetchProcesses}>Try again</button>
+            </div>
           ) : processes.length === 0 ? (
             <div className="qs-empty">
               <p className="qs-empty__title">No questionnaires yet.</p>

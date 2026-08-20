@@ -49,6 +49,9 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState('');
   const [actionComment, setActionComment] = useState('');
+  const [vendorCategoryChoice, setVendorCategoryChoice] = useState('');
+  const [vendorCategoryError, setVendorCategoryError] = useState('');
+  const [decidingCategory, setDecidingCategory] = useState(false);
   
   // Requests Filter state
   const [requestFilter, setRequestFilter] = useState('pending');
@@ -350,6 +353,8 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
     setReviewDetails(null);
     setReviewError('');
     setExpandedDocType(null);
+    setVendorCategoryChoice('');
+    setVendorCategoryError('');
     const registrationId = selectedRequest?.request_metadata?.registrationId;
     if (!selectedRequest || selectedRequest.request_type !== 'vendor_registration' || !registrationId) return;
 
@@ -647,6 +652,39 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
       setSelectedRequest(null);
       setActionComment('');
       fetchAllData();
+    }
+  };
+
+  // Vendor Type (Product/Service/Scheduling agreement/Sub-contracting) is decided by whichever
+  // approver acts first — see SupplierRegistrationService.setVendorCategory on the backend for
+  // the atomic "first write wins" logic this relies on. Only fires the classification call when
+  // it's actually still undecided; once reviewDetails.registration.vendorCategory is set, this
+  // is a no-op and Approve goes straight through like normal.
+  const handleApproveClick = async () => {
+    const needsCategory = selectedRequest?.request_type === 'vendor_registration'
+      && reviewDetails && !reviewDetails.registration.vendorCategory;
+    if (!needsCategory) {
+      processRequestAction('approve');
+      return;
+    }
+    if (!vendorCategoryChoice) {
+      setVendorCategoryError('Pick what kind of vendor this is before approving.');
+      return;
+    }
+    setDecidingCategory(true);
+    setVendorCategoryError('');
+    try {
+      const token = localStorage.getItem('auth_token');
+      await axios.post(
+        `/api/supplier-registration/${selectedRequest.request_metadata.registrationId}/classification`,
+        { category: vendorCategoryChoice },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      processRequestAction('approve');
+    } catch (err) {
+      setVendorCategoryError(err.response?.data?.statusMsg || 'Could not record the vendor type. Try again.');
+    } finally {
+      setDecidingCategory(false);
     }
   };
 
@@ -2063,14 +2101,55 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                 </div>
               </div>
 
+              {/* Vendor type — decided by whichever approver acts first; read-only once set */}
+              {selectedRequest.request_type === 'vendor_registration' && reviewDetails && (
+                <div className="mb-4">
+                  <label className="text-muted small fw-bold text-uppercase d-block mb-2">Vendor Type</label>
+                  {reviewDetails.registration.vendorCategory ? (
+                    <div className="bg-light p-3 rounded small">
+                      <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2">
+                        {reviewDetails.registration.vendorCategory.replace(/_/g, ' ')}
+                      </span>
+                      <div className="text-muted mt-2" style={{ fontSize: '11.5px' }}>
+                        Already decided by whichever approver acted first on this request.
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-light p-3 rounded">
+                      <div className="d-flex flex-wrap gap-2 mb-2">
+                        {[
+                          ['PRODUCT', 'Product'],
+                          ['SERVICE', 'Service'],
+                          ['SCHEDULING_AGREEMENT', 'Scheduling agreement'],
+                          ['SUBCONTRACTING', 'Sub-contracting'],
+                        ].map(([value, label]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            className={`btn btn-sm ${vendorCategoryChoice === value ? 'btn-success' : 'btn-outline-secondary'}`}
+                            onClick={() => { setVendorCategoryChoice(value); setVendorCategoryError(''); }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="text-muted" style={{ fontSize: '11.5px' }}>
+                        Not yet decided — required before this request can be approved. Whoever approves first sets it.
+                      </div>
+                      {vendorCategoryError && <div className="text-danger small mt-2">{vendorCategoryError}</div>}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Approve / Reject Controls */}
               {selectedRequest.status === 'pending' && (
                 <div className="border-top pt-3 mt-3">
                   <label className="form-label fw-bold text-muted small">Approval / Rejection Comment *</label>
                   <textarea className="form-control mb-3" rows="2" placeholder="Provide feedback notes..." value={actionComment} onChange={(e) => setActionComment(e.target.value)} required />
                   <div className="d-flex gap-2">
-                    <button onClick={() => processRequestAction('approve')} className="btn btn-success flex-grow-1 py-2 fw-bold" style={{ backgroundColor: '#064e3b', borderColor: '#064e3b' }}>
-                      <i className="fas fa-check-circle me-1"></i> Approve Stage
+                    <button onClick={handleApproveClick} disabled={decidingCategory} className="btn btn-success flex-grow-1 py-2 fw-bold" style={{ backgroundColor: '#064e3b', borderColor: '#064e3b' }}>
+                      <i className="fas fa-check-circle me-1"></i> {decidingCategory ? 'Saving…' : 'Approve Stage'}
                     </button>
                     <button onClick={() => processRequestAction('reject')} className="btn btn-danger flex-grow-1 py-2 fw-bold">
                       <i className="fas fa-times-circle me-1"></i> Reject Request

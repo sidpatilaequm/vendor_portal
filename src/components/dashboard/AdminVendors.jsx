@@ -7,6 +7,7 @@ const AdminVendors = ({ onBack }) => {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
   
   // Modals state
   const [selectedVendor, setSelectedVendor] = useState(null);
@@ -148,8 +149,16 @@ const AdminVendors = ({ onBack }) => {
                           v.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           v.gstin.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || v.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesCategory = categoryFilter === 'ALL' || v.vendorCategory === categoryFilter;
+    return matchesSearch && matchesStatus && matchesCategory;
   });
+
+  const CATEGORY_LABELS = {
+    PRODUCT: 'Product',
+    SERVICE: 'Service',
+    SCHEDULING_AGREEMENT: 'Scheduling agreement',
+    SUBCONTRACTING: 'Sub-contracting'
+  };
 
   return (
     <div className="fade-in-slide container-fluid py-4 bg-light bg-opacity-50" style={{ minHeight: '100%' }}>
@@ -207,6 +216,17 @@ const AdminVendors = ({ onBack }) => {
                 <option value="PENDING_KYC">Pending KYC</option>
                 <option value="INACTIVE">Inactive</option>
               </select>
+              <select
+                className="form-select"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                style={{ fontSize: '13px' }}
+              >
+                <option value="ALL">All Vendor Types</option>
+                {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
@@ -222,6 +242,7 @@ const AdminVendors = ({ onBack }) => {
                   <th scope="col" className="ps-4 py-3">Vendor Name</th>
                   <th scope="col">Contact Info</th>
                   <th scope="col">GSTIN / PAN</th>
+                  <th scope="col">Vendor Type</th>
                   <th scope="col">Compliance Status</th>
                   <th scope="col">Account Status</th>
                   <th scope="col" className="text-end pe-4">Actions</th>
@@ -230,7 +251,7 @@ const AdminVendors = ({ onBack }) => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="6" className="text-center py-5 text-muted">
+                    <td colSpan="7" className="text-center py-5 text-muted">
                       <div className="spinner-border spinner-border-sm text-success me-2" role="status"></div>
                       Loading vendors...
                     </td>
@@ -249,6 +270,15 @@ const AdminVendors = ({ onBack }) => {
                       <td>
                         <div className="small font-monospace">{vendor.gstin}</div>
                         <div className="text-muted small font-monospace" style={{ fontSize: '11px' }}>PAN: {vendor.pan}</div>
+                      </td>
+                      <td>
+                        {vendor.vendorCategory ? (
+                          <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1 rounded-pill">
+                            {CATEGORY_LABELS[vendor.vendorCategory] || vendor.vendorCategory}
+                          </span>
+                        ) : (
+                          <span className="text-muted small">Not classified</span>
+                        )}
                       </td>
                       <td>
                         {vendor.kycStatus === 'VERIFIED' ? (
@@ -304,7 +334,7 @@ const AdminVendors = ({ onBack }) => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="text-center py-5 text-muted">
+                    <td colSpan="7" className="text-center py-5 text-muted">
                       <i className="fas fa-box-open fa-2x mb-2 d-block opacity-50"></i>
                       No vendors matched your query.
                     </td>
@@ -339,6 +369,14 @@ const AdminVendors = ({ onBack }) => {
                 <div className="col-sm-6">
                   <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Contact Phone</label>
                   <div className="small fw-semibold">{selectedVendor.phone}</div>
+                </div>
+                <div className="col-sm-6">
+                  <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Vendor Type</label>
+                  <div className="small fw-semibold">
+                    {selectedVendor.vendorCategory
+                      ? (CATEGORY_LABELS[selectedVendor.vendorCategory] || selectedVendor.vendorCategory)
+                      : 'Not classified'}
+                  </div>
                 </div>
                 <div className="col-sm-6">
                   <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>GSTIN Number</label>

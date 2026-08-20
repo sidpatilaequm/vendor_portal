@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import AdminVendors from './AdminVendors';
+import AdminApprovedSuppliers from './AdminApprovedSuppliers';
 import AdminProspects from './AdminProspects';
 import AdminInvitations from './AdminInvitations';
 import AdminUsers from './AdminUsers';
@@ -59,6 +60,7 @@ const MENU = {
     desc: 'The records everything else refers to — suppliers, parts and assemblies.',
     children: {
       vendors: { name: 'Vendors', desc: 'Suppliers, payment terms and contacts.', real: (onBack) => <AdminVendors onBack={onBack} /> },
+      approvedSuppliers: { name: 'Approved Suppliers', desc: 'Vendors approved through Become-a-Supplier, with their Product/Service/Scheduling agreement/Sub-contracting type.', real: (onBack) => <AdminApprovedSuppliers onBack={onBack} /> },
       prospects: { name: 'Vendor Prospects', desc: 'Applicants still in onboarding review.', real: () => <AdminProspects /> },
       invitations: { name: 'Invitations', desc: 'Invite a new supplier to register.', real: () => <AdminInvitations /> },
       materials: { name: 'Materials', desc: 'Part master with cost, stock and lead time.', stub: true,

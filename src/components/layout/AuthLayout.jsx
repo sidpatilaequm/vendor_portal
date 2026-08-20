@@ -12,9 +12,6 @@ const AuthLayout = ({ children, screen, onToggleScreen, onLogout }) => {
       <div className="auth-content">
         {/* Navigation Bar */}
         <div className="auth-nav">
-          <a href="#help">
-            <i className="far fa-question-circle me-1"></i> Help
-          </a>
           {screen === 'login' && (
             <Button variant="outline-green" onClick={() => onToggleScreen('signup')}>
               Become a Supplier

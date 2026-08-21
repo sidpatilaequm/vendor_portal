@@ -268,36 +268,32 @@ export default function VendorMyProfile({ onBack }) {
           {/* Documents */}
           <div className="qs-stack" style={{ gap: 6 }}>
             <p className="qs-eyebrow" style={{ margin: 0 }}>Documents</p>
-            <ul className="q-list">
+            <ul className="tile-grid">
               {DOCS.map((docDef) => {
                 const d = docsByType[docDef.id];
                 const pending = pendingByKey.has(`document:${docDef.id}`);
                 return (
-                  <li key={docDef.id} className={`q-card${docDef.req ? ' q-card--required' : ''}`}>
-                    <div className="q-gutter">
+                  <li key={docDef.id} className={`tile-card${docDef.req ? ' tile-card--required' : ''}`}>
+                    <div className="tile-top">
                       <span className="type-tag">DOC</span>
                       {docDef.req ? <span className="stamp">Required</span> : <span className="stamp stamp--optional">Optional</span>}
                     </div>
-                    <div className="q-body">
-                      <div className="q-head">
-                        <p className="q-prompt">{docDef.name}</p>
-                        {pending && <StatusChip status="PENDING" />}
-                      </div>
-                      <p className="q-preview">
-                        {d ? d.fileName : <span className="qs-muted">Not uploaded</span>}
-                      </p>
-                      <div className="q-actions">
-                        {d?.previewUrl && (
-                          <button className="btn btn--tiny" onClick={() => setViewer({ url: d.previewUrl, title: docDef.name })}>View</button>
-                        )}
-                        <button
-                          className="btn btn--tiny btn--primary"
-                          disabled={pending}
-                          onClick={() => openChangeModal('document', docDef.id, docDef.name)}
-                        >
-                          {pending ? 'Pending review' : 'Request a change'}
-                        </button>
-                      </div>
+                    <p className="tile-prompt">{docDef.name}</p>
+                    <p className="tile-preview">
+                      {d ? d.fileName : <span className="qs-muted">Not uploaded</span>}
+                    </p>
+                    {pending && <StatusChip status="PENDING" />}
+                    <div className="tile-actions">
+                      {d?.previewUrl && (
+                        <button className="btn btn--tiny" onClick={() => setViewer({ url: d.previewUrl, title: docDef.name })}>View</button>
+                      )}
+                      <button
+                        className="btn btn--tiny btn--primary"
+                        disabled={pending}
+                        onClick={() => openChangeModal('document', docDef.id, docDef.name)}
+                      >
+                        {pending ? 'Pending review' : 'Request a change'}
+                      </button>
                     </div>
                   </li>
                 );
@@ -309,31 +305,27 @@ export default function VendorMyProfile({ onBack }) {
           {(profile.attachments || []).length > 0 && (
             <div className="qs-stack" style={{ gap: 6 }}>
               <p className="qs-eyebrow" style={{ margin: 0 }}>Other documents</p>
-              <ul className="q-list">
+              <ul className="tile-grid">
                 {profile.attachments.map((a) => {
                   const pending = pendingByKey.has(`attachment:${a.id}`);
                   return (
-                    <li key={a.id} className="q-card">
-                      <div className="q-gutter">
+                    <li key={a.id} className="tile-card">
+                      <div className="tile-top">
                         <span className="type-tag">FILE</span>
                       </div>
-                      <div className="q-body">
-                        <div className="q-head">
-                          <p className="q-prompt">{a.fileName}</p>
-                          {pending && <StatusChip status="PENDING" />}
-                        </div>
-                        <div className="q-actions">
-                          {a.previewUrl && (
-                            <button className="btn btn--tiny" onClick={() => setViewer({ url: a.previewUrl, title: a.fileName })}>View</button>
-                          )}
-                          <button
-                            className="btn btn--tiny btn--primary"
-                            disabled={pending}
-                            onClick={() => openChangeModal('attachment', a.id, a.fileName)}
-                          >
-                            {pending ? 'Pending review' : 'Request a change'}
-                          </button>
-                        </div>
+                      <p className="tile-prompt">{a.fileName}</p>
+                      {pending && <StatusChip status="PENDING" />}
+                      <div className="tile-actions">
+                        {a.previewUrl && (
+                          <button className="btn btn--tiny" onClick={() => setViewer({ url: a.previewUrl, title: a.fileName })}>View</button>
+                        )}
+                        <button
+                          className="btn btn--tiny btn--primary"
+                          disabled={pending}
+                          onClick={() => openChangeModal('attachment', a.id, a.fileName)}
+                        >
+                          {pending ? 'Pending review' : 'Request a change'}
+                        </button>
                       </div>
                     </li>
                   );
@@ -346,33 +338,29 @@ export default function VendorMyProfile({ onBack }) {
           {(profile.dynamicAnswers || []).length > 0 && (
             <div className="qs-stack" style={{ gap: 6 }}>
               <p className="qs-eyebrow" style={{ margin: 0 }}>Additional questions</p>
-              <ul className="q-list">
+              <ul className="tile-grid">
                 {profile.dynamicAnswers.map((a) => {
                   const pending = pendingByKey.has(`answer:${a.questionId}`);
                   const display = answerDisplay(a);
                   return (
-                    <li key={a.questionId} className="q-card">
-                      <div className="q-gutter">
+                    <li key={a.questionId} className="tile-card">
+                      <div className="tile-top">
                         <span className="type-tag">{a.questionType?.replace('_', ' ')}</span>
                       </div>
-                      <div className="q-body">
-                        <div className="q-head">
-                          <p className="q-prompt">{a.prompt}</p>
-                          {pending && <StatusChip status="PENDING" />}
-                        </div>
-                        {display ? <p className="q-preview">{display}</p> : <p className="q-preview qs-muted">(not answered)</p>}
-                        <div className="q-actions">
-                          <button
-                            className="btn btn--tiny btn--primary"
-                            disabled={pending || !findQuestion(a.questionId)}
-                            onClick={() => openChangeModal('answer', a.questionId, a.prompt, {
-                              question: findQuestion(a.questionId),
-                              answer: { textValue: a.textValue, rows: a.rows },
-                            })}
-                          >
-                            {pending ? 'Pending review' : 'Request a change'}
-                          </button>
-                        </div>
+                      <p className="tile-prompt">{a.prompt}</p>
+                      {display ? <p className="tile-preview">{display}</p> : <p className="tile-preview qs-muted">(not answered)</p>}
+                      {pending && <StatusChip status="PENDING" />}
+                      <div className="tile-actions">
+                        <button
+                          className="btn btn--tiny btn--primary"
+                          disabled={pending || !findQuestion(a.questionId)}
+                          onClick={() => openChangeModal('answer', a.questionId, a.prompt, {
+                            question: findQuestion(a.questionId),
+                            answer: { textValue: a.textValue, rows: a.rows },
+                          })}
+                        >
+                          {pending ? 'Pending review' : 'Request a change'}
+                        </button>
                       </div>
                     </li>
                   );

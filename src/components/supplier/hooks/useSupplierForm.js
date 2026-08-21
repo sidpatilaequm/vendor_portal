@@ -542,6 +542,21 @@ export function useSupplierForm() {
       const result = data.data?.result || {};
       const reg = result.registration || {};
 
+      // Only a fresh DRAFT or a REJECTED application (sent back to fix something) can be
+      // reopened for editing — anything already in flight or resolved gets a status message
+      // instead of being dropped into an editable form. Mirrors the same EDITABLE_STATUSES
+      // gate the backend now enforces on saveDraft/submit, so this is UX, not the only guard.
+      const NOT_RESUMABLE_MESSAGES = {
+        REGISTRATION_SUBMITTED: 'This application has already been submitted and is awaiting a decision.',
+        ESCALATED: 'This application is under additional review — our team will be in touch.',
+        ACTIVE: 'This application was already approved. Check your email for your supplier login.',
+        CANCELLED: 'This application was cancelled.',
+      };
+      if (NOT_RESUMABLE_MESSAGES[reg.status]) {
+        setResumeMessage({ text: NOT_RESUMABLE_MESSAGES[reg.status], ok: false });
+        return;
+      }
+
       const fields = {
         c1_name: reg.contact1Name || '', c1_role: reg.contact1Role || '',
         c1_email: reg.contact1Email || '', c1_phone: reg.contact1Phone || '',
@@ -596,7 +611,11 @@ export function useSupplierForm() {
         docs,
         extraFiles,
       });
-      setResumeMessage({ text: 'Draft restored, documents and all.', ok: true });
+      setResumeMessage(
+        reg.status === 'REJECTED'
+          ? { text: 'This application was rejected — update what needs fixing below and resubmit.', ok: true }
+          : { text: 'Draft restored, documents and all.', ok: true }
+      );
     } catch (err) {
       setResumeMessage({ text: 'No draft found with that code.', ok: false });
     }

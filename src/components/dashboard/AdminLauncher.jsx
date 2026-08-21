@@ -84,6 +84,10 @@ const MENU = {
         real: (_, subTab, onNavigate) => <AdminWorkflows subTab={subTab} onNavigate={onNavigate} /> },
       emails: { name: 'Email Templates', desc: 'Messages the portal sends to vendors and staff.', real: () => <AdminEmailTemplates /> },
       questionnaires: { name: 'Questionnaires', desc: 'Forms vendors fill in at onboarding and audit.', real: () => <Questionnaire /> },
+      reportDesigner: {
+        name: 'Report Designer', desc: 'Build custom reports against the live database — bind boxes to tables, add formulas, publish role-scoped links.',
+        href: 'https://nexdsupportal.in/analytics/',
+      },
       folderit: {
         name: 'FolderIT Integration', desc: 'The credentials FolderIt document storage actually uses — view and change them here.',
         real: () => <PlatformCredentialsPanel group="folderit" />,
@@ -137,9 +141,9 @@ const NAV = [
 ];
 
 /* ---------------- small pieces ---------------- */
-function Tile({ go, eyebrow, name, desc, foot, stub, big, onOpen }) {
-  return (
-    <button className={`tile ${stub ? 'stub' : ''}`} onClick={() => onOpen(go)}>
+function Tile({ go, eyebrow, name, desc, foot, stub, big, onOpen, href }) {
+  const inner = (
+    <>
       <span className="go" aria-hidden="true">→</span>
       {eyebrow && <div className="eyebrow">{eyebrow}</div>}
       {big ? <h2>{name}</h2> : <h3>{name}</h3>}
@@ -149,6 +153,16 @@ function Tile({ go, eyebrow, name, desc, foot, stub, big, onOpen }) {
           {foot.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
         </dl>
       )}
+    </>
+  );
+  // An external tool (its own separate app/origin) opens in a new tab instead
+  // of navigating into a sub-page within this one.
+  if (href) {
+    return <a className="tile" href={href} target="_blank" rel="noopener noreferrer">{inner}</a>;
+  }
+  return (
+    <button className={`tile ${stub ? 'stub' : ''}`} onClick={() => onOpen(go)}>
+      {inner}
     </button>
   );
 }
@@ -428,6 +442,7 @@ export default function AdminLauncher() {
               name={c.name}
               desc={c.desc}
               stub={!!(c.stub || c.hub)}
+              href={c.href}
               onOpen={goTo}
             />
           ))}

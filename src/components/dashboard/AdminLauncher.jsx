@@ -8,6 +8,7 @@ import AdminInvitations from './AdminInvitations';
 import AdminUsers from './AdminUsers';
 import AdminMasterData from './AdminMasterData';
 import AdminWorkflows from './AdminWorkflows';
+import AdminAnalytics from './AdminAnalytics';
 import AdminEmailTemplates from './AdminEmailTemplates';
 import Questionnaire from './Questionnaire';
 import BudgetApp from './BudgetApp';
@@ -86,7 +87,7 @@ const MENU = {
       questionnaires: { name: 'Questionnaires', desc: 'Forms vendors fill in at onboarding and audit.', real: () => <Questionnaire /> },
       reportDesigner: {
         name: 'Report Designer', desc: 'Build custom reports against the live database — bind boxes to tables, add formulas, publish role-scoped links.',
-        href: 'https://nexdsupportal.in/analytics/',
+        real: () => <AdminAnalytics />,
       },
       folderit: {
         name: 'FolderIT Integration', desc: 'The credentials FolderIt document storage actually uses — view and change them here.',

@@ -473,7 +473,6 @@ export default function AdminLauncher() {
       <main>
         {path && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-            <button className="btn quiet" onClick={() => goTo('')}>← Back to menu</button>
             <button className="btn quiet" onClick={() => goTo(parts.slice(0, -1).join(':'))}>← Back</button>
           </div>
         )}

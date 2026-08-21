@@ -63,11 +63,6 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
-      '/api/vendors/all': {
-        target: WORKFLOW_TARGET,
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/vendors\/all\/?$/, '/api/vendors/all/')
-      },
       '/api/vendors': {
         target: 'http://localhost:8080',
         changeOrigin: true,

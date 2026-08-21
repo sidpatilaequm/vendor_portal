@@ -62,7 +62,7 @@ const AdminVendors = ({ onBack }) => {
   const fetchVendors = () => {
     setLoading(true);
     const token = localStorage.getItem('auth_token');
-    axios.get('/api/vendors/all/', {
+    axios.get('/api/vendors/all', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     .then(res => {
@@ -79,14 +79,20 @@ const AdminVendors = ({ onBack }) => {
         }
       }
       if (data && data.length > 0) {
-        // Normalize fields for AdminVendors UI:
+        // Normalize fields for AdminVendors UI — backend_java's /api/vendors/all returns
+        // camelCase keys (Jackson default), not the snake_case this used to assume back when
+        // this call was silently misrouted to a different (Python/snake_case) backend and
+        // falling back to mock data on every real request. See vite.config.js.
         const mapped = data.map(v => ({
           ...v,
-          id: v.vendor_id || v.companyId || v.id,
-          gstin: v.gst_number || v.gstin || '',
+          id: v.vendorId || v.companyId || v.id,
+          gstin: v.gstNumber || v.gstin || '',
+          pan: v.pan || '',
+          phone: v.phoneNumber || v.phone || '',
+          contactPerson: v.contactPerson || [v.firstName, v.lastName].filter(Boolean).join(' '),
           kycStatus: v.kycStatus || 'VERIFIED',
           status: v.status || 'ACTIVE',
-          location: v.city_name || v.location || 'Location not specified'
+          location: v.cityName || v.location || 'Location not specified'
         }));
         setVendors(mapped);
       } else {

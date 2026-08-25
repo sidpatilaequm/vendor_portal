@@ -2,6 +2,59 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './NewAsnWizard.css';
 
+const MultiSelectDropdown = ({ options, selectedValues, onChange, placeholder = "Select Materials..." }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const toggle = (val) => {
+    let newSelected;
+    if (selectedValues.includes(val)) {
+      newSelected = selectedValues.filter(v => v !== val);
+    } else {
+      newSelected = [...selectedValues, val];
+    }
+    onChange(newSelected);
+  };
+
+  return (
+    <div style={{ position: 'relative' }} ref={dropdownRef}>
+      <div 
+        className="batch-in" 
+        style={{ width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', minHeight: '32px', backgroundColor: '#fff', border: isOpen ? '1px solid var(--teal)' : '1px solid var(--line)' }}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {(!selectedValues || selectedValues.length === 0) ? (
+          <span style={{color: 'var(--muted)'}}>{placeholder}</span>
+        ) : (
+          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', width: '100%' }}>
+            {selectedValues.map(val => options.find(o => o.value === val)?.label || val).join(', ')}
+          </span>
+        )}
+      </div>
+      {isOpen && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid var(--line)', zIndex: 100, maxHeight: '200px', overflowY: 'auto', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', borderRadius: '4px' }}>
+          {options.map(opt => (
+            <div key={opt.value} style={{ padding: '8px 12px', borderBottom: '1px solid var(--line-soft)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: (selectedValues || []).includes(opt.value) ? 'var(--teal-soft)' : '#fff' }} onClick={() => toggle(opt.value)}>
+              <input type="checkbox" checked={(selectedValues || []).includes(opt.value)} readOnly style={{ cursor: 'pointer' }} />
+              <span style={{ fontSize: '12px', userSelect: 'none', color: 'var(--text)' }}>{opt.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -111,6 +164,8 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
     othersAttached: []
   });
 
+  const [packageDetails, setPackageDetails] = useState([]);
+
   // Calculate functions
   const fmt = n => (n != null && n !== '') ? Number(n).toLocaleString("en-IN") : '—';
   const avail = l => l.pending !== undefined ? l.pending : (Math.max(0, l.ordered - l.received) - l.onLive);
@@ -135,6 +190,29 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
 
   const handleInputChange = (field, val) => {
     setFormData(prev => ({ ...prev, [field]: val }));
+    if (field === 'noOfPackages') {
+      const num = parseInt(val, 10);
+      if (!isNaN(num) && num > 0) {
+        setPackageDetails(prev => {
+          const newPackages = [...prev];
+          while (newPackages.length < num) {
+            newPackages.push({ packageNumber: newPackages.length + 1, materialDetails: [], quantity: '' });
+          }
+          if (newPackages.length > num) {
+            newPackages.length = num;
+          }
+          return newPackages;
+        });
+      } else {
+         setPackageDetails([]);
+      }
+    }
+  };
+
+  const handlePackageChange = (index, field, value) => {
+    const updated = [...packageDetails];
+    updated[index] = { ...updated[index], [field]: value };
+    setPackageDetails(updated);
   };
 
   const handleFileChange = (field, e) => {
@@ -235,6 +313,11 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
           packaging: formData.packaging,
           no_of_packages: formData.noOfPackages ? parseInt(formData.noOfPackages, 10) : null
         },
+        packages: packageDetails.map(p => ({
+          package_number: p.packageNumber,
+          material_details: Array.isArray(p.materialDetails) ? p.materialDetails.join(', ') : p.materialDetails,
+          quantity: parseFloat(p.quantity)
+        })),
         items: []
       };
 
@@ -275,7 +358,7 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
       const storedUserId = localStorage.getItem('user_id');
       const userId = storedUserId && !isNaN(storedUserId) ? parseInt(storedUserId, 10) : 1; 
       
-      await axios.post('/api/vendor/asns', submitData, {
+      const res = await axios.post('/api/vendor/asns', submitData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'X-User-Id': userId,
@@ -283,7 +366,7 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
         }
       });
 
-      onSuccess();
+      onSuccess(res.data?.statusMsg || 'ASN created successfully');
     } catch (err) {
       console.error(err);
       setError('Failed to submit ASN. Please try again.');
@@ -463,6 +546,42 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
             </div>
           </div>
         </div>
+
+        {packageDetails.length > 0 && (
+          <div className="asn-card">
+            <div className="asn-card-hd"><h2>Package Details</h2></div>
+            <div className="asn-card-bd" style={{ padding: '0', overflow: 'visible' }}>
+              <div className="tbl-scroll" style={{ overflow: 'visible' }}>
+                <table className="lines" style={{ minWidth: '100%' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '100px' }}>Package #</th>
+                      <th>Material Details</th>
+                      <th style={{ width: '200px' }}>Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {packageDetails.map((pkg, i) => (
+                      <tr key={i}>
+                        <td style={{ verticalAlign: 'middle' }}><b>{pkg.packageNumber}</b></td>
+                        <td style={{ verticalAlign: 'middle' }}>
+                          <MultiSelectDropdown 
+                            options={lines.map(l => ({ value: `${l.part}`, label: `${l.part} - ${l.desc}` }))}
+                            selectedValues={pkg.materialDetails || []}
+                            onChange={(vals) => handlePackageChange(i, 'materialDetails', vals)}
+                          />
+                        </td>
+                        <td style={{ verticalAlign: 'middle' }}>
+                          <input type="number" min="0" className="batch-in mono" style={{ width: '100%' }} value={pkg.quantity} placeholder="0" onChange={e => handlePackageChange(i, 'quantity', e.target.value)} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="asn-card">
           <div className="asn-card-hd"><h2>Documents</h2><span className="pill grey">Required documents</span></div>

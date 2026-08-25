@@ -264,7 +264,7 @@ const QuotationDetail = ({ qtnId, onBack, qtnDataFromList }) => {
           'Content-Type': 'application/json'
         }
       });
-      setAwardAlert({ type: 'success', message: 'Quotation awarded successfully!' });
+      setAwardAlert({ type: 'success', message: 'Quotation awarded and Purchase Order created successfully!' });
 
       try {
         await generateAndUploadPOExcel(qtnData);

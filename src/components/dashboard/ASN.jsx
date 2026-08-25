@@ -125,8 +125,8 @@ const ASN = ({ onBack }) => {
             expected_delivery: asn.expected_delivery || asn.expectedDelivery || '—',
             carrier: asn.carrier || asn.transporterCode || '—',
             invoice_date: asn.invoice_date || asn.invoiceDate || '',
-            packages: asn.packages || '—', // Or derived from packages if added later
-            gross_weight: asn.gross_weight !== 'TBD' ? asn.gross_weight : `${totalQty} KG`,
+            packages: asn.noOfPackages || (Array.isArray(asn.packages) ? asn.packages.length : asn.packages) || '—',
+            gross_weight: (asn.gross_weight && asn.gross_weight !== 'TBD') ? asn.gross_weight : `${totalQty} KG`,
             eway_bill: asn.eway_bill || asn.ewayBill || '—',
             eway_validity: asn.eway_validity || '',
             invoice_number: asn.invoice_number || asn.invoiceNumber || '—',
@@ -197,8 +197,9 @@ const ASN = ({ onBack }) => {
     setShowCreateWizard(true);
   };
 
-  const handleWizardSuccess = () => {
+  const handleWizardSuccess = (msg) => {
     setShowCreateWizard(false);
+    if (msg) alert(msg);
     fetchASNs();
   };
 

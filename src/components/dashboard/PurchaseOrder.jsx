@@ -23,6 +23,7 @@ const PurchaseOrder = ({ onBack }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showKpis, setShowKpis] = useState(false);
+  const [isVendorUser, setIsVendorUser] = useState(false);
 
   useEffect(() => {
     // When the component mounts, check if the current user is a vendor and preset their code
@@ -30,8 +31,10 @@ const PurchaseOrder = ({ onBack }) => {
       const userStr = localStorage.getItem('user_data');
       if (userStr) {
         const user = JSON.parse(userStr);
+        const isV = user.role === 'VENDOR' || user.email === 'markjhon@gmail.com';
+        setIsVendorUser(isV);
         // If it's our mock user Mark Jhon Supplies, default it to BP-MARK-01
-        if (user.email === 'markjhon@gmail.com' || user.role === 'VENDOR') {
+        if (isV) {
           setVendorCodeInput('BP-MARK-01');
           setAppliedVendorCode('BP-MARK-01');
         }
@@ -41,7 +44,7 @@ const PurchaseOrder = ({ onBack }) => {
 
   useEffect(() => {
     fetchData();
-  }, [appliedVendorCode]);
+  }, [appliedVendorCode, isVendorUser]);
 
 
   const fetchData = async () => {
@@ -49,11 +52,8 @@ const PurchaseOrder = ({ onBack }) => {
     setError('');
     try {
       const token = localStorage.getItem('auth_token');
-      const userStr = localStorage.getItem('user_data');
-      const user = userStr ? JSON.parse(userStr) : null;
-      const isVendor = user?.role === 'VENDOR' || user?.email === 'markjhon@gmail.com';
       
-      const endpoint = isVendor ? '/api/vendor/purchase-orders' : '/api/purchase-orders';
+      const endpoint = isVendorUser ? '/api/vendor/purchase-orders' : '/api/purchase-orders';
 
       const response = await axios.get(endpoint, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -66,7 +66,7 @@ const PurchaseOrder = ({ onBack }) => {
         rawOrders = response.data.orders;
       }
 
-      if (!isVendor && appliedVendorCode) {
+      if (!isVendorUser && appliedVendorCode) {
         const searchUpper = appliedVendorCode.toUpperCase();
         rawOrders = rawOrders.filter(o => 
           (o.vendorCode && o.vendorCode.toUpperCase().includes(searchUpper)) || 
@@ -87,10 +87,14 @@ const PurchaseOrder = ({ onBack }) => {
           poDelivered,
           poInProcess: totalPOs - poDelivered
         },
-        orders: rawOrders.map(o => ({
-          ...o,
-          poStatus: o.poStatus || o.status
-        }))
+        orders: rawOrders.map(o => {
+          let s = o.poStatus || o.status;
+          if (s === 'CREATED') s = 'RELEASED';
+          return {
+            ...o,
+            poStatus: s
+          };
+        })
       };
       
       setData(finalData);
@@ -347,7 +351,7 @@ const PurchaseOrder = ({ onBack }) => {
                   <th>PO Date</th>
                   <th className="text-end">Grand Total</th>
                   <th className="text-center pe-4">PO Status</th>
-                  <th className="text-center">Action</th>
+                  {isVendorUser && <th className="text-center">Action</th>}
                 </tr>
               </thead>
               <tbody>
@@ -384,28 +388,30 @@ const PurchaseOrder = ({ onBack }) => {
                             {r.poStatus}
                           </span>
                         </td>
-                        <td className="text-center">
-                          {r.poStatus === 'RELEASED' ? (
-                            <div className="d-flex justify-content-center gap-2">
-                              <button 
-                                className="btn btn-sm btn-outline-success rounded-pill fw-bold" 
-                                style={{ fontSize: '11px', padding: '4px 12px' }}
-                                onClick={() => handleAction(r.poId, 'acknowledge')}
-                              >
-                                Acknowledge
-                              </button>
-                              <button 
-                                className="btn btn-sm btn-outline-danger rounded-pill fw-bold" 
-                                style={{ fontSize: '11px', padding: '4px 12px' }}
-                                onClick={() => handleAction(r.poId, 'reject')}
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-muted" style={{ fontSize: '12px' }}>—</span>
-                          )}
-                        </td>
+                        {isVendorUser && (
+                          <td className="text-center">
+                            {r.poStatus === 'RELEASED' ? (
+                              <div className="d-flex justify-content-center gap-2">
+                                <button 
+                                  className="btn btn-sm btn-outline-success rounded-pill fw-bold" 
+                                  style={{ fontSize: '11px', padding: '4px 12px' }}
+                                  onClick={() => handleAction(r.poId, 'acknowledge')}
+                                >
+                                  Acknowledge
+                                </button>
+                                <button 
+                                  className="btn btn-sm btn-outline-danger rounded-pill fw-bold" 
+                                  style={{ fontSize: '11px', padding: '4px 12px' }}
+                                  onClick={() => handleAction(r.poId, 'reject')}
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-muted" style={{ fontSize: '12px' }}>—</span>
+                            )}
+                          </td>
+                        )}
                       </tr>
                       {expandedIdx === idx && (
                         <tr>

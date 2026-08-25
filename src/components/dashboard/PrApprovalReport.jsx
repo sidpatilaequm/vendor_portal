@@ -69,6 +69,41 @@ export default function PrApprovalReport({ onBack }) {
       } else if (resData && Array.isArray(resData.content)) {
         items = resData.content;
       }
+
+      // Group flat assignments into PRs with items
+      if (items.length > 0 && items[0].assignmentId) {
+        const groupedMap = {};
+        items.forEach(item => {
+          const prNum = item.prNumber || item.pr_number;
+          if (!prNum) return;
+          if (!groupedMap[prNum]) {
+            groupedMap[prNum] = {
+              id: item.id || item.assignmentId, 
+              prNumber: prNum,
+              createdAt: item.createdAt || item.sentDate || item.prDate,
+              requiredDate: item.requiredDate || item.requestedDeliveryDate,
+              paymentTerms: item.paymentTerms || item.requestedPaymentTerms,
+              assignmentStatus: item.assignmentStatus || item.status,
+              items: []
+            };
+          }
+          groupedMap[prNum].items.push({
+            id: item.assignmentId || item.id, 
+            itemCode: item.materialSku || item.itemCode,
+            itemDescription: item.materialName || `Material ${item.materialSku}`,
+            quantity: item.quantity,
+            uom: item.uom,
+            requiredDate: item.requiredDate,
+            status: item.assignmentStatus
+          });
+          
+          if (['OPEN', 'PENDING', 'SENT', 'NOT RESPONDED'].includes(item.assignmentStatus?.toUpperCase())) {
+            groupedMap[prNum].assignmentStatus = item.assignmentStatus;
+          }
+        });
+        items = Object.values(groupedMap);
+      }
+
       setData(items);
 
       if (resData && resData.summary) {

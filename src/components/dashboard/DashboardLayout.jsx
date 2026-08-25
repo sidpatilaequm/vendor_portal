@@ -24,6 +24,7 @@ import VendorReturnsReport from './VendorReturnsReport';
 import VendorPaymentReport from './VendorPaymentReport';
 import GateEntry from './GateEntry';
 import VendorGateStatus from './VendorGateStatus';
+import MaterialInward from './MaterialInward';
 
 const DashboardLayout = () => {
   const getInitialTab = () => {
@@ -107,6 +108,8 @@ const DashboardLayout = () => {
           return <VendorGateStatus onBack={() => setActiveTab('dashboard')} />;
         }
         return <GateEntry onBack={() => setActiveTab('dashboard')} />;
+      case 'material-inward':
+        return <MaterialInward onBack={() => setActiveTab('dashboard')} />;
       default:
         return <DashboardHome />;
     }

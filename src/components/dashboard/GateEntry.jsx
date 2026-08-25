@@ -120,7 +120,8 @@ const GateEntry = ({ onBack }) => {
               desc: l.description,
               qty: l.qty,
               uom: l.uom
-            }))
+            })),
+            packagesList: d.packages || []
           };
           
           setSel(detailedArrival);
@@ -492,6 +493,29 @@ const GateEntry = ({ onBack }) => {
                         value={pkgRmk}
                         onChange={e => setPkgRmk(e.target.value)}
                       />
+                    )}
+
+                    {sel.packagesList && sel.packagesList.length > 0 && (
+                      <div style={{ marginTop: '16px', overflowX: "auto" }}>
+                        <table style={{ width: '100%', marginBottom: 0, border: '1px solid var(--bd)' }}>
+                          <thead>
+                            <tr style={{ background: '#f8f9fa' }}>
+                              <th style={{ padding: '8px' }}>Package #</th>
+                              <th style={{ padding: '8px' }}>Material Details</th>
+                              <th style={{ padding: '8px' }}>Qty inside package</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sel.packagesList.map(pkg => (
+                              <tr key={pkg.packageNumber} style={{ borderTop: '1px solid var(--bd)' }}>
+                                <td style={{ padding: '8px' }}><b>{pkg.packageNumber}</b></td>
+                                <td style={{ padding: '8px' }}>{pkg.materialDetails}</td>
+                                <td style={{ padding: '8px' }}>{pkg.quantity}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     )}
                   </div>
 

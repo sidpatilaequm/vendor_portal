@@ -146,6 +146,13 @@ const Quotation = ({ onBack, onNavigate }) => {
         };
       });
 
+      // Sort quotations so the latest appears on top
+      formatted.sort((a, b) => {
+        const idA = parseInt(String(a.quotation_id).replace(/\D/g, '')) || 0;
+        const idB = parseInt(String(b.quotation_id).replace(/\D/g, '')) || 0;
+        return idB - idA;
+      });
+
       if (formatted.length > 0 || (role !== 'VENDOR' && role !== 'VENDOR_ADMIN')) {
         setQuotations(formatted);
       } else {
@@ -358,10 +365,12 @@ const Quotation = ({ onBack, onNavigate }) => {
     .filter(q => q.status_lower === 'submitted' || q.status_lower === 'awarded')
     .reduce((sum, q) => sum + q.grand_total, 0);
 
+  const isVendorUser = ['VENDOR', 'VENDOR_ADMIN'].includes(userRole);
+
   return (
     <div className="fade-in-slide container-fluid py-4">
       <div className="d-flex justify-content-between align-items-center mb-4 text-start">
-        {['VENDOR', 'VENDOR_ADMIN'].includes(userRole) ? (
+        {isVendorUser ? (
           <>
             <div className="text-start">
               <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#064e3b' }}>My Quotations</h4>
@@ -524,21 +533,21 @@ const Quotation = ({ onBack, onNavigate }) => {
                   <th className="py-3 border-0">Date</th>
                   <th className="py-3 border-0">Valid Until</th>
                   <th className="text-end py-3 border-0">Grand Total</th>
-                  <th className="text-center py-3 border-0">Status</th>
-                  <th className="text-center pe-4 py-3 border-0 rounded-end">Action</th>
+                  <th className={`text-center py-3 border-0 ${isVendorUser ? 'rounded-end pe-4' : ''}`}>Status</th>
+                  {!isVendorUser && <th className="text-center pe-4 py-3 border-0 rounded-end">Action</th>}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="10" className="text-center py-5">
+                    <td colSpan={isVendorUser ? "9" : "10"} className="text-center py-5">
                       <div className="spinner-border text-success" role="status"></div>
                       <p className="mt-2 text-muted">Loading Quotations...</p>
                     </td>
                   </tr>
                 ) : filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan="10" className="text-center py-5 text-muted">
+                    <td colSpan={isVendorUser ? "9" : "10"} className="text-center py-5 text-muted">
                       <i className="fas fa-file-signature fs-1 mb-3 d-block text-secondary"></i>
                       <p className="mb-0 fw-semibold">No quotations found</p>
                     </td>
@@ -594,8 +603,9 @@ const Quotation = ({ onBack, onNavigate }) => {
                             ● {qtn.status}
                           </span>
                         </td>
-                        <td className="text-center pe-4">
-                          {qtn.pr_id && qtn.status_lower !== 'awarded' && userRole !== 'VENDOR' && userRole !== 'VENDOR_ADMIN' && (
+                        {!isVendorUser && (
+                          <td className="text-center pe-4">
+                            {qtn.pr_id && qtn.status_lower !== 'awarded' && (
                             <button
                               className="btn btn-sm btn-outline-success py-1 px-2"
                               style={{ fontSize: '11px', borderRadius: '4px' }}
@@ -607,12 +617,13 @@ const Quotation = ({ onBack, onNavigate }) => {
                             >
                               <i className="fas fa-balance-scale"></i> Compare
                             </button>
-                          )}
-                        </td>
+                            )}
+                          </td>
+                        )}
                       </tr>
                       {expandedIdx === idx && (
                         <tr>
-                          <td colSpan="10" className="p-4 bg-light border-bottom">
+                          <td colSpan={isVendorUser ? "9" : "10"} className="p-4 bg-light border-bottom">
                             <div className="card border-0 shadow-sm rounded-3">
                               <div className="card-body p-4">
                                 <h6 className="text-uppercase fw-bold text-dark mb-3" style={{ fontSize: '12px', letterSpacing: '0.5px' }}>

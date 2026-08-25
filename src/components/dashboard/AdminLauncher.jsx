@@ -17,6 +17,7 @@ import Quotation from './Quotation';
 import PurchaseOrder from './PurchaseOrder';
 import ASN from './ASN';
 import GateEntry from './GateEntry';
+import MaterialInward from './MaterialInward';
 import MaterialReport from './MaterialReport';
 import VendorPaymentReport from './VendorPaymentReport';
 import VendorReturnsReport from './VendorReturnsReport';
@@ -123,6 +124,7 @@ const MENU = {
       'purchase-orders': { name: 'Purchase Orders', desc: 'Released orders and delivery position.', real: (onBack) => <PurchaseOrder onBack={onBack} /> },
       asn: { name: 'Advance Shipping Notices', desc: 'ASNs and how they reconciled.', real: (onBack) => <ASN onBack={onBack} /> },
       'gate-entry': { name: 'Gate Entry', desc: 'Vehicles logged at the plant gate against inbound shipments.', real: (onBack) => <GateEntry onBack={onBack} /> },
+      'material-inward': { name: 'Material Inward', desc: 'Verify and receive incoming material against gate entries.', real: (onBack) => <MaterialInward onBack={onBack} /> },
       'goods-receipt': { name: 'Goods Receipt', desc: 'What was received against what was ordered.', stub: true, table: 'goods_receipt_notes', endpoint: '/api/reports/goods-receipt' },
       invoice: { name: 'Invoices', desc: 'Invoices and their position in approval.', stub: true, table: 'invoices', endpoint: '/api/reports/invoices' },
       'vendor-payments': { name: 'Vendor Payments', desc: 'Payments released to suppliers.', real: (onBack) => <VendorPaymentReport onBack={onBack} /> },

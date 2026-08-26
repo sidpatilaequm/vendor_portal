@@ -69,6 +69,25 @@ export const DOCS = [
       { k: 'asExpiry', label: 'Valid to', req: true, type: 'date', expiry: true },
     ],
   },
+  {
+    id: 'nadcap',
+    name: 'NADCAP certificate',
+    req: false,
+    gives: 'Certificate number and expiry',
+    fields: [
+      { k: 'nadcapNo', label: 'Certificate number', req: true, mono: true },
+      { k: 'nadcapExpiry', label: 'Expiration date', req: true, type: 'date', expiry: true },
+    ],
+  },
+  {
+    id: 'nda',
+    name: 'Signed NDA',
+    req: true,
+    gives: 'Confirms you have reviewed and agreed to our non-disclosure terms',
+    fields: [],
+    templateUrl: '/supplier-nda-template.pdf',
+    templateLabel: 'Download the NDA template',
+  },
 ];
 
 // Mirrors AA-PUR-F-03 Rev02 "Supplier Evaluation and Registration Form" — the paper form

@@ -28,6 +28,8 @@ dist-ssr
 
 # Ignore PDFs
 *.pdf
+# ...except static assets the app is meant to serve, like the NDA template
+!public/supplier-nda-template.pdf
 
 # Ignore Test files
 *.test.js

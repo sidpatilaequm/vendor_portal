@@ -43,6 +43,12 @@ const DocCard = ({ doc, file, fields, src, errors, onFile, onRemove, onFieldChan
         </span>
       </div>
 
+      {doc.templateUrl && (
+        <a className="btn ghost sm" href={doc.templateUrl} download style={{ marginBottom: 8, display: 'inline-block' }}>
+          {doc.templateLabel || 'Download template'}
+        </a>
+      )}
+
       {!file && (
         <label className="drop" tabIndex={0}>
           <span>Choose a file, or drop it here</span>
@@ -84,7 +90,11 @@ const DocCard = ({ doc, file, fields, src, errors, onFile, onRemove, onFieldChan
         </div>
       )}
 
-      {status === 'read' && (
+      {status === 'read' && doc.fields.length === 0 && (
+        <div className="fieldnote">Received — thanks for uploading your signed copy.</div>
+      )}
+
+      {status === 'read' && doc.fields.length > 0 && (
         <div>
           <div className="grid g2">
             {doc.fields.map((f) => (

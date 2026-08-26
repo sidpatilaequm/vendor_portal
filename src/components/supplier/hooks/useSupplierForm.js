@@ -495,6 +495,8 @@ export function useSupplierForm() {
       as9100dCertificateNo: f.asNo || '',
       as9100dCertifyingBody: f.asBody || '',
       as9100dExpiry: f.asExpiry || '',
+      nadcapCertificateNo: f.nadcapNo || '',
+      nadcapExpiry: f.nadcapExpiry || '',
     };
   }
 
@@ -573,6 +575,7 @@ export function useSupplierForm() {
         benName: reg.beneficiaryName || '', acctNo: reg.accountNumber || '', ifsc: reg.ifscCode || '',
         isoNo: reg.isoCertificateNo || '', isoBody: reg.isoCertifyingBody || '', isoExpiry: reg.isoExpiry || '',
         asNo: reg.as9100dCertificateNo || '', asBody: reg.as9100dCertifyingBody || '', asExpiry: reg.as9100dExpiry || '',
+        nadcapNo: reg.nadcapCertificateNo || '', nadcapExpiry: reg.nadcapExpiry || '',
       };
       const src = {};
       const docs = {};

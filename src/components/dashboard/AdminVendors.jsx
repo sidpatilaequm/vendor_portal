@@ -155,7 +155,7 @@ const AdminVendors = ({ onBack }) => {
                           v.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           v.gstin.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || v.status === statusFilter;
-    const matchesCategory = categoryFilter === 'ALL' || v.vendorCategory === categoryFilter;
+    const matchesCategory = categoryFilter === 'ALL' || (v.vendorCategory || '').split(',').includes(categoryFilter);
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
@@ -279,9 +279,13 @@ const AdminVendors = ({ onBack }) => {
                       </td>
                       <td>
                         {vendor.vendorCategory ? (
-                          <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1 rounded-pill">
-                            {CATEGORY_LABELS[vendor.vendorCategory] || vendor.vendorCategory}
-                          </span>
+                          <div className="d-flex flex-wrap gap-1">
+                            {vendor.vendorCategory.split(',').map((c) => (
+                              <span key={c} className="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1 rounded-pill">
+                                {CATEGORY_LABELS[c] || c}
+                              </span>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-muted small">Not classified</span>
                         )}
@@ -380,7 +384,7 @@ const AdminVendors = ({ onBack }) => {
                   <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Vendor Type</label>
                   <div className="small fw-semibold">
                     {selectedVendor.vendorCategory
-                      ? (CATEGORY_LABELS[selectedVendor.vendorCategory] || selectedVendor.vendorCategory)
+                      ? selectedVendor.vendorCategory.split(',').map((c) => CATEGORY_LABELS[c] || c).join(', ')
                       : 'Not classified'}
                   </div>
                 </div>

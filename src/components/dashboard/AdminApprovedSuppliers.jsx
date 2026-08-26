@@ -47,7 +47,7 @@ const AdminApprovedSuppliers = ({ onBack }) => {
       || (s.email || '').toLowerCase().includes(q)
       || (s.vendorCode || '').toLowerCase().includes(q)
       || (s.gstNumber || '').toLowerCase().includes(q);
-    const matchesCategory = categoryFilter === 'ALL' || s.vendorCategory === categoryFilter;
+    const matchesCategory = categoryFilter === 'ALL' || (s.vendorCategory || '').split(',').includes(categoryFilter);
     return matchesSearch && matchesCategory;
   });
 
@@ -163,9 +163,13 @@ const AdminApprovedSuppliers = ({ onBack }) => {
                       </td>
                       <td>
                         {s.vendorCategory ? (
-                          <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1 rounded-pill">
-                            {CATEGORY_LABELS[s.vendorCategory] || s.vendorCategory}
-                          </span>
+                          <div className="d-flex flex-wrap gap-1">
+                            {s.vendorCategory.split(',').map((c) => (
+                              <span key={c} className="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1 rounded-pill">
+                                {CATEGORY_LABELS[c] || c}
+                              </span>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-muted small">Not classified</span>
                         )}
@@ -221,7 +225,7 @@ const AdminApprovedSuppliers = ({ onBack }) => {
                   <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Vendor Type</label>
                   <div className="small fw-semibold">
                     {selectedSupplier.vendorCategory
-                      ? (CATEGORY_LABELS[selectedSupplier.vendorCategory] || selectedSupplier.vendorCategory)
+                      ? selectedSupplier.vendorCategory.split(',').map((c) => CATEGORY_LABELS[c] || c).join(', ')
                       : 'Not classified'}
                   </div>
                 </div>

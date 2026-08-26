@@ -16,6 +16,31 @@ const AdminVendors = ({ onBack }) => {
   const [kycRemarks, setKycRemarks] = useState('');
   const [kycSuccessMsg, setKycSuccessMsg] = useState('');
 
+  // Full profile — fetched on demand when the details modal opens, since the list row only
+  // carries a handful of summary fields (see fetchVendors), not the full application.
+  const [vendorDetail, setVendorDetail] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState('');
+
+  const openVendorDetails = (vendor) => {
+    setSelectedVendor(vendor);
+    setShowDetailsModal(true);
+    setVendorDetail(null);
+    setDetailError('');
+    if (!vendor.registrationId) {
+      setDetailError('No linked application on file for this vendor.');
+      return;
+    }
+    setLoadingDetail(true);
+    const token = localStorage.getItem('auth_token');
+    axios.get(`/api/supplier-registration/${vendor.registrationId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => setVendorDetail(res.data?.data?.result || null))
+      .catch((err) => setDetailError(err.response?.data?.statusMsg || 'Could not load the full profile.'))
+      .finally(() => setLoadingDetail(false));
+  };
+
   // Fallback mock vendor list if backend returns empty or errors
   const mockVendors = [
     {
@@ -308,12 +333,9 @@ const AdminVendors = ({ onBack }) => {
                       </td>
                       <td className="text-end pe-4">
                         <div className="btn-group gap-1">
-                          <button 
+                          <button
                             className="btn btn-light btn-sm border px-2 py-1"
-                            onClick={() => {
-                              setSelectedVendor(vendor);
-                              setShowDetailsModal(true);
-                            }}
+                            onClick={() => openVendorDetails(vendor)}
                             title="View Profile Details"
                           >
                             <i className="fas fa-eye text-primary"></i>
@@ -359,56 +381,19 @@ const AdminVendors = ({ onBack }) => {
       {/* Details Modal */}
       {showDetailsModal && selectedVendor && (
         <div className="custom-modal-overlay">
-          <div className="custom-modal-content" style={{ maxWidth: '600px' }}>
+          <div className="custom-modal-content" style={{ maxWidth: '760px' }}>
             <div className="custom-modal-header bg-success bg-opacity-5">
               <h5 className="custom-modal-title fw-bold text-success">
                 <i className="fas fa-building me-2"></i>Supplier Profile Detail
               </h5>
               <button className="custom-modal-close-btn" onClick={() => setShowDetailsModal(false)}>&times;</button>
             </div>
-            <div className="custom-modal-body p-4 text-start">
-              <div className="row g-3">
-                <div className="col-12">
-                  <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Company Legal Name</label>
-                  <div className="fw-bold fs-5 text-dark">{selectedVendor.name}</div>
-                </div>
-                <div className="col-sm-6">
-                  <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Contact Email</label>
-                  <div className="small fw-semibold">{selectedVendor.email}</div>
-                </div>
-                <div className="col-sm-6">
-                  <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Contact Phone</label>
-                  <div className="small fw-semibold">{selectedVendor.phone}</div>
-                </div>
-                <div className="col-sm-6">
-                  <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Vendor Type</label>
-                  <div className="small fw-semibold">
-                    {selectedVendor.vendorCategory
-                      ? selectedVendor.vendorCategory.split(',').map((c) => CATEGORY_LABELS[c] || c).join(', ')
-                      : 'Not classified'}
-                  </div>
-                </div>
-                <div className="col-sm-6">
-                  <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>GSTIN Number</label>
-                  <div className="small font-monospace fw-bold">{selectedVendor.gstin}</div>
-                </div>
-                <div className="col-sm-6">
-                  <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>PAN Number</label>
-                  <div className="small font-monospace fw-bold">{selectedVendor.pan}</div>
-                </div>
-                <div className="col-sm-6">
-                  <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Assign Plant Code</label>
-                  <div className="small fw-semibold">{selectedVendor.plantCode}</div>
-                </div>
-                <div className="col-sm-6">
-                  <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Corporate Location</label>
-                  <div className="small fw-semibold">{selectedVendor.location}</div>
-                </div>
-                <div className="col-12">
-                  <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Primary Contact Representative</label>
-                  <div className="small fw-semibold">{selectedVendor.contactPerson}</div>
-                </div>
-              </div>
+            <div className="custom-modal-body p-4 text-start" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              {loadingDetail && <div className="text-muted small">Loading full profile…</div>}
+              {!loadingDetail && detailError && <div className="text-danger small">{detailError}</div>}
+              {!loadingDetail && vendorDetail && (
+                <VendorFullProfile detail={vendorDetail} />
+              )}
             </div>
             <div className="custom-modal-footer">
               <button className="btn btn-outline-secondary px-4 fw-semibold" onClick={() => setShowDetailsModal(false)} style={{ borderRadius: '8px', fontSize: '12px' }}>Close</button>
@@ -482,5 +467,170 @@ const AdminVendors = ({ onBack }) => {
     </div>
   );
 };
+
+// ── Full profile shown in the "View Profile Details" modal ────────────────
+// Everything on file for this vendor's application — not just the summary
+// columns the list view shows. Fed by GET /api/supplier-registration/{id},
+// the same detail SupplierRegistrationService builds for the approver's
+// review screen (backend_java's buildRegistrationDetail).
+
+const PROFILE_CATEGORY_LABELS = {
+  PRODUCT: 'Product',
+  SERVICE: 'Service',
+  SCHEDULING_AGREEMENT: 'Scheduling agreement',
+  SUBCONTRACTING: 'Sub-contracting',
+};
+
+const Field = ({ label, value, mono }) => (
+  <div className="col-sm-6">
+    <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>{label}</label>
+    <div className={`small fw-semibold ${mono ? 'font-monospace' : ''}`}>{value || '—'}</div>
+  </div>
+);
+
+const Section = ({ title, children }) => (
+  <div className="mb-4">
+    <div className="fw-bold text-success text-uppercase mb-2" style={{ fontSize: '11px', letterSpacing: '0.04em' }}>{title}</div>
+    <div className="row g-3">{children}</div>
+  </div>
+);
+
+function VendorFullProfile({ detail }) {
+  const reg = detail.registration || {};
+  const documents = detail.documents || [];
+  const attachments = detail.attachments || [];
+  const dynamicAnswers = detail.dynamicAnswers || [];
+
+  const hasSecondContact = reg.contact2Name || reg.contact2Email || reg.contact2Phone;
+
+  const answerText = (a) => {
+    if (a.questionType === 'table') return `${(a.rows || []).length} row(s)`;
+    if (a.selectedLabels && a.selectedLabels.length) return a.selectedLabels.join(', ');
+    return a.textValue || '—';
+  };
+
+  return (
+    <>
+      <Section title="Company">
+        <div className="col-12">
+          <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Company Legal Name</label>
+          <div className="fw-bold fs-5 text-dark">{reg.vendorName || '—'}</div>
+        </div>
+        <Field label="Address" value={reg.address} />
+        <Field label="Company Type" value={reg.companyType} />
+        <Field
+          label="Vendor Type"
+          value={reg.vendorCategory ? reg.vendorCategory.split(',').map((c) => PROFILE_CATEGORY_LABELS[c] || c).join(', ') : 'Not classified'}
+        />
+        <Field label="Business Type(s)" value={reg.businessTypes} />
+        <Field label="Business Scope" value={reg.businessScope} />
+        <Field label="Status" value={reg.status} />
+        <Field label="Vendor Code" value={reg.vendorCode} mono />
+      </Section>
+
+      <Section title="Primary Contact">
+        <Field label="Name" value={reg.contact1Name} />
+        <Field label="Designation" value={reg.contact1Role} />
+        <Field label="Email" value={reg.contact1Email} />
+        <Field label="Phone" value={reg.contact1Phone} />
+      </Section>
+
+      {hasSecondContact && (
+        <Section title="Secondary Contact">
+          <Field label="Name" value={reg.contact2Name} />
+          <Field label="Designation" value={reg.contact2Role} />
+          <Field label="Email" value={reg.contact2Email} />
+          <Field label="Phone" value={reg.contact2Phone} />
+        </Section>
+      )}
+
+      <Section title="Registration Numbers">
+        <Field label="GSTIN" value={reg.gstNumber} mono />
+        <Field label="PAN" value={reg.panNumber} mono />
+        <Field label="CIN / LLPIN" value={reg.cinNumber} mono />
+        <Field label="Udyam / MSME Number" value={reg.msmeNumber} mono />
+      </Section>
+
+      <Section title="Certifications">
+        <Field label="ISO 9001 — Certificate No." value={reg.isoCertificateNo} mono />
+        <Field label="ISO 9001 — Certifying Body" value={reg.isoCertifyingBody} />
+        <Field label="ISO 9001 — Valid To" value={reg.isoExpiry} />
+        <Field label="AS9100D — Certificate No." value={reg.as9100dCertificateNo} mono />
+        <Field label="AS9100D — Certifying Body" value={reg.as9100dCertifyingBody} />
+        <Field label="AS9100D — Valid To" value={reg.as9100dExpiry} />
+        <Field label="NADCAP — Certificate No." value={reg.nadcapCertificateNo} mono />
+        <Field label="NADCAP — Expiration Date" value={reg.nadcapExpiry} />
+      </Section>
+
+      <Section title="Bank Details">
+        <Field label="Beneficiary Name" value={reg.beneficiaryName} />
+        <Field label="Account Number" value={reg.accountNumber} mono />
+        <Field label="IFSC Code" value={reg.ifscCode} mono />
+        <Field label="Bank Name" value={reg.bankName} />
+      </Section>
+
+      <Section title="Business Details">
+        <Field label="Telephone" value={reg.telephone} />
+        <Field label="Fax" value={reg.fax} />
+        <Field label="Weekly Off Day" value={reg.weeklyOff} />
+        <Field label="Annual Turnover" value={reg.annualTurnover} />
+        <Field label="Turnover Year" value={reg.turnoverYear} />
+        <Field label="Regulatory Acts" value={reg.regulatoryActs} />
+      </Section>
+
+      <Section title="Manpower & Capacity">
+        <Field label="Office Staff" value={reg.manpowerOffice} />
+        <Field label="Supervisors" value={reg.manpowerSupervisor} />
+        <Field label="Workmen" value={reg.manpowerWorkmen} />
+        <Field label="Shifts / Day" value={reg.shiftsPerDay} />
+        <Field label="Spare Capacity" value={reg.spareCapacity} />
+        <Field label="Floor Space" value={reg.floorSpace} />
+        <Field label="Equipment / Facilities" value={reg.equipmentFacilities} />
+      </Section>
+
+      {documents.length > 0 && (
+        <Section title="Documents on File">
+          <div className="col-12">
+            <table className="table table-sm">
+              <thead><tr><th>Document</th><th>File</th><th>Status</th></tr></thead>
+              <tbody>
+                {documents.map((d) => (
+                  <tr key={d.id}>
+                    <td className="small">{d.docName}</td>
+                    <td className="small">{d.fileName || '—'}</td>
+                    <td className="small text-capitalize">{d.verifyStatus || 'read'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      )}
+
+      {attachments.length > 0 && (
+        <Section title="Additional Attachments">
+          <div className="col-12">
+            {attachments.map((a) => (
+              <div key={a.id} className="small">{a.fileName}</div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {dynamicAnswers.length > 0 && (
+        <Section title="Additional Questions">
+          <div className="col-12">
+            {dynamicAnswers.map((a) => (
+              <div key={a.questionId} className="mb-2">
+                <label className="text-muted text-uppercase fw-bold d-block" style={{ fontSize: '10px' }}>{a.prompt}</label>
+                <div className="small fw-semibold">{answerText(a)}</div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+    </>
+  );
+}
 
 export default AdminVendors;

@@ -68,8 +68,11 @@ function draftFrom(question) {
 
 /** Client-side mirror of schemas.py::check_shape, so the editor can show the problem
     immediately rather than waiting on a round trip — the API still re-checks on save. */
-function checkDraft(draft) {
+function checkDraft(draft, mandatoryBlocked) {
   if (!draft.prompt.trim()) return 'Write the question itself.';
+  if (mandatoryBlocked && draft.is_mandatory) {
+    return "This process already has recorded responses, so a brand-new question can't be marked mandatory — existing respondents were never shown it and can't retroactively answer it. Add it as optional, or duplicate the process if this must be required going forward.";
+  }
 
   if (draft.question_type === 'table') {
     const headings = draft.columns.map((c) => c.label.trim()).filter(Boolean);
@@ -271,7 +274,7 @@ const QuestionnaireBuilder = ({ processId, onBack }) => {
   const cancelEdit = () => setEditing(null);
 
   const saveQuestion = async () => {
-    const problem = checkDraft(editing.draft);
+    const problem = checkDraft(editing.draft, locked && !editing.questionId);
     if (problem) { setEditing((e) => ({ ...e, problem })); return; }
     setSaving(true);
     try {
@@ -542,9 +545,9 @@ const BuildTab = ({
     {locked && (
       <div className="qs-banner">
         <div>
-          <p className="qs-banner__title">Questions are locked</p>
-          <p className="qs-muted">{plural(process.response_count, 'response')} stored against this form.
-            Changing the questions now would leave those answers describing a form that no longer exists.</p>
+          <p className="qs-banner__title">{plural(process.response_count, 'response')} stored against this form</p>
+          <p className="qs-muted">You can still add sections and questions, and reorder or move existing ones —
+            but editing or deleting an existing question, or deleting a section, would break those stored answers.</p>
         </div>
       </div>
     )}
@@ -558,8 +561,8 @@ const BuildTab = ({
             onBlur={(e) => onPatchSection(section.id, { title: e.target.value })}
           />
           <div className="section-tab__actions">
-            <button className="icon-btn" title="Move section up" disabled={locked || sIndex === 0} onClick={() => onMoveSection(section.id, -1)}>↑</button>
-            <button className="icon-btn" title="Move section down" disabled={locked || sIndex === process.sections.length - 1} onClick={() => onMoveSection(section.id, 1)}>↓</button>
+            <button className="icon-btn" title="Move section up" disabled={sIndex === 0} onClick={() => onMoveSection(section.id, -1)}>↑</button>
+            <button className="icon-btn" title="Move section down" disabled={sIndex === process.sections.length - 1} onClick={() => onMoveSection(section.id, 1)}>↓</button>
             <button className="icon-btn icon-btn--danger" title="Delete section" disabled={locked} onClick={() => onDeleteSection(section)}>✕</button>
           </div>
         </div>
@@ -600,17 +603,17 @@ const BuildTab = ({
 
         {editing && editing.sectionId === section.id && !editing.questionId ? (
           <QuestionEditor
-            editing={editing} saving={saving} onCancel={onCancelEdit} onSave={onSaveQuestion} setEditing={setEditing}
+            editing={editing} locked={locked} saving={saving} onCancel={onCancelEdit} onSave={onSaveQuestion} setEditing={setEditing}
             updateDraftOption={updateDraftOption} addDraftOption={addDraftOption} removeDraftOption={removeDraftOption} moveDraftOption={moveDraftOption}
             updateDraftColumn={updateDraftColumn} addDraftColumn={addDraftColumn} removeDraftColumn={removeDraftColumn} moveDraftColumn={moveDraftColumn}
           />
         ) : (
-          <button className="btn btn--dashed" disabled={locked} onClick={() => onStartAdd(section.id)}>+ Add a question to {section.title}</button>
+          <button className="btn btn--dashed" onClick={() => onStartAdd(section.id)}>+ Add a question to {section.title}</button>
         )}
       </section>
     ))}
 
-    <button className="btn btn--dashed" disabled={locked} onClick={onAddSection}>+ Add a section</button>
+    <button className="btn btn--dashed" onClick={onAddSection}>+ Add a section</button>
   </div>
 );
 
@@ -698,10 +701,10 @@ const QuestionCard = ({ question: q, code, section, qIndex, locked, elsewhere, o
         {limits}
         <div className="q-actions">
           <button className="btn btn--tiny" disabled={locked} onClick={onEdit}>Edit</button>
-          <button className="icon-btn" title="Move up" disabled={locked || qIndex === 0} onClick={onMoveUp}>↑</button>
-          <button className="icon-btn" title="Move down" disabled={locked || qIndex === section.questions.length - 1} onClick={onMoveDown}>↓</button>
+          <button className="icon-btn" title="Move up" disabled={qIndex === 0} onClick={onMoveUp}>↑</button>
+          <button className="icon-btn" title="Move down" disabled={qIndex === section.questions.length - 1} onClick={onMoveDown}>↓</button>
           {elsewhere.length > 0 && (
-            <select className="select select--tiny" aria-label="Move question to another section" disabled={locked} value="" onChange={(e) => onMoveToSection(e.target.value)}>
+            <select className="select select--tiny" aria-label="Move question to another section" value="" onChange={(e) => onMoveToSection(e.target.value)}>
               <option value="">Move to section…</option>
               {elsewhere.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
             </select>
@@ -714,7 +717,7 @@ const QuestionCard = ({ question: q, code, section, qIndex, locked, elsewhere, o
 };
 
 const QuestionEditor = ({
-  editing, saving, onCancel, onSave, setEditing,
+  editing, locked, saving, onCancel, onSave, setEditing,
   updateDraftOption, addDraftOption, removeDraftOption, moveDraftOption,
   updateDraftColumn, addDraftColumn, removeDraftColumn, moveDraftColumn,
 }) => {
@@ -725,6 +728,9 @@ const QuestionEditor = ({
   const isChoice = isSingle || isMulti;
   const isText = draft.question_type === 'short_text';
   const isCounter = draft.question_type === 'counter';
+  // Only the new-question path is affected — editing an existing question is already blocked
+  // entirely upstream (Edit is disabled on the card while locked).
+  const mandatoryBlocked = locked && !questionId;
 
   const setDraft = (field, value) => setEditing((e) => ({ ...e, draft: { ...e.draft, [field]: value }, problem: null }));
 
@@ -758,9 +764,12 @@ const QuestionEditor = ({
       </fieldset>
 
       <label className="toggle">
-        <input type="checkbox" checked={draft.is_mandatory} onChange={(e) => setDraft('is_mandatory', e.target.checked)} />
+        <input type="checkbox" checked={draft.is_mandatory} disabled={mandatoryBlocked} onChange={(e) => setDraft('is_mandatory', e.target.checked)} />
         <span><strong>Mandatory</strong><span className="qs-muted"> — the form cannot be submitted until this one is answered.</span></span>
       </label>
+      {mandatoryBlocked && (
+        <p className="qs-muted">Can't be mandatory — this form already has responses, and existing respondents were never shown this question.</p>
+      )}
 
       {isText && (
         <label className="field field--narrow">

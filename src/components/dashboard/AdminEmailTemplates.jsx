@@ -22,6 +22,7 @@ const TONE_OPTIONS = [
 const PROCESS_LABELS = {
   vendor_onboarding: 'Vendor Onboarding',
   vendor_change_request: 'Vendor Change Requests',
+  purchase_requisition: 'Purchase Requisitions',
 };
 
 const AdminEmailTemplates = () => {
@@ -125,12 +126,29 @@ const AdminEmailTemplates = () => {
         footer_id: form.footer_id,
         footer_override_reason: form.footer_override_reason,
         footer_override_legal: form.footer_override_legal,
+        // Optimistic concurrency: the server rejects this with a 409 if the row changed since
+        // we loaded it, instead of silently overwriting whatever another admin just saved.
+        expected_updated_at: form.updated_at,
       };
       const { data } = await axios.patch(`/api/email-templates/${form.id}?user_id=${userId}`, payload, { headers: authHeaders() });
       setTemplates((list) => list.map((t) => (t.id === data.id ? data : t)));
       await fetchPreview(data.id);
     } catch (err) {
-      alert(err.response?.data?.detail || 'Could not save this mail.');
+      if (err.response?.status === 409) {
+        alert(err.response.data?.detail || 'This template was changed by someone else since you loaded it. Showing the latest version — please reapply your edit.');
+        try {
+          const { data: fresh } = await axios.get(`/api/email-templates/?user_id=${userId}`, { headers: authHeaders() });
+          setTemplates(fresh);
+          const latest = fresh.find((t) => t.id === form.id);
+          if (latest) {
+            setForm({ ...latest, detail_rows: latest.detail_rows ? latest.detail_rows.map((r) => [...r]) : [] });
+          }
+        } catch (refreshErr) {
+          console.error('Failed to reload after conflict', refreshErr);
+        }
+      } else {
+        alert(err.response?.data?.detail || 'Could not save this mail.');
+      }
     } finally {
       setSaving(false);
     }

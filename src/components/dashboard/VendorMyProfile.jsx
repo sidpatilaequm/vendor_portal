@@ -148,13 +148,14 @@ export default function VendorMyProfile({ onBack }) {
 
   const load = useCallback(() => {
     setLoading(true);
-    Promise.all([
-      axios.get('/api/supplier-registration/my-profile', { headers: authHeaders() }),
-      axios.get('/api/public/supplier-registration/questionnaire').catch(() => ({ data: null })),
-    ])
-      .then(([profileRes, qRes]) => {
-        setProfile(profileRes.data?.data?.result || null);
-        setQuestionnaire(qRes.data && qRes.data.sections ? qRes.data : null);
+    axios.get('/api/supplier-registration/my-profile', { headers: authHeaders() })
+      .then((profileRes) => {
+        const result = profileRes.data?.data?.result || null;
+        setProfile(result);
+        // The exact questionnaire this vendor answered, not whatever's active now — a later
+        // admin swap to a different process must not orphan an existing vendor's "request a
+        // change" on their own answers. See getQuestionnaireForResponse on the backend.
+        setQuestionnaire(result?.myQuestionnaire?.sections ? result.myQuestionnaire : null);
         setError(null);
       })
       .catch((e) => setError(e?.response?.data?.errorMessage || e?.response?.data?.statusMsg || 'Could not load your profile.'))
@@ -445,7 +446,7 @@ export default function VendorMyProfile({ onBack }) {
                   />
                 </label>
               ) : (
-                <p className="qs-muted">This question is no longer part of the active questionnaire.</p>
+                <p className="qs-muted">Could not find this question on your original application — contact support if this looks wrong.</p>
               )
             ) : (
               <label className="field">

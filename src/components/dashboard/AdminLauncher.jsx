@@ -7,6 +7,7 @@ import AdminProspects from './AdminProspects';
 import AdminInvitations from './AdminInvitations';
 import AdminUsers from './AdminUsers';
 import AdminMasterData from './AdminMasterData';
+import AdminEnterpriseStructure from './AdminEnterpriseStructure';
 import AdminWorkflows from './AdminWorkflows';
 import AdminAnalytics from './AdminAnalytics';
 import AdminEmailTemplates from './AdminEmailTemplates';
@@ -71,6 +72,8 @@ const MENU = {
         table: 'bom_header / bom_lines', endpoint: '/api/boms' },
       orgdata: { name: 'Organisation Data', desc: 'Companies, departments, projects and activities behind the budget module.',
         real: () => <AdminMasterData /> },
+      enterpriseStructure: { name: 'Enterprise Structure', desc: 'Company, plant and purchasing organisation/group master data.',
+        real: () => <AdminEnterpriseStructure /> },
     },
   },
   settings: {

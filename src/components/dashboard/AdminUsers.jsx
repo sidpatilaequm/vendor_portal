@@ -15,9 +15,12 @@ const AdminUsers = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [role, setRole] = useState('ADMIN');
-  const [departments, setDepartments] = useState([]);
-  const [deptCode, setDeptCode] = useState('');
+  const [companyCode, setCompanyCode] = useState('');
+  const [plantCode, setPlantCode] = useState('');
+  const [purchOrgCode, setPurchOrgCode] = useState('');
+  const [companies, setCompanies] = useState([]);
+  const [plants, setPlants] = useState([]);
+  const [purchOrgs, setPurchOrgs] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
 
   // Fallback mock users
@@ -74,19 +77,32 @@ const AdminUsers = () => {
   useEffect(() => {
     fetchUsers();
     
-    // Fetch departments for employee creation
+    // Fetch enterprise structure
     const token = localStorage.getItem('auth_token');
-    axios.get('/api/departments', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    .then(res => {
-      const depts = res.data.departments || res.data || [];
-      setDepartments(depts);
-      if (depts && depts.length > 0) {
-        setDeptCode(depts[0].deptCode);
-      }
-    })
-    .catch(err => console.warn('Failed to fetch departments', err));
+    
+    axios.get('/api/mm/companies', { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(res => {
+        const data = res.data?.companies || res.data?.data?.companies || [];
+        const arrayData = Array.isArray(data) ? data : (Array.isArray(res.data) ? res.data : []);
+        setCompanies(arrayData);
+        if (arrayData.length > 0) setCompanyCode(arrayData[0].companyCode);
+      }).catch(err => console.warn('Failed to fetch companies', err));
+
+    axios.get('/api/mm/plants', { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(res => {
+        const data = res.data?.plants || res.data?.data?.plants || [];
+        const arrayData = Array.isArray(data) ? data : (Array.isArray(res.data) ? res.data : []);
+        setPlants(arrayData);
+        if (arrayData.length > 0) setPlantCode(arrayData[0].plantCode);
+      }).catch(err => console.warn('Failed to fetch plants', err));
+
+    axios.get('/api/mm/purchasing-orgs', { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(res => {
+        const data = res.data?.purchasingOrgs || res.data?.data?.purchasingOrgs || [];
+        const arrayData = Array.isArray(data) ? data : (Array.isArray(res.data) ? res.data : []);
+        setPurchOrgs(arrayData);
+        if (arrayData.length > 0) setPurchOrgCode(arrayData[0].purchOrgCode);
+      }).catch(err => console.warn('Failed to fetch purch orgs', err));
   }, []);
 
   const handleAddSubmit = (e) => {
@@ -100,8 +116,9 @@ const AdminUsers = () => {
       firstName,
       lastName,
       phoneNumber,
-      role,
-      deptCode: (role === 'EMPLOYEE' || role === 'PURCHASE_DEPT') ? deptCode : undefined
+      companyCode,
+      plantCode,
+      purchOrgCode
     };
 
     const token = localStorage.getItem('auth_token');
@@ -114,7 +131,7 @@ const AdminUsers = () => {
     .then(res => {
       setAlert({ type: 'success', message: 'User added successfully!' });
       // Reset form
-      setEmail(''); setPassword(''); setFirstName(''); setLastName(''); setPhoneNumber(''); setRole('ADMIN');
+      setEmail(''); setPassword(''); setFirstName(''); setLastName(''); setPhoneNumber(''); 
       fetchUsers();
       setTimeout(() => setShowAddModal(false), 1000);
     })
@@ -226,7 +243,7 @@ const AdminUsers = () => {
       {/* Add User Modal */}
       {showAddModal && (
         <div className="custom-modal-overlay">
-          <div className="custom-modal-content" style={{ maxWidth: '450px' }}>
+          <div className="custom-modal-content" style={{ maxWidth: '750px' }}>
             <div className="custom-modal-header bg-success text-white">
               <h5 className="custom-modal-title fw-bold text-white">
                 <i className="fas fa-user-plus me-2"></i>Create New Platform User
@@ -249,9 +266,16 @@ const AdminUsers = () => {
                     <label className="form-label fw-bold text-muted small">Last Name *</label>
                     <input type="text" className="form-control border-success-subtle" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
                   </div>
-                  <div className="col-12">
+                  <div className="col-sm-6">
                     <label className="form-label fw-bold text-muted small">Work Email Address *</label>
                     <input type="email" className="form-control border-success-subtle" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  </div>
+                  <div className="col-sm-6">
+                    <label className="form-label fw-bold text-muted small">Phone Number</label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-light border-success-subtle">+91</span>
+                      <input type="tel" maxLength="10" pattern="[0-9]{10}" placeholder="10-digit number" className="form-control border-success-subtle" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))} />
+                    </div>
                   </div>
                   <div className="col-12">
                     <label className="form-label fw-bold text-muted small">Temporary Password *</label>
@@ -262,43 +286,31 @@ const AdminUsers = () => {
                       </button>
                     </div>
                   </div>
-                  <div className="col-sm-6">
-                    <label className="form-label fw-bold text-muted small">Phone Number</label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light border-success-subtle">+91</span>
-                      <input type="tel" maxLength="10" pattern="[0-9]{10}" placeholder="10-digit number" className="form-control border-success-subtle" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))} />
-                    </div>
-                  </div>
-                  <div className="col-sm-6">
-                    <label className="form-label fw-bold text-muted small">Role Assignment *</label>
-                    <select className="form-select border-success-subtle" value={role} onChange={(e) => setRole(e.target.value)}>
-                      <option value="ADMIN">Administrator</option>
-                      <option value="SUPER_ADMIN">Super Admin</option>
-                      <option value="PROCUREMENT">Procurement Agent</option>
-                      <option value="QUALITY_AUDITOR">Quality Auditor</option>
-                      <option value="EMPLOYEE">Employee (Requester)</option>
-                      <option value="PURCHASE_DEPT">Purchase Department</option>
+                  
+                  {/* Enterprise Structure Row */}
+                  <div className="col-sm-4">
+                    <label className="form-label fw-bold text-muted small">Company *</label>
+                    <select className="form-select border-success-subtle" value={companyCode} onChange={(e) => setCompanyCode(e.target.value)} required>
+                      {companies.length === 0 && <option value="">Loading...</option>}
+                      {companies.map(c => <option key={c.companyCode} value={c.companyCode}>{c.companyName} ({c.companyCode})</option>)}
                     </select>
                   </div>
                   
-                  {(role === 'EMPLOYEE' || role === 'PURCHASE_DEPT') && (
-                    <div className="col-sm-6">
-                      <label className="form-label fw-bold text-muted small">Department *</label>
-                      <select 
-                        className="form-select border-success-subtle" 
-                        value={deptCode} 
-                        onChange={(e) => setDeptCode(e.target.value)}
-                        required
-                      >
-                        {departments.length === 0 && <option value="">Loading...</option>}
-                        {departments.map(d => (
-                          <option key={d.deptCode} value={d.deptCode}>
-                            {d.deptName} ({d.deptCode})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+                  <div className="col-sm-4">
+                    <label className="form-label fw-bold text-muted small">Plant *</label>
+                    <select className="form-select border-success-subtle" value={plantCode} onChange={(e) => setPlantCode(e.target.value)} required>
+                      {plants.length === 0 && <option value="">Loading...</option>}
+                      {plants.map(p => <option key={p.plantCode} value={p.plantCode}>{p.plantName} ({p.plantCode})</option>)}
+                    </select>
+                  </div>
+
+                  <div className="col-sm-4">
+                    <label className="form-label fw-bold text-muted small">Purchasing Organisation *</label>
+                    <select className="form-select border-success-subtle" value={purchOrgCode} onChange={(e) => setPurchOrgCode(e.target.value)} required>
+                      {purchOrgs.length === 0 && <option value="">Loading...</option>}
+                      {purchOrgs.map(p => <option key={p.purchOrgCode} value={p.purchOrgCode}>{p.purchOrgName} ({p.purchOrgCode})</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
               <div className="custom-modal-footer gap-2">

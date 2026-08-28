@@ -151,7 +151,8 @@ const QuotationDetail = ({ qtnId, onBack, qtnDataFromList }) => {
         'Purchasing Group', 'Currency', 'Document Date', 'Item No', 'Material',
         'Short Text', 'Material Group', 'Plant', 'Storage Loc', 'Quantity',
         'UOM', 'Net Price', 'Price Unit', 'Delivery Date', 'Tax Code',
-        'Acct Assign Cat', 'GL Account', 'Cost Center', 'SAP PO Number', 'Upload Status'
+        'Acct Assign Cat', 'GL Account', 'Cost Center', 'SAP PO Number', 'Upload Status',
+        'Awarded By', 'Awarder Org'
       ];
 
       const lineItems = qtnDataToExport?.line_items || [];
@@ -175,13 +176,29 @@ const QuotationDetail = ({ qtnId, onBack, qtnDataFromList }) => {
         }
       }
 
+      let userId = 1;
+      let employeeCompanyCode = '1000'; // Default to 1000 as requested
+      let employeePurchOrg = '';
+      let employeeName = '';
+      
+      const userStr = localStorage.getItem('user_data');
+      if (userStr) {
+        try {
+          const userObj = JSON.parse(userStr);
+          userId = userObj.id || userObj.userId || userObj.superAdminId || 1;
+          if (userObj.companyCode) employeeCompanyCode = userObj.companyCode;
+          if (userObj.purchOrgCode) employeePurchOrg = userObj.purchOrgCode;
+          employeeName = userObj.firstName ? `${userObj.firstName} ${userObj.lastName || ''}`.trim() : (userObj.email || '');
+        } catch(e) {}
+      }
+
       const rows = lineItems.map((item, idx) => {
         return [
           headerData.quotation_number || qtnDataToExport?.quotationId || qtnId || '', // PO Ref
-          '', // Company Code
+          employeeCompanyCode, // Company Code
           'ZDOM', // PO Type
           vendorName, // Supplier
-          '', // Purchasing Org
+          employeePurchOrg, // Purchasing Org
           '', // Purchasing Group
           headerData.currency || 'INR', // Currency
           headerData.quotation_date || '', // Document Date
@@ -201,7 +218,9 @@ const QuotationDetail = ({ qtnId, onBack, qtnDataFromList }) => {
           '', // GL Account
           '', // Cost Center
           '', // SAP PO Number
-          ''  // Upload Status
+          '', // Upload Status
+          employeeName, // Awarded By
+          employeeCompanyCode // Awarder Org
         ];
       });
 
@@ -216,15 +235,6 @@ const QuotationDetail = ({ qtnId, onBack, qtnDataFromList }) => {
       const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const file = new File([blob], fileName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-      let userId = 1; // Default to 1 instead of 18 as a fallback since 1 is usually a safe default admin ID in the DB
-      const userStr = localStorage.getItem('user_data');
-      if (userStr) {
-        try {
-          const userObj = JSON.parse(userStr);
-          userId = userObj.id || userObj.userId || userObj.superAdminId || 1;
-        } catch(e) {}
-      }
 
       const formData = new FormData();
       formData.append('file', file);

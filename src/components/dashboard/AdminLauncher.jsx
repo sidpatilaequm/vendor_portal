@@ -26,15 +26,18 @@ import CreditNotesReport from './CreditNotesReport';
 import './admin-launcher.css';
 
 /* ============================================================
-   NexD Support Portal — admin. Pixel-perfect port of the provided
-   mockup's chrome (top rail, one-line nav, breadcrumb, tiles, section
-   landing pages, stub-page design) — see admin-launcher.css for the
-   full style port.
+   NexD Support Portal — admin.
+
+   Chrome (top nav, hero, tile grid, breadcrumb) now matches the same
+   employee-portal look used everywhere else in this app (Header.jsx +
+   DashboardHome.jsx's card grid): white top bar with the Ankit logo,
+   and icon-circle Bootstrap cards with a colored "View Details"-style
+   pill button, instead of the old bespoke dark-rail mockup chrome.
 
    Every leaf either mounts a real, working screen already built in
-   this app, or shows the mockup's own "reserved — not defined yet"
-   stub (no fake data, no simulated connect/save flows) when nothing
-   real backs it. See MENU below for exactly which is which.
+   this app, or shows an honest "reserved — not defined yet" stub (no
+   fake data, no simulated connect/save flows) when nothing real backs
+   it. See MENU below for exactly which is which.
    ============================================================ */
 
 const TAGS = {
@@ -51,90 +54,96 @@ const Tag = ({ v }) => <span className={`tag ${TAGS[String(v).toLowerCase()] || 
    `real`: a function returning the JSX for that leaf's actual screen.
    `stub`: true when nothing real backs it yet — renders the mockup's
    own reserved-page design instead of fabricating a working screen.
+   `icon`/`color`: FontAwesome icon suffix + Bootstrap color keyword,
+   same vocabulary DashboardHome.jsx's employee card grid uses — kept
+   in sync with it by name where the two overlap (Vendor List, Material
+   List, Purchase Requisition, ...) so the same concept always gets the
+   same icon/color everywhere in the app.
 ------------------------------------------------- */
 const MENU = {
   budget: {
-    name: 'Budget Maintenance', eyebrow: '01',
+    name: 'Budget Maintenance', eyebrow: '01', icon: 'fa-wallet', color: 'primary',
     desc: 'Allocations by cost centre, what is committed against them, and what remains.',
     real: () => <BudgetApp />,
   },
   master: {
-    name: 'Master Data', eyebrow: '02',
+    name: 'Master Data', eyebrow: '02', icon: 'fa-database', color: 'success',
     desc: 'The records everything else refers to — suppliers, parts and assemblies.',
     children: {
-      vendors: { name: 'Vendors', desc: 'Suppliers, payment terms and contacts.', real: (onBack) => <AdminVendors onBack={onBack} /> },
-      approvedSuppliers: { name: 'Approved Suppliers', desc: 'Vendors approved through Become-a-Supplier, with their Product/Service/Scheduling agreement/Sub-contracting type.', real: (onBack) => <AdminApprovedSuppliers onBack={onBack} /> },
-      prospects: { name: 'Vendor Prospects', desc: 'Applicants still in onboarding review.', real: () => <AdminProspects /> },
-      invitations: { name: 'Invitations', desc: 'Invite a new supplier to register.', real: () => <AdminInvitations /> },
-      materials: { name: 'Materials', desc: 'Part master with cost, stock and lead time.', stub: true,
+      vendors: { name: 'Vendors', icon: 'fa-users', color: 'success', desc: 'Suppliers, payment terms and contacts.', real: (onBack) => <AdminVendors onBack={onBack} /> },
+      approvedSuppliers: { name: 'Approved Suppliers', icon: 'fa-user-check', color: 'success', desc: 'Vendors approved through Become-a-Supplier, with their Product/Service/Scheduling agreement/Sub-contracting type.', real: (onBack) => <AdminApprovedSuppliers onBack={onBack} /> },
+      prospects: { name: 'Vendor Prospects', icon: 'fa-user-clock', color: 'warning', desc: 'Applicants still in onboarding review.', real: () => <AdminProspects /> },
+      invitations: { name: 'Invitations', icon: 'fa-envelope-open-text', color: 'primary', desc: 'Invite a new supplier to register.', real: () => <AdminInvitations /> },
+      materials: { name: 'Materials', icon: 'fa-box', color: 'primary', desc: 'Part master with cost, stock and lead time.', stub: true,
         table: 'material_master', endpoint: '/api/materials' },
-      boms: { name: 'Bill of Materials', desc: 'Assemblies and their component lines, with rolled-up cost.', stub: true,
+      boms: { name: 'Bill of Materials', icon: 'fa-sitemap', color: 'info', desc: 'Assemblies and their component lines, with rolled-up cost.', stub: true,
         table: 'bom_header / bom_lines', endpoint: '/api/boms' },
-      orgdata: { name: 'Organisation Data', desc: 'Companies, departments, projects and activities behind the budget module.',
+      orgdata: { name: 'Organisation Data', icon: 'fa-building', color: 'secondary', desc: 'Companies, departments, projects and activities behind the budget module.',
         real: () => <AdminMasterData /> },
-      enterpriseStructure: { name: 'Enterprise Structure', desc: 'Company, plant and purchasing organisation/group master data.',
+      enterpriseStructure: { name: 'Enterprise Structure', icon: 'fa-industry', color: 'success', desc: 'Company, plant and purchasing organisation/group master data.',
         real: () => <AdminEnterpriseStructure /> },
     },
   },
   settings: {
-    name: 'System Settings', eyebrow: '03',
+    name: 'System Settings', eyebrow: '03', icon: 'fa-cog', color: 'secondary',
     desc: 'How the portal identifies your company, who can sign in, and what it sends out.',
     children: {
-      company: { name: 'Company Profile', desc: 'Legal entity, tax registration and registered address.', stub: true,
+      company: { name: 'Company Profile', icon: 'fa-id-card', color: 'secondary', desc: 'Legal entity, tax registration and registered address.', stub: true,
         table: 'company_profile', endpoint: '/api/company-profile' },
-      users: { name: 'User Accounts', desc: 'People who can sign in, and their role.', real: () => <AdminUsers /> },
-      directory: { name: 'Directory (SSO)', desc: "Sign in with the organisation's Google or Microsoft account.", stub: true,
+      users: { name: 'User Accounts', icon: 'fa-user-cog', color: 'primary', desc: 'People who can sign in, and their role.', real: () => <AdminUsers /> },
+      directory: { name: 'Directory (SSO)', icon: 'fa-address-book', color: 'info', desc: "Sign in with the organisation's Google or Microsoft account.", stub: true,
         table: 'sso_directory_config', endpoint: '/api/sso/directories' },
-      workflows: { name: 'Workflow Templates', desc: 'Approval routes for requisitions, orders and invoices.',
+      workflows: { name: 'Workflow Templates', icon: 'fa-project-diagram', color: 'primary', desc: 'Approval routes for requisitions, orders and invoices.',
         real: (_, subTab, onNavigate) => <AdminWorkflows subTab={subTab} onNavigate={onNavigate} /> },
-      emails: { name: 'Email Templates', desc: 'Messages the portal sends to vendors and staff.', real: () => <AdminEmailTemplates /> },
-      questionnaires: { name: 'Questionnaires', desc: 'Forms vendors fill in at onboarding and audit.', real: () => <Questionnaire /> },
+      emails: { name: 'Email Templates', icon: 'fa-envelope', color: 'warning', desc: 'Messages the portal sends to vendors and staff.', real: () => <AdminEmailTemplates /> },
+      questionnaires: { name: 'Questionnaires', icon: 'fa-list-alt', color: 'info', desc: 'Forms vendors fill in at onboarding and audit.', real: () => <Questionnaire /> },
       reportDesigner: {
-        name: 'Report Designer', desc: 'Build custom reports against the live database — bind boxes to tables, add formulas, publish role-scoped links.',
+        name: 'Report Designer', icon: 'fa-chart-pie', color: 'success', desc: 'Build custom reports against the live database — bind boxes to tables, add formulas, publish role-scoped links.',
         real: () => <AdminAnalytics />,
       },
       folderit: {
-        name: 'FolderIT Integration', desc: 'The credentials FolderIt document storage actually uses — view and change them here.',
+        name: 'FolderIT Integration', icon: 'fa-folder-open', color: 'warning', desc: 'The credentials FolderIt document storage actually uses — view and change them here.',
         real: () => <PlatformCredentialsPanel group="folderit" />,
       },
       microvista: {
-        name: 'Microvista', desc: 'The credentials Microvista KYC verification actually uses — view and change them here.',
+        name: 'Microvista', icon: 'fa-shield-alt', color: 'success', desc: 'The credentials Microvista KYC verification actually uses — view and change them here.',
         real: () => <PlatformCredentialsPanel group="microvista" />,
       },
       slack: {
-        name: 'Slack', desc: "Push portal events into your team's channels.",
+        name: 'Slack', icon: 'fa-hashtag', color: 'secondary',
+        desc: "Push portal events into your team's channels.",
         blurb: 'Portal events land in the channels your team already watches. Only a "Slack" label exists today, inside the workflow notification-channel picker — nothing behind it sends anything yet.',
         hub: true,
         children: {
-          connection: { name: 'Connection', desc: 'Authorise the portal against a Slack workspace.', stub: true, table: 'integrations', endpoint: '/api/integrations/slack/connection' },
-          credentials: { name: 'API Credentials', desc: 'Endpoint, authentication and token storage.', stub: true, table: 'integration_credentials', endpoint: '/api/integrations/slack/credentials' },
-          channels: { name: 'Channel Routing', desc: 'Map each portal event to a channel.', stub: true, table: 'slack_channel_routes', endpoint: '/api/integrations/slack/channels' },
-          events: { name: 'Event Subscriptions', desc: 'Pick which events post at all.', stub: true, table: 'slack_event_subs', endpoint: '/api/integrations/slack/events' },
-          commands: { name: 'Slash Commands', desc: 'Which lookups staff can run from Slack.', stub: true, table: 'slack_commands', endpoint: '/api/integrations/slack/commands' },
-          activity: { name: 'Activity Log', desc: 'Messages posted, delivery failures and command usage.', stub: true, table: 'integration_events', endpoint: '/api/integrations/slack/activity' },
+          connection: { name: 'Connection', icon: 'fa-plug', color: 'secondary', desc: 'Authorise the portal against a Slack workspace.', stub: true, table: 'integrations', endpoint: '/api/integrations/slack/connection' },
+          credentials: { name: 'API Credentials', icon: 'fa-key', color: 'secondary', desc: 'Endpoint, authentication and token storage.', stub: true, table: 'integration_credentials', endpoint: '/api/integrations/slack/credentials' },
+          channels: { name: 'Channel Routing', icon: 'fa-random', color: 'secondary', desc: 'Map each portal event to a channel.', stub: true, table: 'slack_channel_routes', endpoint: '/api/integrations/slack/channels' },
+          events: { name: 'Event Subscriptions', icon: 'fa-bell', color: 'secondary', desc: 'Pick which events post at all.', stub: true, table: 'slack_event_subs', endpoint: '/api/integrations/slack/events' },
+          commands: { name: 'Slash Commands', icon: 'fa-terminal', color: 'secondary', desc: 'Which lookups staff can run from Slack.', stub: true, table: 'slack_commands', endpoint: '/api/integrations/slack/commands' },
+          activity: { name: 'Activity Log', icon: 'fa-history', color: 'secondary', desc: 'Messages posted, delivery failures and command usage.', stub: true, table: 'integration_events', endpoint: '/api/integrations/slack/activity' },
         },
       },
     },
   },
   analytics: {
-    name: 'Analytics', eyebrow: '04',
+    name: 'Analytics', eyebrow: '04', icon: 'fa-chart-line', color: 'info',
     desc: 'Registers across the procure-to-pay chain, from requisition through to reconciliation.',
     children: {
-      'vendor-list': { name: 'Vendor List', desc: 'Every registered supplier with terms, category and compliance state.', real: (onBack) => <AdminVendors onBack={onBack} /> },
-      'material-list': { name: 'Material List', desc: 'Materials with standard cost and usage.', real: (onBack) => <MaterialReport onBack={onBack} /> },
-      'purchase-requisition': { name: 'Purchase Requisitions', desc: 'Requisitions raised and how long they waited.', real: (onBack) => <PurchaseRequisition mode="pr" onBack={onBack} /> },
-      quotation: { name: 'Quotations', desc: 'Quotes received and which was accepted.', real: (onBack) => <Quotation onBack={onBack} onNavigate={() => {}} /> },
-      'purchase-orders': { name: 'Purchase Orders', desc: 'Released orders and delivery position.', real: (onBack) => <PurchaseOrder onBack={onBack} /> },
-      asn: { name: 'Advance Shipping Notices', desc: 'ASNs and how they reconciled.', real: (onBack) => <ASN onBack={onBack} /> },
-      'gate-entry': { name: 'Gate Entry', desc: 'Vehicles logged at the plant gate against inbound shipments.', real: (onBack) => <GateEntry onBack={onBack} /> },
-      'material-inward': { name: 'Material Inward', desc: 'Verify and receive incoming material against gate entries.', real: (onBack) => <MaterialInward onBack={onBack} /> },
-      'goods-receipt': { name: 'Goods Receipt', desc: 'What was received against what was ordered.', stub: true, table: 'goods_receipt_notes', endpoint: '/api/reports/goods-receipt' },
-      invoice: { name: 'Invoices', desc: 'Invoices and their position in approval.', stub: true, table: 'invoices', endpoint: '/api/reports/invoices' },
-      'vendor-payments': { name: 'Vendor Payments', desc: 'Payments released to suppliers.', real: (onBack) => <VendorPaymentReport onBack={onBack} /> },
-      'vendor-returns': { name: 'Vendor Returns', desc: 'Material sent back to suppliers.', real: (onBack) => <VendorReturnsReport onBack={onBack} /> },
-      'credit-note': { name: 'Credit Notes', desc: 'Credits raised against returns, rate differences and short supply.', real: (onBack) => <CreditNotesReport onBack={onBack} /> },
-      'service-entry': { name: 'Service Entry', desc: 'Service sheets confirming work done against service orders.', stub: true, table: 'service_entry_sheets', endpoint: '/api/reports/service-entry' },
-      subcontracting: { name: 'Sub-contracting Reconciliation', desc: 'Material issued to job workers against what came back.', stub: true, table: 'subcontracting_jobs', endpoint: '/api/reports/subcontracting' },
+      'vendor-list': { name: 'Vendor List', icon: 'fa-users', color: 'success', desc: 'Every registered supplier with terms, category and compliance state.', real: (onBack) => <AdminVendors onBack={onBack} /> },
+      'material-list': { name: 'Material List', icon: 'fa-box', color: 'primary', desc: 'Materials with standard cost and usage.', real: (onBack) => <MaterialReport onBack={onBack} /> },
+      'purchase-requisition': { name: 'Purchase Requisitions', icon: 'fa-file-alt', color: 'primary', desc: 'Requisitions raised and how long they waited.', real: (onBack) => <PurchaseRequisition mode="pr" onBack={onBack} /> },
+      quotation: { name: 'Quotations', icon: 'fa-comments-dollar', color: 'warning', desc: 'Quotes received and which was accepted.', real: (onBack) => <Quotation onBack={onBack} onNavigate={() => {}} /> },
+      'purchase-orders': { name: 'Purchase Orders', icon: 'fa-shopping-cart', color: 'success', desc: 'Released orders and delivery position.', real: (onBack) => <PurchaseOrder onBack={onBack} /> },
+      asn: { name: 'Advance Shipping Notices', icon: 'fa-truck', color: 'warning', desc: 'ASNs and how they reconciled.', real: (onBack) => <ASN onBack={onBack} /> },
+      'gate-entry': { name: 'Gate Entry', icon: 'fa-door-open', color: 'info', desc: 'Vehicles logged at the plant gate against inbound shipments.', real: (onBack) => <GateEntry onBack={onBack} /> },
+      'material-inward': { name: 'Material Inward', icon: 'fa-box-open', color: 'success', desc: 'Verify and receive incoming material against gate entries.', real: (onBack) => <MaterialInward onBack={onBack} /> },
+      'goods-receipt': { name: 'Goods Receipt', icon: 'fa-dolly', color: 'info', desc: 'What was received against what was ordered.', stub: true, table: 'goods_receipt_notes', endpoint: '/api/reports/goods-receipt' },
+      invoice: { name: 'Invoices', icon: 'fa-file-invoice-dollar', color: 'success', desc: 'Invoices and their position in approval.', stub: true, table: 'invoices', endpoint: '/api/reports/invoices' },
+      'vendor-payments': { name: 'Vendor Payments', icon: 'fa-wallet', color: 'secondary', desc: 'Payments released to suppliers.', real: (onBack) => <VendorPaymentReport onBack={onBack} /> },
+      'vendor-returns': { name: 'Vendor Returns', icon: 'fa-undo', color: 'danger', desc: 'Material sent back to suppliers.', real: (onBack) => <VendorReturnsReport onBack={onBack} /> },
+      'credit-note': { name: 'Credit Notes', icon: 'fa-file-invoice', color: 'danger', desc: 'Credits raised against returns, rate differences and short supply.', real: (onBack) => <CreditNotesReport onBack={onBack} /> },
+      'service-entry': { name: 'Service Entry', icon: 'fa-tools', color: 'info', desc: 'Service sheets confirming work done against service orders.', stub: true, table: 'service_entry_sheets', endpoint: '/api/reports/service-entry' },
+      subcontracting: { name: 'Sub-contracting Reconciliation', icon: 'fa-people-carry', color: 'warning', desc: 'Material issued to job workers against what came back.', stub: true, table: 'subcontracting_jobs', endpoint: '/api/reports/subcontracting' },
     },
   },
 };
@@ -147,43 +156,61 @@ const NAV = [
 ];
 
 /* ---------------- small pieces ---------------- */
-function Tile({ go, eyebrow, name, desc, foot, stub, big, onOpen, href }) {
-  const inner = (
-    <>
-      <span className="go" aria-hidden="true">→</span>
-      {eyebrow && <div className="eyebrow">{eyebrow}</div>}
-      {big ? <h2>{name}</h2> : <h3>{name}</h3>}
-      <p>{desc}</p>
-      {foot && (
-        <dl className="foot">
-          {foot.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
-        </dl>
-      )}
-    </>
+
+/* Icon-circle Bootstrap card, matching DashboardHome.jsx's employee dashboard cards exactly —
+   same rounded-circle icon avatar, bold title, muted description, colored outline pill button. */
+function Tile({ go, name, desc, stub, big, onOpen, href, icon = 'fa-circle', color = 'secondary' }) {
+  const body = (
+    <div className={`card h-100 shadow-sm border-0 ${stub ? 'border-top border-3 border-warning-subtle' : ''}`} style={{ borderRadius: 12 }}>
+      <div className="card-body text-center p-4 d-flex flex-column align-items-center">
+        <div className={`rounded-circle bg-light d-flex align-items-center justify-content-center mb-3 text-${color}`} style={{ width: big ? 68 : 60, height: big ? 68 : 60 }}>
+          <i className={`fas ${icon} ${big ? 'fs-3' : 'fs-4'}`}></i>
+        </div>
+        {big ? <h4 className="fw-bold mb-2 text-dark">{name}</h4> : <h5 className="fw-bold mb-2 text-dark">{name}</h5>}
+        <p className="text-muted small mb-4">{desc}</p>
+        {href ? (
+          <span className={`btn btn-outline-${color} w-100 mt-auto rounded-pill fw-medium`} style={{ fontSize: 14 }}>
+            Open <i className="fas fa-external-link-alt ms-1" style={{ fontSize: 11 }}></i>
+          </span>
+        ) : (
+          <button
+            className={`btn btn-outline-${color} w-100 mt-auto rounded-pill fw-medium`}
+            style={{ fontSize: 14 }}
+            onClick={() => onOpen(go)}
+          >
+            {stub ? 'View' : 'Open'} <i className="fas fa-arrow-right ms-1"></i>
+          </button>
+        )}
+      </div>
+    </div>
   );
-  // An external tool (its own separate app/origin) opens in a new tab instead
-  // of navigating into a sub-page within this one.
   if (href) {
-    return <a className="tile" href={href} target="_blank" rel="noopener noreferrer">{inner}</a>;
+    return <a href={href} target="_blank" rel="noopener noreferrer" className="text-decoration-none d-block h-100">{body}</a>;
   }
-  return (
-    <button className={`tile ${stub ? 'stub' : ''}`} onClick={() => onOpen(go)}>
-      {inner}
-    </button>
-  );
+  return body;
 }
 
 function Crumbs({ trail, onOpen }) {
-  if (!trail.length) return null;
+  if (trail.length < 2) return null;
   return (
-    <nav className="crumbs" aria-label="Breadcrumb">
-      {trail.map((c, i) => (
-        <React.Fragment key={c.go ?? c.name}>
-          {i === trail.length - 1
-            ? <span className="now">{c.name}</span>
-            : <><button onClick={() => onOpen(c.go)}>{c.name}</button><span aria-hidden="true">/</span></>}
-        </React.Fragment>
-      ))}
+    <nav aria-label="breadcrumb" className="mb-2">
+      <ol className="breadcrumb mb-0" style={{ fontSize: 13 }}>
+        {trail.map((c, i) => (
+          <li
+            key={c.go ?? c.name}
+            className={`breadcrumb-item ${i === trail.length - 1 ? 'active text-dark fw-semibold' : ''}`}
+            aria-current={i === trail.length - 1 ? 'page' : undefined}
+          >
+            {i === trail.length - 1 ? (
+              c.name
+            ) : (
+              <button type="button" className="btn btn-link btn-sm p-0 text-success text-decoration-none align-baseline" onClick={() => onOpen(c.go)}>
+                {c.name}
+              </button>
+            )}
+          </li>
+        ))}
+      </ol>
     </nav>
   );
 }
@@ -191,7 +218,7 @@ function Crumbs({ trail, onOpen }) {
 /* The mockup's own honest "reserved — not defined yet" page for anything with no real screen. */
 function StubPage({ node, path }) {
   return (
-    <>
+    <div className="cfg">
       <div className="hero" style={{ marginBottom: 18 }}>
         <h1 style={{ fontSize: 21 }}>{node.name}</h1>
         <p>{node.desc}</p>
@@ -210,14 +237,14 @@ function StubPage({ node, path }) {
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 }
 
 function IntegrationHub({ node, path, onOpen }) {
   const kids = Object.entries(node.children);
   return (
-    <>
+    <div className="cfg">
       <div className="card" style={{ display: 'flex', gap: 16, alignItems: 'flex-start', padding: '18px 20px', marginBottom: 22 }}>
         <div style={{ minWidth: 0 }}>
           <h3 style={{ fontSize: 14.5 }}>{node.name}</h3>
@@ -225,12 +252,14 @@ function IntegrationHub({ node, path, onOpen }) {
         </div>
       </div>
       <div className="eyebrow-row"><h2>Configuration pages</h2></div>
-      <div className="tiles compact">
+      <div className="row g-3">
         {kids.map(([key, p]) => (
-          <Tile key={key} go={`${path}:${key}`} eyebrow="" name={p.name} desc={p.desc} stub onOpen={onOpen} />
+          <div key={key} className="col-12 col-sm-6 col-lg-4">
+            <Tile go={`${path}:${key}`} name={p.name} desc={p.desc} icon={p.icon} color={p.color} stub onOpen={onOpen} />
+          </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -317,15 +346,17 @@ function PlatformCredentialsPanel({ group }) {
     load();
   };
 
-  if (error) return <div className="card"><div className="card-body"><p style={{ color: 'var(--iron)', fontSize: 13.5, margin: 0 }}>{error}</p></div></div>;
-  if (!data) return <p style={{ color: 'var(--muted)', fontSize: 13 }}>Loading…</p>;
+  if (error) return <div className="cfg"><div className="card"><div className="card-body"><p style={{ color: 'var(--iron)', fontSize: 13.5, margin: 0 }}>{error}</p></div></div></div>;
+  if (!data) return <div className="cfg"><p style={{ color: 'var(--muted)', fontSize: 13 }}>Loading…</p></div>;
 
   const fields = Object.entries(data[group] || {}).map(([field, f]) => ({ key: field, label: f.label, value: f.value }));
   const meta = GROUP_META[group];
 
   return (
-    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(360px,1fr))' }}>
-      <CredentialGroupCard title={meta.title} desc={meta.desc} fields={fields} onSave={save} />
+    <div className="cfg">
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(360px,1fr))' }}>
+        <CredentialGroupCard title={meta.title} desc={meta.desc} fields={fields} onSave={save} />
+      </div>
     </div>
   );
 }
@@ -390,27 +421,31 @@ export default function AdminLauncher() {
     /* home — 4 big tiles */
     content = (
       <>
-        <div className="hero">
-          <h1>Admin portal</h1>
-          <p>Four areas run the portal. Pick one to go in.</p>
+        <div className="mb-4">
+          <h1 className="fw-bold text-dark mb-1" style={{ fontSize: 26 }}>Admin portal</h1>
+          <p className="text-muted mb-0">Four areas run the portal. Pick one to go in.</p>
         </div>
-        <div className="tiles four">
+        <div className="row g-4">
           {NAV.map(([key]) => {
             const n = MENU[key];
-            return <Tile key={key} go={key} big eyebrow={n.eyebrow} name={n.name} desc={n.desc} onOpen={goTo} />;
+            return (
+              <div key={key} className="col-12 col-md-6">
+                <Tile go={key} big name={n.name} desc={n.desc} icon={n.icon} color={n.color} onOpen={goTo} />
+              </div>
+            );
           })}
         </div>
       </>
     );
   } else if (!node) {
-    content = <p style={{ color: 'var(--muted)', fontSize: 13 }}>Nothing here.</p>;
+    content = <p className="text-muted">Nothing here.</p>;
   } else if (node.real) {
     content = (
       <>
         <Crumbs trail={trail} onOpen={goTo} />
-        <div className="hero" style={{ marginBottom: 18 }}>
-          <h1 style={{ fontSize: 21 }}>{node.name}</h1>
-          <p>{node.desc}</p>
+        <div className="mb-3">
+          <h1 className="fw-bold text-dark mb-1" style={{ fontSize: 21 }}>{node.name}</h1>
+          <p className="text-muted mb-0">{node.desc}</p>
         </div>
         <div className="real-screen">{node.real(onBack, wfSubTab, setWfSubTab)}</div>
       </>
@@ -435,22 +470,24 @@ export default function AdminLauncher() {
     content = (
       <>
         <Crumbs trail={trail} onOpen={goTo} />
-        <div className="hero">
-          <h1>{node.name}</h1>
-          <p>{node.desc}</p>
+        <div className="mb-4">
+          <h1 className="fw-bold text-dark mb-1" style={{ fontSize: 24 }}>{node.name}</h1>
+          <p className="text-muted mb-0">{node.desc}</p>
         </div>
-        <div className={`tiles ${top === 'analytics' ? 'compact' : ''}`}>
-          {kids.map(([key, c], i) => (
-            <Tile
-              key={key}
-              go={path ? `${path}:${key}` : key}
-              eyebrow={String(i + 1).padStart(2, '0')}
-              name={c.name}
-              desc={c.desc}
-              stub={!!(c.stub || c.hub)}
-              href={c.href}
-              onOpen={goTo}
-            />
+        <div className="row g-4">
+          {kids.map(([key, c]) => (
+            <div key={key} className="col-12 col-sm-6 col-lg-3">
+              <Tile
+                go={path ? `${path}:${key}` : key}
+                name={c.name}
+                desc={c.desc}
+                icon={c.icon}
+                color={c.color}
+                stub={!!(c.stub || c.hub)}
+                href={c.href}
+                onOpen={goTo}
+              />
+            </div>
           ))}
         </div>
       </>
@@ -459,27 +496,31 @@ export default function AdminLauncher() {
 
   return (
     <div className="nexdadmin">
-      <header className="rail">
-        <div className="wrap">
-          <div className="rail-top">
-            <button className="brand" onClick={() => goTo('')}>
-              <b>NEXD</b><span>Support Portal</span>
-            </button>
-            <div className="who">
-              <span className="fy">Admin</span>
-              <span className="sep"></span>
-              <span>{displayName}</span>
-              <span className="av">{initials}</span>
-              <button className="signout" onClick={logout}>Sign out</button>
+      <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top px-4 py-2" style={{ height: 70, zIndex: 1000 }}>
+        <div className="container-fluid d-flex justify-content-between align-items-center">
+          <button type="button" className="btn p-0 border-0 bg-transparent d-flex align-items-center" onClick={() => goTo('')}>
+            <img src="/ankit-logo.png" alt="Ankit Group" style={{ height: 34, width: 'auto' }} />
+          </button>
+          <div className="d-flex align-items-center gap-3">
+            <span className="d-none d-md-inline text-muted fw-semibold" style={{ fontSize: 13 }}>Admin Portal</span>
+            <div className="d-flex align-items-center gap-2">
+              <div
+                className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+                style={{ width: 34, height: 34, background: 'var(--oxide)', fontSize: 13 }}
+              >
+                {initials}
+              </div>
+              <span className="fw-semibold text-muted d-none d-sm-inline" style={{ fontSize: 14 }}>{displayName}</span>
             </div>
+            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={logout}>Sign out</button>
           </div>
         </div>
-      </header>
-      <main>
+      </nav>
+      <main className="container-fluid py-4" style={{ maxWidth: 1400 }}>
         {path && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-            <button className="btn quiet" onClick={() => goTo(parts.slice(0, -1).join(':'))}>← Back</button>
-          </div>
+          <button type="button" className="btn btn-outline-secondary btn-sm mb-3" onClick={() => goTo(parts.slice(0, -1).join(':'))}>
+            <i className="fas fa-arrow-left me-1"></i> Back
+          </button>
         )}
         {content}
       </main>

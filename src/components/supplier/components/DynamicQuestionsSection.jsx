@@ -170,12 +170,25 @@ const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
                             <tr key={rowIndex}>
                               {q.columns.map((c) => (
                                 <td key={c.columnId} style={{ padding: '4px 6px', borderBottom: '1px solid var(--line, #dee4e6)' }}>
-                                  <input
-                                    type={c.columnType === 'number' ? 'number' : c.columnType === 'date' ? 'date' : 'text'}
-                                    value={row[String(c.columnId)] ?? ''}
-                                    onChange={(e) => setCell(q, rowIndex, String(c.columnId), e.target.value)}
-                                    style={{ minWidth: 120 }}
-                                  />
+                                  {c.columnType === 'dropdown' ? (
+                                    <select
+                                      value={row[String(c.columnId)] ?? ''}
+                                      onChange={(e) => setCell(q, rowIndex, String(c.columnId), e.target.value)}
+                                      style={{ minWidth: 120 }}
+                                    >
+                                      <option value="">—</option>
+                                      {(c.options ?? []).map((o) => (
+                                        <option key={o.optionId} value={o.label}>{o.label}</option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <input
+                                      type={c.columnType === 'number' ? 'number' : c.columnType === 'date' ? 'date' : 'text'}
+                                      value={row[String(c.columnId)] ?? ''}
+                                      onChange={(e) => setCell(q, rowIndex, String(c.columnId), e.target.value)}
+                                      style={{ minWidth: 120 }}
+                                    />
+                                  )}
                                 </td>
                               ))}
                               <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--line, #dee4e6)' }}>

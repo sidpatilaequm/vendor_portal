@@ -23,6 +23,7 @@ const COLUMN_TYPES = [
   { value: 'text', name: 'Text', input: 'text' },
   { value: 'number', name: 'Number', input: 'number' },
   { value: 'date', name: 'Date', input: 'date' },
+  { value: 'dropdown', name: 'Dropdown', input: 'select' },
 ];
 
 const typeInfo = (v) => QUESTION_TYPES.find((t) => t.value === v) ?? QUESTION_TYPES[0];
@@ -36,6 +37,7 @@ const newColumn = (col = {}) => ({
   label: col.label ?? '',
   column_type: col.column_type ?? 'text',
   is_required: col.is_required ?? false,
+  options: col.options?.length ? col.options.map((o) => newOption(o.label)) : [newOption(), newOption()],
 });
 
 function draftFrom(question) {
@@ -82,6 +84,13 @@ function checkDraft(draft, mandatoryBlocked) {
     const lo = draft.min_rows ? Number(draft.min_rows) : null;
     const hi = draft.max_rows ? Number(draft.max_rows) : null;
     if (lo && hi && lo > hi) return 'The fewest rows cannot be more than the most rows.';
+    for (const c of draft.columns) {
+      if (c.column_type !== 'dropdown') continue;
+      const optLabels = c.options.map((o) => o.label.trim()).filter(Boolean);
+      if (optLabels.length < 2) return `Dropdown column "${c.label.trim() || 'untitled'}" needs at least two options.`;
+      if (new Set(optLabels.map((l) => l.toLowerCase())).size !== optLabels.length)
+        return `Dropdown column "${c.label.trim() || 'untitled'}" has two options with the same label.`;
+    }
     return null;
   }
 
@@ -130,7 +139,12 @@ function draftToPayload(draft) {
     columns: isTable
       ? draft.columns
           .filter((c) => c.label.trim())
-          .map((c) => ({ label: c.label.trim(), column_type: c.column_type, is_required: !!c.is_required }))
+          .map((c) => ({
+            label: c.label.trim(),
+            column_type: c.column_type,
+            is_required: !!c.is_required,
+            options: c.column_type === 'dropdown' ? c.options.map((o) => ({ label: o.label.trim() })).filter((o) => o.label) : [],
+          }))
       : [],
   };
 }
@@ -355,6 +369,26 @@ const QuestionnaireBuilder = ({ processId, onBack }) => {
     return { ...e, draft: { ...e.draft, columns: list } };
   });
 
+  // A dropdown column's own choice list — same shape as question-level options, just nested
+  // one level down under the column it belongs to.
+  const updateColumnOption = (colKey, optKey, label) => setEditing((e) => ({
+    ...e,
+    draft: {
+      ...e.draft,
+      columns: e.draft.columns.map((c) =>
+        c.key === colKey ? { ...c, options: c.options.map((o) => (o.key === optKey ? { ...o, label } : o)) } : c
+      ),
+    },
+  }));
+  const addColumnOption = (colKey) => setEditing((e) => ({
+    ...e,
+    draft: { ...e.draft, columns: e.draft.columns.map((c) => (c.key === colKey ? { ...c, options: [...c.options, newOption()] } : c)) },
+  }));
+  const removeColumnOption = (colKey, optKey) => setEditing((e) => ({
+    ...e,
+    draft: { ...e.draft, columns: e.draft.columns.map((c) => (c.key === colKey ? { ...c, options: c.options.filter((o) => o.key !== optKey) } : c)) },
+  }));
+
   // ---------------- fill-in ----------------
 
   const setFillText = (qid, text) => setFill((f) => ({ ...f, answers: { ...f.answers, [qid]: { ...f.answers[qid], text } } }));
@@ -511,6 +545,7 @@ const QuestionnaireBuilder = ({ processId, onBack }) => {
             setEditing={setEditing}
             updateDraftOption={updateDraftOption} addDraftOption={addDraftOption} removeDraftOption={removeDraftOption} moveDraftOption={moveDraftOption}
             updateDraftColumn={updateDraftColumn} addDraftColumn={addDraftColumn} removeDraftColumn={removeDraftColumn} moveDraftColumn={moveDraftColumn}
+            updateColumnOption={updateColumnOption} addColumnOption={addColumnOption} removeColumnOption={removeColumnOption}
           />
         )}
         {tab === 'fill' && (
@@ -540,6 +575,7 @@ const BuildTab = ({
   onDeleteQuestion, onMoveQuestion, onMoveQuestionToSection, setEditing,
   updateDraftOption, addDraftOption, removeDraftOption, moveDraftOption,
   updateDraftColumn, addDraftColumn, removeDraftColumn, moveDraftColumn,
+  updateColumnOption, addColumnOption, removeColumnOption,
 }) => (
   <div className="qs-stack">
     {locked && (
@@ -585,6 +621,7 @@ const BuildTab = ({
                   editing={editing} saving={saving} onCancel={onCancelEdit} onSave={onSaveQuestion} setEditing={setEditing}
                   updateDraftOption={updateDraftOption} addDraftOption={addDraftOption} removeDraftOption={removeDraftOption} moveDraftOption={moveDraftOption}
                   updateDraftColumn={updateDraftColumn} addDraftColumn={addDraftColumn} removeDraftColumn={removeDraftColumn} moveDraftColumn={moveDraftColumn}
+                  updateColumnOption={updateColumnOption} addColumnOption={addColumnOption} removeColumnOption={removeColumnOption}
                 />
               ) : (
                 <QuestionCard
@@ -606,6 +643,7 @@ const BuildTab = ({
             editing={editing} locked={locked} saving={saving} onCancel={onCancelEdit} onSave={onSaveQuestion} setEditing={setEditing}
             updateDraftOption={updateDraftOption} addDraftOption={addDraftOption} removeDraftOption={removeDraftOption} moveDraftOption={moveDraftOption}
             updateDraftColumn={updateDraftColumn} addDraftColumn={addDraftColumn} removeDraftColumn={removeDraftColumn} moveDraftColumn={moveDraftColumn}
+            updateColumnOption={updateColumnOption} addColumnOption={addColumnOption} removeColumnOption={removeColumnOption}
           />
         ) : (
           <button className="btn btn--dashed" onClick={() => onStartAdd(section.id)}>+ Add a question to {section.title}</button>
@@ -720,6 +758,7 @@ const QuestionEditor = ({
   editing, locked, saving, onCancel, onSave, setEditing,
   updateDraftOption, addDraftOption, removeDraftOption, moveDraftOption,
   updateDraftColumn, addDraftColumn, removeDraftColumn, moveDraftColumn,
+  updateColumnOption, addColumnOption, removeColumnOption,
 }) => {
   const { draft, questionId, problem } = editing;
   const isTable = draft.question_type === 'table';
@@ -847,19 +886,37 @@ const QuestionEditor = ({
             <p className="qs-muted" style={{ marginBottom: 8 }}>Name each column and pick what it accepts. The respondent fills in one row at a time and adds as many rows as they need.</p>
             <ul className="column-editor">
               {draft.columns.map((column, index) => (
-                <li key={column.key}>
-                  <span className="qs-code">C{index + 1}</span>
-                  <input className="input" placeholder={`Column ${index + 1} heading`} value={column.label} onChange={(e) => updateDraftColumn(column.key, 'label', e.target.value)} />
-                  <select className="select select--tiny" aria-label={`Column ${index + 1} accepts`} value={column.column_type} onChange={(e) => updateDraftColumn(column.key, 'column_type', e.target.value)}>
-                    {COLUMN_TYPES.map((t) => <option key={t.value} value={t.value}>{t.name}</option>)}
-                  </select>
-                  <label className="inline-check" title="Every row must fill this column in">
-                    <input type="checkbox" checked={column.is_required} onChange={(e) => updateDraftColumn(column.key, 'is_required', e.target.checked)} />
-                    <span>Required</span>
-                  </label>
-                  <button className="icon-btn" title="Move left" disabled={index === 0} onClick={() => moveDraftColumn(column.key, -1)}>←</button>
-                  <button className="icon-btn" title="Move right" disabled={index === draft.columns.length - 1} onClick={() => moveDraftColumn(column.key, 1)}>→</button>
-                  <button className="icon-btn icon-btn--danger" title="Remove" disabled={draft.columns.length <= 1} onClick={() => removeDraftColumn(column.key)}>✕</button>
+                <li key={column.key} className={column.column_type === 'dropdown' ? 'column-editor__item--dropdown' : ''}>
+                  <div className="column-editor__row">
+                    <span className="qs-code">C{index + 1}</span>
+                    <input className="input" placeholder={`Column ${index + 1} heading`} value={column.label} onChange={(e) => updateDraftColumn(column.key, 'label', e.target.value)} />
+                    <select className="select select--tiny" aria-label={`Column ${index + 1} accepts`} value={column.column_type} onChange={(e) => updateDraftColumn(column.key, 'column_type', e.target.value)}>
+                      {COLUMN_TYPES.map((t) => <option key={t.value} value={t.value}>{t.name}</option>)}
+                    </select>
+                    <label className="inline-check" title="Every row must fill this column in">
+                      <input type="checkbox" checked={column.is_required} onChange={(e) => updateDraftColumn(column.key, 'is_required', e.target.checked)} />
+                      <span>Required</span>
+                    </label>
+                    <button className="icon-btn" title="Move left" disabled={index === 0} onClick={() => moveDraftColumn(column.key, -1)}>←</button>
+                    <button className="icon-btn" title="Move right" disabled={index === draft.columns.length - 1} onClick={() => moveDraftColumn(column.key, 1)}>→</button>
+                    <button className="icon-btn icon-btn--danger" title="Remove" disabled={draft.columns.length <= 1} onClick={() => removeDraftColumn(column.key)}>✕</button>
+                  </div>
+                  {column.column_type === 'dropdown' && (
+                    <ul className="option-editor option-editor--nested">
+                      {column.options.map((option, optIndex) => (
+                        <li key={option.key}>
+                          <span className="qs-code">{optIndex + 1}</span>
+                          <input className="input" placeholder={`Option ${optIndex + 1}`} value={option.label}
+                            onChange={(e) => updateColumnOption(column.key, option.key, e.target.value)} />
+                          <button className="icon-btn icon-btn--danger" title="Remove" disabled={column.options.length <= 2}
+                            onClick={() => removeColumnOption(column.key, option.key)}>✕</button>
+                        </li>
+                      ))}
+                      <li>
+                        <button className="btn btn--tiny" onClick={() => addColumnOption(column.key)}>+ Add option</button>
+                      </li>
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>
@@ -1035,8 +1092,16 @@ const FillQuestion = ({ question: q, sIndex, qIndex, answer, bad, setFillText, s
                   <td className="data-grid__rownum">{rowIndex + 1}</td>
                   {q.columns.map((c) => (
                     <td key={c.id}>
-                      <input className="input input--cell" type={columnInfo(c.column_type).input} aria-label={`${c.label}, row ${rowIndex + 1}`}
-                        value={row[String(c.id)] ?? ''} onChange={(e) => setFillCell(q.id, rowIndex, String(c.id), e.target.value)} />
+                      {c.column_type === 'dropdown' ? (
+                        <select className="select select--tiny input--cell" aria-label={`${c.label}, row ${rowIndex + 1}`}
+                          value={row[String(c.id)] ?? ''} onChange={(e) => setFillCell(q.id, rowIndex, String(c.id), e.target.value)}>
+                          <option value="">—</option>
+                          {(c.options ?? []).map((o) => <option key={o.id} value={o.label}>{o.label}</option>)}
+                        </select>
+                      ) : (
+                        <input className="input input--cell" type={columnInfo(c.column_type).input} aria-label={`${c.label}, row ${rowIndex + 1}`}
+                          value={row[String(c.id)] ?? ''} onChange={(e) => setFillCell(q.id, rowIndex, String(c.id), e.target.value)} />
+                      )}
                     </td>
                   ))}
                   <td className="data-grid__rownum">

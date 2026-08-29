@@ -92,12 +92,25 @@ function AnswerEditor({ question, initialAnswer, value, onChange }) {
                 <tr key={rowIndex}>
                   {question.columns.map((c) => (
                     <td key={c.columnId}>
-                      <input
-                        className="input input--cell"
-                        type={c.columnType === 'number' ? 'number' : c.columnType === 'date' ? 'date' : 'text'}
-                        value={row[String(c.columnId)] ?? ''}
-                        onChange={(e) => setCell(rowIndex, String(c.columnId), e.target.value)}
-                      />
+                      {c.columnType === 'dropdown' ? (
+                        <select
+                          className="input input--cell"
+                          value={row[String(c.columnId)] ?? ''}
+                          onChange={(e) => setCell(rowIndex, String(c.columnId), e.target.value)}
+                        >
+                          <option value="">—</option>
+                          {(c.options ?? []).map((o) => (
+                            <option key={o.optionId} value={o.label}>{o.label}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          className="input input--cell"
+                          type={c.columnType === 'number' ? 'number' : c.columnType === 'date' ? 'date' : 'text'}
+                          value={row[String(c.columnId)] ?? ''}
+                          onChange={(e) => setCell(rowIndex, String(c.columnId), e.target.value)}
+                        />
+                      )}
                     </td>
                   ))}
                   <td>

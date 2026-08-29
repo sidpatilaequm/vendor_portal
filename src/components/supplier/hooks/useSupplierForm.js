@@ -429,6 +429,47 @@ export function useSupplierForm() {
     [showToast]
   );
 
+  // The file behind one dynamic file_upload question's answer — same upload mechanics as
+  // uploadExtraFile (no OCR, "pioneer" registration-id coordination), but tagged with the
+  // question id server-side (uploadQuestionFile) instead of being a free-form attachment, and
+  // stored into dynamicAnswers[questionId].textValue (the filename) rather than a separate
+  // files list, since a file_upload question's answer IS that one file.
+  const uploadDynamicQuestionFile = useCallback(
+    async (questionId, file) => {
+      setDynamicAnswer(questionId, { uploadStatus: 'reading', fileName: file.name });
+      try {
+        let knownId = registrationIdRef.current;
+        if (!knownId && pendingFirstUpload.current) {
+          knownId = await pendingFirstUpload.current;
+        }
+
+        const form = new FormData();
+        form.append('file', file);
+        const params = knownId ? { registrationId: knownId } : {};
+        const uploadPromise = axios.post(`/api/public/supplier-registration/dynamic-question-file/${questionId}`, form, {
+          params,
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        const isPioneer = !knownId && !pendingFirstUpload.current;
+        if (isPioneer) {
+          pendingFirstUpload.current = uploadPromise
+            .then((res) => res.data.data?.result?.registrationId)
+            .finally(() => { pendingFirstUpload.current = null; });
+        }
+
+        const { data } = await uploadPromise;
+        const result = data.data?.result || {};
+        if (result.registrationId) registrationIdRef.current = result.registrationId;
+        setDynamicAnswer(questionId, { textValue: result.fileName || file.name, uploadStatus: 'done', fileName: result.fileName || file.name });
+      } catch (err) {
+        setDynamicAnswer(questionId, { textValue: '', uploadStatus: 'error', fileName: '' });
+        showToast(`Could not upload ${file.name}.`);
+      }
+    },
+    [showToast, setDynamicAnswer]
+  );
+
   const removeExtraFile = useCallback(
     (localId) => {
       const f = state.extraFiles.find((x) => x.localId === localId);
@@ -696,6 +737,7 @@ export function useSupplierForm() {
     updateRow,
     removeRow,
     setDynamicAnswer,
+    uploadDynamicQuestionFile,
     setContactsCount,
     setPrimaryContact,
     ingestFile,

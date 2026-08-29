@@ -1,4 +1,5 @@
 import React from 'react';
+import { isDynamicQuestionVisible } from '../lib/validation';
 
 // Renders whichever questionnaire an admin has published and marked active (Questionnaire tab
 // in the admin panel), generically — short_text / single_choice (radio or dropdown) /
@@ -6,7 +7,7 @@ import React from 'react';
 // like the rest of this form. Structurally mirrors dynamic_questions/frontend/src/pages/
 // FillForm.jsx's branches, styled with this page's own supplier-form.css classes instead of Form
 // Studio's CSS.
-const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
+const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer, uploadDynamicQuestionFile }) => {
   const { questionnaire, dynamicAnswers } = state;
 
   if (!questionnaire?.sections?.length) return null;
@@ -57,7 +58,7 @@ const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
               {section.title}
             </h3>
           )}
-          {section.questions.map((q) => {
+          {section.questions.filter((q) => isDynamicQuestionVisible(q, dynamicAnswers)).map((q) => {
             const answer = answerFor(q.questionId);
             const selected = answer.optionIds || [];
             return (
@@ -73,6 +74,22 @@ const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
                     maxLength={q.maxLength || undefined}
                     onChange={(e) => setDynamicAnswer(q.questionId, { textValue: e.target.value })}
                   />
+                )}
+
+                {q.questionType === 'file_upload' && (
+                  <div>
+                    <input
+                      type="file"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) uploadDynamicQuestionFile(q.questionId, file);
+                        e.target.value = '';
+                      }}
+                    />
+                    {answer.uploadStatus === 'reading' && <p className="sm muted">Uploading {answer.fileName}…</p>}
+                    {answer.uploadStatus === 'done' && <p className="sm muted">Uploaded: {answer.fileName}</p>}
+                    {answer.uploadStatus === 'error' && <p className="sm" style={{ color: 'var(--danger, #b03225)' }}>Could not upload — try again.</p>}
+                  </div>
                 )}
 
                 {q.questionType === 'single_choice' && q.isDropdown && (

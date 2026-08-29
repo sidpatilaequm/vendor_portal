@@ -785,7 +785,7 @@ const IndentDashboard = ({ onBack }) => {
                     </div>
                     <div className="d-flex justify-content-between align-items-center pt-2 border-top border-light-subtle">
                       <span className="fw-bold text-dark" style={{ fontSize: '13px' }}>Grand Total</span>
-                      <span className="fw-bold fs-5" style={{ color: '#059669' }}>{formatCurrencyVal(extractedData.grandTotal)}</span>
+                      <span className="fw-bold fs-5" style={{ color: '#0E7C86' }}>{formatCurrencyVal(extractedData.grandTotal)}</span>
                     </div>
                   </div>
                 </div>
@@ -830,7 +830,7 @@ const IndentDashboard = ({ onBack }) => {
               </button>
               <button
                 className="btn btn-success fw-bold px-4 py-2 d-flex align-items-center gap-2"
-                style={{ backgroundColor: '#064e3b', borderColor: '#064e3b', borderRadius: '8px', fontSize: '13px' }}
+                style={{ backgroundColor: '#293383', borderColor: '#293383', borderRadius: '8px', fontSize: '13px' }}
                 onClick={() => { alert("Indent successfully created from document!"); setShowDetailsModal(false); fetchIndents(); }}
                 disabled={loading}
               >

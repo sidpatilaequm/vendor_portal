@@ -62,7 +62,7 @@ const MaterialInward = ({ onBack }) => {
       {/* Header Section */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div className="text-start">
-          <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#064e3b' }}>Material Inward Queue</h4>
+          <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#293383' }}>Material Inward Queue</h4>
           <p className="text-muted mb-0" style={{ fontSize: '13px' }}>Verify and receive incoming material</p>
         </div>
         <div className="d-flex gap-2">
@@ -132,7 +132,7 @@ const MaterialInward = ({ onBack }) => {
         <div className="col-md col-6">
           <div className="card shadow-sm border-0 h-100" style={{ borderRadius: '12px' }}>
             <div className="card-body p-3">
-              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#d97706' }}>Pending</p>
+              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#8B4B4D' }}>Pending</p>
               <h3 className="fw-bold text-warning mb-0">{workQueue.filter(w => w.status_slug === 'pending').length}</h3>
               <p className="text-muted small mb-0">Awaiting action</p>
             </div>
@@ -141,7 +141,7 @@ const MaterialInward = ({ onBack }) => {
         <div className="col-md col-6">
           <div className="card shadow-sm border-0 h-100" style={{ borderRadius: '12px' }}>
             <div className="card-body p-3">
-              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#0284c7' }}>In Progress</p>
+              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#293383' }}>In Progress</p>
               <h3 className="fw-bold text-info mb-0">{workQueue.filter(w => w.status_slug === 'in-progress').length}</h3>
               <p className="text-muted small mb-0">Being verified</p>
             </div>
@@ -150,7 +150,7 @@ const MaterialInward = ({ onBack }) => {
         <div className="col-md col-6">
           <div className="card shadow-sm border-0 h-100" style={{ borderRadius: '12px' }}>
             <div className="card-body p-3">
-              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#16a34a' }}>Completed</p>
+              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#0E7C86' }}>Completed</p>
               <h3 className="fw-bold text-success mb-0">{workQueue.filter(w => w.status_slug === 'completed').length}</h3>
               <p className="text-muted small mb-0">Finished</p>
             </div>

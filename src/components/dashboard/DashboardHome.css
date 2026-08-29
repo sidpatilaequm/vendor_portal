@@ -4,17 +4,17 @@
   --ink: #1B2A32;
   --ink-soft: #5B6B72;
   --line: #DEE4E6;
-  --pine: #0E5F4B;
-  --pine-soft: #E4F0EC;
-  --pine-deep: #083F32;
-  --amber: #8A6510;
-  --amber-soft: #F6EED9;
-  --blue: #1D4E89;
-  --blue-soft: #E3ECF6;
-  --red: #8C2B2B;
-  --red-soft: #F6E3E3;
-  --violet: #4A3B7A;
-  --violet-soft: #ECE8F6;
+  --pine: #293383;
+  --pine-soft: #EEF0FB;
+  --pine-deep: #0F172A;
+  --amber: #8B4B4D;
+  --amber-soft: #FBEEEE;
+  --blue: #4955B6;
+  --blue-soft: #ECEEFA;
+  --red: #C81017;
+  --red-soft: #FDECEB;
+  --violet: #5C63A8;
+  --violet-soft: #EEF1FA;
 }
 
 .supplier-portal-home {

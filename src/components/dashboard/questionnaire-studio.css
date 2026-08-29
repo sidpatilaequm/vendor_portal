@@ -12,15 +12,15 @@
   --ink-soft: #5c6e7e;
   --rule: #c6d3dd;
   --rule-soft: #dde5ec;
-  --blue: #10508c;
-  --blue-deep: #0b3a68;
-  --blue-wash: #e3eef9;
-  --stamp: #b03225;
-  --stamp-wash: #fae9e6;
-  --amber: #7d6413;
-  --amber-wash: #f7efd8;
-  --green: #1c6047;
-  --green-wash: #dfefe8;
+  --blue: #293383;
+  --blue-deep: #0f172a;
+  --blue-wash: #eef0fb;
+  --stamp: #c81017;
+  --stamp-wash: #fdeceb;
+  --amber: #8b4b4d;
+  --amber-wash: #fbeeee;
+  --green: #0e7c86;
+  --green-wash: #e3fbfc;
 
   --qs-body: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
   --qs-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;

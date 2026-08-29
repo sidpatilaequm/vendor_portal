@@ -25,7 +25,7 @@ const Reports = ({ onNavigate }) => {
       title: isEmployeeRole ? 'Vendor List' : 'Profile',
       description: isEmployeeRole ? 'View and manage vendor profiles' : 'View and manage all vendor details',
       iconClass: 'fas fa-users',
-      themeColor: '#10b981', // green
+      themeColor: '#0E7C86', // green
       bgColor: 'rgba(16, 185, 129, 0.1)',
       btnOutlineClass: 'btn-outline-emerald',
       isComingSoon: false,
@@ -59,7 +59,7 @@ const Reports = ({ onNavigate }) => {
         title: 'Indent',
         description: 'View and manage indents',
         iconClass: 'fas fa-file-alt',
-        themeColor: '#6366f1',
+        themeColor: '#4955B6',
         bgColor: 'rgba(99, 102, 241, 0.1)',
         btnOutlineClass: 'btn-outline-primary',
         isComingSoon: false,
@@ -70,7 +70,7 @@ const Reports = ({ onNavigate }) => {
         title: 'Request for Quotation',
         description: 'View active RFQs and invite bids',
         iconClass: 'fas fa-file-contract',
-        themeColor: '#f59e0b', // amber
+        themeColor: '#8B4B4D', // amber
         bgColor: 'rgba(245, 158, 11, 0.1)',
         btnOutlineClass: 'btn-outline-amber',
         isComingSoon: false,
@@ -93,7 +93,7 @@ const Reports = ({ onNavigate }) => {
       title: 'Purchase Orders',
       description: 'Track and analyze all purchase orders',
       iconClass: 'fas fa-shopping-cart',
-      themeColor: '#10b981', // green
+      themeColor: '#0E7C86', // green
       bgColor: 'rgba(16, 185, 129, 0.1)',
       btnOutlineClass: 'btn-outline-emerald',
       isComingSoon: false,
@@ -155,7 +155,7 @@ const Reports = ({ onNavigate }) => {
       title: 'Vendor Returns',
       description: 'Manage purchase returns and debit notes',
       iconClass: 'fas fa-undo',
-      themeColor: '#ef4444', // red
+      themeColor: '#C81017', // red
       bgColor: 'rgba(239, 68, 68, 0.1)',
       btnOutlineClass: 'btn-outline-pink',
       isComingSoon: true
@@ -228,7 +228,7 @@ const Reports = ({ onNavigate }) => {
               <div
                 className="p-5 text-center position-relative"
                 style={{
-                  background: 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)',
+                  background: 'linear-gradient(135deg, #293383 0%, #0F172A 100%)',
                   color: '#ffffff'
                 }}
               >
@@ -239,7 +239,7 @@ const Reports = ({ onNavigate }) => {
                 {/* Big Icon Container */}
                 <div
                   className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-4 bg-white bg-opacity-10 shadow-sm"
-                  style={{ width: '80px', height: '80px', color: '#10b981' }}
+                  style={{ width: '80px', height: '80px', color: '#0E7C86' }}
                 >
                   <i className={`${selectedComingSoon.iconClass} fs-2`}></i>
                 </div>
@@ -262,7 +262,7 @@ const Reports = ({ onNavigate }) => {
                     <div
                       className="progress-bar progress-bar-striped progress-bar-animated bg-success"
                       role="progressbar"
-                      style={{ width: '85%', backgroundColor: '#10b981' }}
+                      style={{ width: '85%', backgroundColor: '#0E7C86' }}
                       aria-valuenow="85"
                       aria-valuemin="0"
                       aria-valuemax="100"
@@ -288,7 +288,7 @@ const Reports = ({ onNavigate }) => {
                       <button
                         type="submit"
                         className="btn btn-success px-4 fw-bold shadow-sm"
-                        style={{ backgroundColor: '#064e3b', borderColor: '#064e3b', borderRadius: '8px', fontSize: '12px' }}
+                        style={{ backgroundColor: '#293383', borderColor: '#293383', borderRadius: '8px', fontSize: '12px' }}
                       >
                         Notify Me
                       </button>

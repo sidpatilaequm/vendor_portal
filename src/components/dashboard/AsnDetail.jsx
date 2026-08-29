@@ -196,7 +196,7 @@ const AsnDetail = ({ asnId, onBack }) => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div className="text-start">
           <div className="d-flex align-items-center gap-3">
-            <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#064e3b' }}>{asn.asn_number}</h4>
+            <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#293383' }}>{asn.asn_number}</h4>
             <span className={`badge bg-soft-${asn.status_badge} text-${asn.status_badge} rounded-pill px-3 py-2 text-uppercase fw-bold`} style={{ fontSize: '10px' }}>
               ● {asn.status}
             </span>

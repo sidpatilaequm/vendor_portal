@@ -16,14 +16,14 @@ const C = {
   ink: "#1B2A32",
   inkSoft: "#5B6B72",
   line: "#DEE4E6",
-  pine: "#0E5F4B",
-  pineSoft: "#E4F0EC",
-  blue: "#1D4E89",
-  blueSoft: "#E3ECF6",
-  red: "#8C2B2B",
-  redSoft: "#F6E3E3",
-  amber: "#8A6510",
-  amberSoft: "#F6EED9",
+  pine: "#293383",
+  pineSoft: "#EEF0FB",
+  blue: "#4955B6",
+  blueSoft: "#ECEEFA",
+  red: "#C81017",
+  redSoft: "#FDECEB",
+  amber: "#8B4B4D",
+  amberSoft: "#FBEEEE",
 };
 
 /* ------------------------------------------------------------------ *
@@ -96,7 +96,7 @@ function ExportButton({ onClick, label = "Export CSV" }) {
     <button
       onClick={onClick}
       className="btn btn-sm text-white shadow-sm px-4 fw-bold"
-      style={{ backgroundColor: '#0f766e', borderRadius: '6px', height: '31px' }}
+      style={{ backgroundColor: '#293383', borderRadius: '6px', height: '31px' }}
     >
       {label}
     </button>
@@ -199,10 +199,10 @@ function LedgerRow({ k, v, strong }) {
 
 function Pill({ tone, children }) {
   const style = {
-    green: { background: "#d1fae5", color: "#059669" },
-    amber: { background: "#fef3c7", color: "#d97706" },
-    blue: { background: "#dbeafe", color: "#2563eb" },
-    red: { background: "#fee2e2", color: "#dc2626" },
+    green: { background: "#E3FBFC", color: "#0E7C86" },
+    amber: { background: "#FBEEEE", color: "#8B4B4D" },
+    blue: { background: "#ECEEFA", color: "#293383" },
+    red: { background: "#FDECEB", color: "#C81017" },
   }[tone] || { background: "#f1f5f9", color: "#64748b" };
 
   return (
@@ -252,12 +252,12 @@ export default function CreditNotesReport({ bpNo = "BP-MARK-01", onBack }) {
   const kpis = [
     { label: "Return value (before GST)", value: inr(t.base), sub: `${t.count ?? 0} credit notes`, color: "#111827" },
     { label: "GST reversed", value: inr(t.gstReversed), sub: "@ 18% on return value", color: "#3b82f6" },
-    { label: "Total adjustment", value: inr(t.totalAdjustment), sub: "Set off against payables", color: "#dc2626" },
+    { label: "Total adjustment", value: inr(t.totalAdjustment), sub: "Set off against payables", color: "#C81017" },
     {
       label: "Pending set-off",
       value: inr(t.pendingSetoff),
       sub: `${t.pendingCount ?? 0} awaiting adjustment`,
-      color: "#d97706",
+      color: "#8B4B4D",
     },
   ];
 
@@ -362,7 +362,7 @@ export default function CreditNotesReport({ bpNo = "BP-MARK-01", onBack }) {
                           {inr(r.gstReversed)}
                           <span className="d-block text-muted" style={{ fontSize: '10px' }}>@ {r.gstPct}%</span>
                         </td>
-                        <td className="text-end font-monospace align-top fw-bold" style={{ fontSize: '13px', paddingTop: '16px', color: '#dc2626' }}>
+                        <td className="text-end font-monospace align-top fw-bold" style={{ fontSize: '13px', paddingTop: '16px', color: '#C81017' }}>
                           − {inr(r.totalAdjustment)}
                         </td>
                         
@@ -405,7 +405,7 @@ export default function CreditNotesReport({ bpNo = "BP-MARK-01", onBack }) {
                     <td colSpan={4} className="py-3 ps-4 fw-bold text-dark">Total ({t.count} credit notes)</td>
                     <td className="text-end font-monospace fw-bold">{inr(t.base)}</td>
                     <td className="text-end font-monospace fw-bold">{inr(t.gstReversed)}</td>
-                    <td className="text-end font-monospace fw-bold" style={{ color: '#dc2626' }}>
+                    <td className="text-end font-monospace fw-bold" style={{ color: '#C81017' }}>
                       − {inr(t.totalAdjustment)}
                     </td>
                     <td colSpan={2} />

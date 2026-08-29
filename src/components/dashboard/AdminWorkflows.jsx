@@ -1493,7 +1493,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
             <div className="row justify-content-center">
               <div className="col-lg-6 col-md-8 col-12">
                 <div className="card border-0 shadow-lg p-5 text-center bg-white" style={{ borderRadius: '24px' }}>
-                  <div className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-4 bg-success bg-opacity-10" style={{ width: '80px', height: '80px', color: '#10b981' }}>
+                  <div className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-4 bg-success bg-opacity-10" style={{ width: '80px', height: '80px', color: '#0E7C86' }}>
                     <i className="fas fa-envelope-open-text fs-2"></i>
                   </div>
                   <h4 className="fw-bold mb-2">Process Token Approval</h4>
@@ -2249,7 +2249,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                     <label className="form-label fw-bold text-muted small">Approval / Rejection Comment *</label>
                     <textarea className="form-control mb-3" rows="2" placeholder="Provide feedback notes..." value={actionComment} onChange={(e) => setActionComment(e.target.value)} required />
                     <div className="d-flex gap-2">
-                      <button onClick={handleApproveClick} disabled={decidingCategory} className="btn btn-success flex-grow-1 py-2 fw-bold" style={{ backgroundColor: '#064e3b', borderColor: '#064e3b' }}>
+                      <button onClick={handleApproveClick} disabled={decidingCategory} className="btn btn-success flex-grow-1 py-2 fw-bold" style={{ backgroundColor: '#293383', borderColor: '#293383' }}>
                         <i className="fas fa-check-circle me-1"></i> {decidingCategory ? 'Saving…' : 'Approve Stage'}
                       </button>
                       <button onClick={() => processRequestAction('reject')} className="btn btn-danger flex-grow-1 py-2 fw-bold">

@@ -58,10 +58,10 @@
   height: 100%;
 }
 
-.vgs-card.st-ALLOWED::before { background-color: #10b981; }
-.vgs-card.st-HELD::before { background-color: #f59e0b; }
-.vgs-card.st-REJECTED::before { background-color: #ef4444; }
-.vgs-card.st-IN_TRANSIT::before { background-color: #6366f1; }
+.vgs-card.st-ALLOWED::before { background-color: #5CE1E6; }
+.vgs-card.st-HELD::before { background-color: #BD7072; }
+.vgs-card.st-REJECTED::before { background-color: #ED1C23; }
+.vgs-card.st-IN_TRANSIT::before { background-color: #4955B6; }
 
 .vgs-card-top {
   display: flex;
@@ -87,10 +87,10 @@
   letter-spacing: 0.5px;
 }
 
-.vgs-badge.st-ALLOWED { background: #d1fae5; color: #047857; }
-.vgs-badge.st-HELD { background: #fef3c7; color: #b45309; }
-.vgs-badge.st-REJECTED { background: #fee2e2; color: #b91c1c; }
-.vgs-badge.st-IN_TRANSIT { background: #e0e7ff; color: #4338ca; }
+.vgs-badge.st-ALLOWED { background: #E3FBFC; color: #0E7C86; }
+.vgs-badge.st-HELD { background: #FBEEEE; color: #8B4B4D; }
+.vgs-badge.st-REJECTED { background: #FDECEB; color: #C81017; }
+.vgs-badge.st-IN_TRANSIT { background: #ECEEFA; color: #293383; }
 
 .vgs-details {
   display: grid;
@@ -200,15 +200,15 @@
 }
 
 .vgs-alert.HELD {
-  background: #fffbeb;
-  border: 1px solid #fef3c7;
-  color: #92400e;
+  background: #FBEEEE;
+  border: 1px solid #E3B7B9;
+  color: #8B4B4D;
 }
 
 .vgs-alert.REJECTED {
-  background: #fef2f2;
-  border: 1px solid #fee2e2;
-  color: #991b1b;
+  background: #FDECEB;
+  border: 1px solid #F3C2C0;
+  color: #C81017;
 }
 
 .vgs-alert i {
@@ -248,7 +248,7 @@
 
 .vgs-list li::before {
   content: '•';
-  color: #ef4444;
+  color: #C81017;
   font-weight: bold;
 }
 
@@ -277,8 +277,8 @@
 
 .vgs-line-rmk {
   font-size: 13px;
-  color: #b91c1c;
-  background: #fee2e2;
+  color: #C81017;
+  background: #FDECEB;
   padding: 8px 12px;
   border-radius: 6px;
   font-weight: 500;

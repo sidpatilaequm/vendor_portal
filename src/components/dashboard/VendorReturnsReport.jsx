@@ -16,14 +16,14 @@ const C = {
   ink: "#1B2A32",
   inkSoft: "#5B6B72",
   line: "#DEE4E6",
-  pine: "#0E5F4B",
-  pineSoft: "#E4F0EC",
-  blue: "#1D4E89",
-  blueSoft: "#E3ECF6",
-  red: "#8C2B2B",
-  redSoft: "#F6E3E3",
-  amber: "#8A6510",
-  amberSoft: "#F6EED9",
+  pine: "#293383",
+  pineSoft: "#EEF0FB",
+  blue: "#4955B6",
+  blueSoft: "#ECEEFA",
+  red: "#C81017",
+  redSoft: "#FDECEB",
+  amber: "#8B4B4D",
+  amberSoft: "#FBEEEE",
 };
 
 /* ------------------------------------------------------------------ *
@@ -96,7 +96,7 @@ function ExportButton({ onClick, label = "Export CSV" }) {
     <button
       onClick={onClick}
       className="btn btn-sm text-white shadow-sm px-4 fw-bold"
-      style={{ backgroundColor: '#0f766e', borderRadius: '6px', height: '31px' }}
+      style={{ backgroundColor: '#293383', borderRadius: '6px', height: '31px' }}
     >
       {label}
     </button>
@@ -199,10 +199,10 @@ function LedgerRow({ k, v, strong }) {
 
 function Pill({ tone, children }) {
   const style = {
-    green: { background: "#d1fae5", color: "#059669" },
-    amber: { background: "#fef3c7", color: "#d97706" },
-    blue: { background: "#dbeafe", color: "#2563eb" },
-    red: { background: "#fee2e2", color: "#dc2626" },
+    green: { background: "#E3FBFC", color: "#0E7C86" },
+    amber: { background: "#FBEEEE", color: "#8B4B4D" },
+    blue: { background: "#ECEEFA", color: "#293383" },
+    red: { background: "#FDECEB", color: "#C81017" },
   }[tone] || { background: "#f1f5f9", color: "#64748b" };
 
   return (
@@ -258,9 +258,9 @@ export default function VendorReturnsReport({ bpNo = "BP-MARK-01", onBack }) {
 
   const kpis = [
     { label: "Return notes", value: String(t.count ?? 0), sub: "line items returned this period", color: "#111827" },
-    { label: "Avg return rate", value: `${t.avgReturnRate ?? 0}%`, sub: "of supplied qty, per line", color: "#ef4444" },
+    { label: "Avg return rate", value: `${t.avgReturnRate ?? 0}%`, sub: "of supplied qty, per line", color: "#C81017" },
     { label: "Awaiting closure", value: String(t.openLines ?? 0), sub: "replacement or inspection", color: "#3b82f6" },
-    { label: "Credit notes issued", value: String(t.creditNoteLines ?? 0), sub: "settled by value", color: "#10b981" },
+    { label: "Credit notes issued", value: String(t.creditNoteLines ?? 0), sub: "settled by value", color: "#0E7C86" },
   ];
 
   const exportCsv = () =>
@@ -363,7 +363,7 @@ export default function VendorReturnsReport({ bpNo = "BP-MARK-01", onBack }) {
                           {qty(r.qtySupplied)}
                           <span className="d-block text-muted" style={{ fontSize: '10px' }}>{r.uom}</span>
                         </td>
-                        <td className="text-end font-monospace align-top fw-bold" style={{ fontSize: '13px', paddingTop: '16px', color: '#dc2626' }}>
+                        <td className="text-end font-monospace align-top fw-bold" style={{ fontSize: '13px', paddingTop: '16px', color: '#C81017' }}>
                           {qty(r.qtyReturned)}
                           <span className="d-block text-muted fw-normal" style={{ fontSize: '10px' }}>{r.uom}</span>
                         </td>
@@ -371,7 +371,7 @@ export default function VendorReturnsReport({ bpNo = "BP-MARK-01", onBack }) {
                         <td className="align-top" style={{ paddingTop: '16px' }}>
                           <span className="font-monospace text-dark fw-medium" style={{ fontSize: '13px' }}>{rate.toFixed(1)}%</span>
                           <div className="progress mt-1" style={{ height: '5px', width: '80px', backgroundColor: '#e2e8f0' }}>
-                            <div className="progress-bar" style={{ width: `${Math.min(100, rate)}%`, backgroundColor: '#ef4444' }} />
+                            <div className="progress-bar" style={{ width: `${Math.min(100, rate)}%`, backgroundColor: '#C81017' }} />
                           </div>
                         </td>
                         
@@ -417,7 +417,7 @@ export default function VendorReturnsReport({ bpNo = "BP-MARK-01", onBack }) {
                 <tfoot>
                   <tr className="bg-light border-top border-2 border-dark">
                     <td colSpan={6} className="py-3 ps-4 fw-bold text-dark">Total ({t.count} return lines)</td>
-                    <td className="text-end font-monospace fw-bold" style={{ color: '#dc2626' }}>
+                    <td className="text-end font-monospace fw-bold" style={{ color: '#C81017' }}>
                       {qty(t.totalQtyReturned)}
                       <span className="d-block text-muted fw-normal" style={{ fontSize: '10px' }}>mixed UOM</span>
                     </td>

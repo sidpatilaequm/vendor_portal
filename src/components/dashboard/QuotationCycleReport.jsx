@@ -245,7 +245,7 @@ export default function QuotationCycleReport({ onBack }) {
           <button
             onClick={openPrSelection}
             className="btn btn-sm text-white fw-medium shadow-sm d-flex align-items-center gap-2"
-            style={{ backgroundColor: '#059669' }}
+            style={{ backgroundColor: '#0E7C86' }}
           >
             <i className="fas fa-file-contract"></i>
             Create from PR

@@ -226,7 +226,7 @@ const ASN = ({ onBack }) => {
       {/* Header Section */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div className="text-start">
-          <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#064e3b' }}>Advance Shipment Notices</h4>
+          <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#293383' }}>Advance Shipment Notices</h4>
           <p className="text-muted mb-0" style={{ fontSize: '13px' }}>Create and track all despatches against Purchase Orders</p>
         </div>
         <div className="d-flex gap-2">
@@ -302,7 +302,7 @@ const ASN = ({ onBack }) => {
         <div className="col-md col-6">
           <div className="card shadow-sm border-0 h-100" style={{ borderRadius: '12px' }}>
             <div className="card-body p-3">
-              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#d97706' }}>Draft</p>
+              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#8B4B4D' }}>Draft</p>
               <h3 className="fw-bold text-warning mb-0">{asns.filter(a => a.status_slug === 'draft').length}</h3>
               <p className="text-muted small mb-0">Not yet submitted</p>
             </div>
@@ -311,7 +311,7 @@ const ASN = ({ onBack }) => {
         <div className="col-md col-6">
           <div className="card shadow-sm border-0 h-100" style={{ borderRadius: '12px' }}>
             <div className="card-body p-3">
-              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#0284c7' }}>In Transit</p>
+              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#293383' }}>In Transit</p>
               <h3 className="fw-bold text-info mb-0">{asns.filter(a => a.status_slug === 'in-transit').length}</h3>
               <p className="text-muted small mb-0">Goods on the way</p>
             </div>
@@ -320,7 +320,7 @@ const ASN = ({ onBack }) => {
         <div className="col-md col-6">
           <div className="card shadow-sm border-0 h-100" style={{ borderRadius: '12px' }}>
             <div className="card-body p-3">
-              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#16a34a' }}>Delivered</p>
+              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#0E7C86' }}>Delivered</p>
               <h3 className="fw-bold text-success mb-0">{asns.filter(a => a.status_slug === 'delivered').length}</h3>
               <p className="text-muted small mb-0">GR posted</p>
             </div>

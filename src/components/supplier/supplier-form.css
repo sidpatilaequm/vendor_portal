@@ -4,15 +4,15 @@
   --ink: #1b2a32;
   --ink-soft: #5b6b72;
   --line: #dee4e6;
-  --pine: #0e5f4b;
-  --pine-soft: #e4f0ec;
-  --pine-deep: #083f32;
-  --amber: #8a6510;
-  --amber-soft: #f6eed9;
-  --blue: #1d4e89;
-  --blue-soft: #e3ecf6;
-  --red: #8c2b2b;
-  --red-soft: #f6e3e3;
+  --pine: #293383;
+  --pine-soft: #eef0fb;
+  --pine-deep: #0f172a;
+  --amber: #8b4b4d;
+  --amber-soft: #fbeeee;
+  --blue: #4955b6;
+  --blue-soft: #eceefa;
+  --red: #c81017;
+  --red-soft: #fdeceb;
 
   background: var(--paper);
   color: var(--ink);
@@ -96,7 +96,7 @@
   align-items: center;
   gap: 10px;
   background: var(--pine-soft);
-  border: 1px solid #c6dcd4;
+  border: 1px solid #c9cef0;
   border-radius: 8px;
   padding: 5px 10px;
 }
@@ -337,7 +337,7 @@
   margin-bottom: 12px;
 }
 .supplier-page .doc.read {
-  border-color: #bfd8cf;
+  border-color: #a3dde1;
   background: #fbfdfc;
 }
 .supplier-page .doc.reading {

@@ -426,7 +426,7 @@ const QuotationDetail = ({ qtnId, onBack, qtnDataFromList }) => {
                     {(displayStatus === 'SUBMITTED' || displayStatus === 'PENDING') && (
                       <button 
                         className="btn btn-success px-4 fw-bold text-white" 
-                        style={{ borderRadius: '6px', backgroundColor: '#10b981', borderColor: '#10b981' }}
+                        style={{ borderRadius: '6px', backgroundColor: '#0E7C86', borderColor: '#0E7C86' }}
                         onClick={() => setShowAwardModal(true)}
                       >
                         <i className="fas fa-trophy me-1"></i> Award Quotation
@@ -486,7 +486,7 @@ const QuotationDetail = ({ qtnId, onBack, qtnDataFromList }) => {
             <div className="list-group-item border border-success border-opacity-50 rounded p-3 d-flex align-items-center bg-success bg-opacity-5 text-start">
               <div className="fw-bold text-success me-4" style={{ fontSize: '14px' }}>v3</div>
               <div className="flex-grow-1">
-                <h6 className="fw-bold mb-1" style={{ fontSize: '13px', color: '#15803d' }}>10 Apr 2026 · Rajiv Kumar</h6>
+                <h6 className="fw-bold mb-1" style={{ fontSize: '13px', color: '#0E7C86' }}>10 Apr 2026 · Rajiv Kumar</h6>
                 <p className="text-muted mb-0 italic" style={{ fontSize: '12px' }}>Final price confirmed by management. Submitted.</p>
               </div>
               <span className="badge bg-warning text-dark border border-warning border-opacity-25 px-3 py-1 rounded-pill fw-bold"><i className="fas fa-star me-1"></i> Awarded</span>
@@ -640,7 +640,7 @@ const QuotationDetail = ({ qtnId, onBack, qtnDataFromList }) => {
                 <button
                   type="submit"
                   className="btn btn-success px-4 text-white"
-                  style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+                  style={{ backgroundColor: '#0E7C86', borderColor: '#0E7C86' }}
                   disabled={awardLoading}
                 >
                   {awardLoading ? 'Awarding...' : 'Confirm Award'}

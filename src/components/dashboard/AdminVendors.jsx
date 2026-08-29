@@ -456,7 +456,7 @@ const AdminVendors = ({ onBack }) => {
               <button 
                 className="btn btn-success px-4 fw-bold shadow-sm" 
                 onClick={() => handleVerifyKyc('APPROVED')}
-                style={{ backgroundColor: '#064e3b', borderColor: '#064e3b', borderRadius: '8px', fontSize: '12px' }}
+                style={{ backgroundColor: '#293383', borderColor: '#293383', borderRadius: '8px', fontSize: '12px' }}
               >
                 Approve & Activate
               </button>

@@ -33,8 +33,15 @@ export const AuthProvider = ({ children }) => {
   // in one place so a new sign-in path can't drift from RouteGuards'/the "*" fallback's own
   // categorization in App.jsx.
   const applySession = (data) => {
+    const vId = data.permissions?.vendorId || data.vendorId || data.vendor_id || data.companyId || data.company_id || data.userId || data.id;
+
     const userData = {
       ...data,
+      id: data.id || data.userId,
+      vendorId: vId,
+      vendor_id: vId,
+      companyId: vId,
+      company_id: vId,
       role: data.role || data.authName || 'EMPLOYEE'
     };
 

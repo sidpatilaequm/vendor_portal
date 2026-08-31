@@ -300,7 +300,6 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
     try {
       const asnData = {
         po_id: poDetails.poNumber,
-        vendor_bpno: 'BP-MARK-01',
         shipment_details: {
           invoice_number: formData.invoiceNumber,
           invoice_date: formData.invoiceDate,
@@ -355,8 +354,14 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
 
       const token = localStorage.getItem('auth_token');
       // The Spring Boot backend expects X-User-Id to be an integer
-      const storedUserId = localStorage.getItem('user_id');
-      const userId = storedUserId && !isNaN(storedUserId) ? parseInt(storedUserId, 10) : 1; 
+      const userDataStr = localStorage.getItem('user_data');
+      let userId = 1;
+      if (userDataStr) {
+        try {
+          const userData = JSON.parse(userDataStr);
+          userId = userData.id || userData.userId || 1;
+        } catch(e) {}
+      }
       
       const res = await axios.post('/api/vendor/asns', submitData, {
         headers: {

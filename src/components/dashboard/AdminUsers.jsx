@@ -2,91 +2,85 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Button from '../common/Button';
 
+// Matches backend_java's UserType enum exactly (enums/UserType.java) — this list had drifted
+// before (offered "ADMIN"/"PROCUREMENT"/"QUALITY_AUDITOR", none of which are real values, so
+// picking any of them silently created a plain EMPLOYEE account instead). SUPER_ADMIN is
+// deliberately not offered here — it's a separate table/entity backend-side, assigning that
+// UserType to a UserDetail row doesn't create a real super admin.
+const ROLES = [
+  { value: 'ADMINISTRATOR', label: 'Administrator' },
+  { value: 'PROCUREMENT_MANAGER', label: 'Procurement Manager' },
+  { value: 'EMPLOYEE', label: 'Employee' },
+  { value: 'PURCHASE_DEPT', label: 'Purchase Department' },
+  { value: 'APPROVER', label: 'Approver' },
+];
+
+const roleLabel = (value) => ROLES.find((r) => r.value === value)?.label || value;
+
+const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}` });
+
+const errorMessage = (err, fallback) =>
+  err.response?.data?.statusMsg || err.response?.data?.message || fallback;
+
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [listError, setListError] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState(null);
 
-  // Form State
+  // Add-user form state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [role, setRole] = useState('ADMIN');
+  const [role, setRole] = useState('EMPLOYEE');
   const [departments, setDepartments] = useState([]);
   const [deptCode, setDeptCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Fallback mock users
-  const mockUsers = [
-    {
-      userId: 101,
-      email: 'admin@aequm.com',
-      firstName: 'Aequm',
-      lastName: 'Administrator',
-      phoneNumber: '+91 99999 00001',
-      role: 'SUPER_ADMIN'
-    },
-    {
-      userId: 102,
-      email: 'buyer1@aequm.com',
-      firstName: 'Karan',
-      lastName: 'Prasad',
-      phoneNumber: '+91 88888 11112',
-      role: 'PROCUREMENT'
-    }
-  ];
+  // Edit-user modal state — also doubles as "reset password" (leave the password field blank to
+  // keep the current one), since both go through the same PUT /api/users/{userId} the backend
+  // already supports.
+  const [editingUser, setEditingUser] = useState(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editAlert, setEditAlert] = useState(null);
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [editShowPassword, setEditShowPassword] = useState(false);
 
   const fetchUsers = () => {
     setLoading(true);
-    const token = localStorage.getItem('auth_token');
-    axios.get('/api/users/list', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    .then(res => {
-      let fetchedUsers = [];
-      if (res.data && Array.isArray(res.data)) {
-        fetchedUsers = res.data;
-      } else if (res.data && res.data.data && Array.isArray(res.data.data.users)) {
-        fetchedUsers = res.data.data.users;
-      } else if (res.data && Array.isArray(res.data.data)) {
-        fetchedUsers = res.data.data;
-      } else {
-        fetchedUsers = mockUsers;
-      }
-      
-      // Filter to only show users with the EMPLOYEE role as requested
-      const employeeUsers = fetchedUsers.filter(user => user.role === 'EMPLOYEE');
-      setUsers(employeeUsers);
-    })
-    .catch(err => {
-      console.error('Failed to load users, using mock data.', err);
-      setUsers(mockUsers);
-    })
-    .finally(() => {
-      setLoading(false);
-    });
+    setListError('');
+    axios.get('/api/users/list', { headers: authHeaders() })
+      .then((res) => {
+        const fetched = res.data?.data?.users || [];
+        setUsers(fetched);
+      })
+      .catch((err) => {
+        console.error('Failed to load users.', err);
+        setUsers([]);
+        setListError(errorMessage(err, 'Could not load users. Try again.'));
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     fetchUsers();
-    
-    // Fetch departments for employee creation
-    const token = localStorage.getItem('auth_token');
-    axios.get('/api/departments', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    .then(res => {
-      const depts = res.data.departments || res.data || [];
-      setDepartments(depts);
-      if (depts && depts.length > 0) {
-        setDeptCode(depts[0].deptCode);
-      }
-    })
-    .catch(err => console.warn('Failed to fetch departments', err));
+
+    axios.get('/api/departments', { headers: authHeaders() })
+      .then((res) => {
+        const depts = res.data.departments || res.data || [];
+        setDepartments(depts);
+        if (depts && depts.length > 0) {
+          setDeptCode(depts[0].deptCode);
+        }
+      })
+      .catch((err) => console.warn('Failed to fetch departments', err));
   }, []);
 
   const handleAddSubmit = (e) => {
@@ -101,52 +95,79 @@ const AdminUsers = () => {
       lastName,
       phoneNumber,
       role,
-      deptCode: (role === 'EMPLOYEE' || role === 'PURCHASE_DEPT') ? deptCode : undefined
+      deptCode: (role === 'EMPLOYEE' || role === 'PURCHASE_DEPT') ? deptCode : undefined,
     };
 
-    const token = localStorage.getItem('auth_token');
     axios.post('/api/users/create', payload, {
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
     })
-    .then(res => {
-      setAlert({ type: 'success', message: 'User added successfully!' });
-      // Reset form
-      setEmail(''); setPassword(''); setFirstName(''); setLastName(''); setPhoneNumber(''); setRole('ADMIN');
-      fetchUsers();
-      setTimeout(() => setShowAddModal(false), 1000);
-    })
-    .catch(err => {
-      console.error('Create user error:', err);
-      // Simulate local creation
-      const newUser = { userId: Date.now(), ...payload };
-      setUsers([...users, newUser]);
-      setAlert({ type: 'success', message: 'User simulated and added locally.' });
-      setTimeout(() => setShowAddModal(false), 1000);
-    })
-    .finally(() => {
-      setSaving(false);
-    });
+      .then(() => {
+        setAlert({ type: 'success', message: 'User created — a welcome email with their temporary password was sent.' });
+        setEmail(''); setPassword(''); setFirstName(''); setLastName(''); setPhoneNumber(''); setRole('EMPLOYEE');
+        fetchUsers();
+        setTimeout(() => setShowAddModal(false), 1200);
+      })
+      .catch((err) => {
+        console.error('Create user error:', err);
+        setAlert({ type: 'danger', message: errorMessage(err, 'Could not create the user. Try again.') });
+      })
+      .finally(() => setSaving(false));
   };
 
-  const handleDeactivate = (userId) => {
-    if (window.confirm("Are you sure you want to deactivate this administrator?")) {
-      const token = localStorage.getItem('auth_token');
-      axios.delete(`/api/users/${userId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+  const handleDeactivate = (user) => {
+    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
+    if (!window.confirm(`Deactivate ${name} (${user.email})? They will no longer be able to sign in, by password or Microsoft.`)) {
+      return;
+    }
+    axios.delete(`/api/users/${user.userId}`, { headers: authHeaders() })
       .then(() => {
-        alert("User deactivated.");
+        setListError('');
         fetchUsers();
       })
-      .catch(err => {
+      .catch((err) => {
         console.error('Deactivate user error:', err);
-        // Simulate local updates
-        setUsers(users.filter(u => u.userId !== userId));
+        setListError(errorMessage(err, `Could not deactivate ${name}.`));
       });
+  };
+
+  const openEdit = (user) => {
+    setEditingUser(user);
+    setEditFirstName(user.firstName || '');
+    setEditLastName(user.lastName || '');
+    setEditPhone(user.phoneNumber || '');
+    setEditPassword('');
+    setEditShowPassword(false);
+    setEditAlert(null);
+  };
+
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setEditSaving(true);
+    setEditAlert(null);
+
+    const payload = {
+      firstName: editFirstName,
+      lastName: editLastName,
+      phoneNumber: editPhone,
+    };
+    if (editPassword) {
+      payload.password = editPassword;
     }
+
+    axios.put(`/api/users/${editingUser.userId}`, payload, {
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+    })
+      .then(() => {
+        setEditAlert({ type: 'success', message: editPassword ? 'Saved — the user was emailed their new password.' : 'Saved.' });
+        fetchUsers();
+        setTimeout(() => setEditingUser(null), 1000);
+      })
+      .catch((err) => {
+        console.error('Update user error:', err);
+        setEditAlert({ type: 'danger', message: errorMessage(err, 'Could not save changes.') });
+      })
+      .finally(() => setEditSaving(false));
   };
 
   return (
@@ -164,6 +185,13 @@ const AdminUsers = () => {
         </div>
       </div>
 
+      {listError && (
+        <div className="alert alert-danger py-2 small" role="alert">
+          {listError}
+          <button className="btn btn-link btn-sm p-0 ms-2" onClick={fetchUsers}>Try again</button>
+        </div>
+      )}
+
       {/* Users Table */}
       <div className="card border-0 shadow-sm">
         <div className="card-body p-0">
@@ -175,13 +203,14 @@ const AdminUsers = () => {
                   <th scope="col">Email Address</th>
                   <th scope="col">Phone Number</th>
                   <th scope="col">Access Role</th>
-                  <th scope="col" className="text-end pe-4">Action</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="text-end pe-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="5" className="text-center py-5 text-muted">
+                    <td colSpan="6" className="text-center py-5 text-muted">
                       <div className="spinner-border spinner-border-sm text-success me-2" role="status"></div>
                       Loading users list...
                     </td>
@@ -195,15 +224,30 @@ const AdminUsers = () => {
                       <td><span className="small">{user.email}</span></td>
                       <td><span className="small text-muted">{user.phoneNumber || '-'}</span></td>
                       <td>
-                        <span className={`badge ${user.role === 'SUPER_ADMIN' ? 'bg-danger-subtle text-danger' : 'bg-primary-subtle text-primary'} px-2.5 py-1 rounded fw-semibold`} style={{ fontSize: '11px' }}>
-                          {user.role}
+                        <span className={`badge ${user.role === 'ADMINISTRATOR' ? 'bg-danger-subtle text-danger' : 'bg-primary-subtle text-primary'} px-2.5 py-1 rounded fw-semibold`} style={{ fontSize: '11px' }}>
+                          {roleLabel(user.role)}
                         </span>
                       </td>
+                      <td>
+                        {user.isActive === false ? (
+                          <span className="badge bg-secondary-subtle text-secondary px-2.5 py-1 rounded fw-semibold" style={{ fontSize: '11px' }}>Deactivated</span>
+                        ) : (
+                          <span className="badge bg-success-subtle text-success px-2.5 py-1 rounded fw-semibold" style={{ fontSize: '11px' }}>Active</span>
+                        )}
+                      </td>
                       <td className="text-end pe-4">
-                        <button 
+                        <button
+                          className="btn btn-light btn-sm border px-2 py-1 me-1"
+                          onClick={() => openEdit(user)}
+                          title="Edit / reset password"
+                        >
+                          <i className="fas fa-pen text-primary"></i>
+                        </button>
+                        <button
                           className="btn btn-light btn-sm border px-2 py-1"
-                          onClick={() => handleDeactivate(user.userId)}
-                          title="Deactivate User"
+                          onClick={() => handleDeactivate(user)}
+                          title="Deactivate user"
+                          disabled={user.isActive === false}
                         >
                           <i className="fas fa-user-minus text-danger"></i>
                         </button>
@@ -212,8 +256,8 @@ const AdminUsers = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="text-center py-5 text-muted">
-                      No administrative users found.
+                    <td colSpan="6" className="text-center py-5 text-muted">
+                      No users found.
                     </td>
                   </tr>
                 )}
@@ -256,11 +300,12 @@ const AdminUsers = () => {
                   <div className="col-12">
                     <label className="form-label fw-bold text-muted small">Temporary Password *</label>
                     <div className="input-group">
-                      <input type={showPassword ? "text" : "password"} className="form-control border-success-subtle" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                      <input type={showPassword ? 'text' : 'password'} className="form-control border-success-subtle" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
                       <button type="button" className="btn btn-outline-success border-success-subtle" onClick={() => setShowPassword(!showPassword)}>
                         <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                       </button>
                     </div>
+                    <div className="form-text">At least 8 characters. Emailed to the user once the account is created.</div>
                   </div>
                   <div className="col-sm-6">
                     <label className="form-label fw-bold text-muted small">Phone Number</label>
@@ -272,26 +317,23 @@ const AdminUsers = () => {
                   <div className="col-sm-6">
                     <label className="form-label fw-bold text-muted small">Role Assignment *</label>
                     <select className="form-select border-success-subtle" value={role} onChange={(e) => setRole(e.target.value)}>
-                      <option value="ADMIN">Administrator</option>
-                      <option value="SUPER_ADMIN">Super Admin</option>
-                      <option value="PROCUREMENT">Procurement Agent</option>
-                      <option value="QUALITY_AUDITOR">Quality Auditor</option>
-                      <option value="EMPLOYEE">Employee (Requester)</option>
-                      <option value="PURCHASE_DEPT">Purchase Department</option>
+                      {ROLES.map((r) => (
+                        <option key={r.value} value={r.value}>{r.label}</option>
+                      ))}
                     </select>
                   </div>
-                  
+
                   {(role === 'EMPLOYEE' || role === 'PURCHASE_DEPT') && (
                     <div className="col-sm-6">
                       <label className="form-label fw-bold text-muted small">Department *</label>
-                      <select 
-                        className="form-select border-success-subtle" 
-                        value={deptCode} 
+                      <select
+                        className="form-select border-success-subtle"
+                        value={deptCode}
                         onChange={(e) => setDeptCode(e.target.value)}
                         required
                       >
                         {departments.length === 0 && <option value="">Loading...</option>}
-                        {departments.map(d => (
+                        {departments.map((d) => (
                           <option key={d.deptCode} value={d.deptCode}>
                             {d.deptName} ({d.deptCode})
                           </option>
@@ -305,6 +347,63 @@ const AdminUsers = () => {
                 <button type="button" className="btn btn-outline-secondary px-3 py-1 fw-semibold" onClick={() => setShowAddModal(false)} style={{ borderRadius: '8px', fontSize: '12px' }}>Cancel</button>
                 <Button type="submit" loading={saving} className="btn-success px-4" style={{ backgroundColor: '#293383', borderColor: '#293383', fontSize: '12px' }}>
                   Save User
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit / reset-password modal */}
+      {editingUser && (
+        <div className="custom-modal-overlay">
+          <div className="custom-modal-content" style={{ maxWidth: '450px' }}>
+            <div className="custom-modal-header bg-primary text-white">
+              <h5 className="custom-modal-title fw-bold text-white">
+                <i className="fas fa-pen me-2"></i>Edit {editingUser.firstName} {editingUser.lastName}
+              </h5>
+              <button className="custom-modal-close-btn text-white" onClick={() => setEditingUser(null)}>&times;</button>
+            </div>
+            <form onSubmit={handleEditSubmit}>
+              <div className="custom-modal-body p-4 text-start">
+                {editAlert && (
+                  <div className={`alert alert-${editAlert.type} py-1.5 mb-3 small`} role="alert">
+                    {editAlert.message}
+                  </div>
+                )}
+                <div className="row g-3">
+                  <div className="col-12">
+                    <label className="form-label fw-bold text-muted small">Email</label>
+                    <input type="email" className="form-control" value={editingUser.email} disabled />
+                  </div>
+                  <div className="col-sm-6">
+                    <label className="form-label fw-bold text-muted small">First Name</label>
+                    <input type="text" className="form-control" value={editFirstName} onChange={(e) => setEditFirstName(e.target.value)} />
+                  </div>
+                  <div className="col-sm-6">
+                    <label className="form-label fw-bold text-muted small">Last Name</label>
+                    <input type="text" className="form-control" value={editLastName} onChange={(e) => setEditLastName(e.target.value)} />
+                  </div>
+                  <div className="col-12">
+                    <label className="form-label fw-bold text-muted small">Phone Number</label>
+                    <input type="tel" maxLength="10" pattern="[0-9]{10}" className="form-control" value={editPhone} onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, ''))} />
+                  </div>
+                  <div className="col-12">
+                    <label className="form-label fw-bold text-muted small">Reset password</label>
+                    <div className="input-group">
+                      <input type={editShowPassword ? 'text' : 'password'} className="form-control" minLength={8} placeholder="Leave blank to keep the current password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} />
+                      <button type="button" className="btn btn-outline-secondary" onClick={() => setEditShowPassword(!editShowPassword)}>
+                        <i className={`fas ${editShowPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                      </button>
+                    </div>
+                    <div className="form-text">Only fill this in to set a new password — the user will be emailed it.</div>
+                  </div>
+                </div>
+              </div>
+              <div className="custom-modal-footer gap-2">
+                <button type="button" className="btn btn-outline-secondary px-3 py-1 fw-semibold" onClick={() => setEditingUser(null)} style={{ borderRadius: '8px', fontSize: '12px' }}>Cancel</button>
+                <Button type="submit" loading={editSaving} className="btn-primary px-4" style={{ backgroundColor: '#293383', borderColor: '#293383', fontSize: '12px' }}>
+                  Save Changes
                 </Button>
               </div>
             </form>

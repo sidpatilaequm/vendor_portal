@@ -199,7 +199,7 @@ const PurchaseOrder = ({ onBack }) => {
   };
 
   return (
-    <div className="fade-in-slide container-fluid py-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Inter", sans-serif' }}>
+    <div className="fade-in-slide container-fluid py-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
       {/* Header & Controls */}
       <div className="d-flex flex-wrap justify-content-between align-items-end mb-4">
         <div>

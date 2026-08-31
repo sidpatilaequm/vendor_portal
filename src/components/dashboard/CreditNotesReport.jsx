@@ -273,7 +273,7 @@ export default function CreditNotesReport({ bpNo = "BP-MARK-01", onBack }) {
     );
 
   return (
-    <div className="fade-in-slide container-fluid py-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Inter", sans-serif' }}>
+    <div className="fade-in-slide container-fluid py-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
       <div className="d-flex flex-wrap justify-content-between align-items-end mb-4">
         <div>
           <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>

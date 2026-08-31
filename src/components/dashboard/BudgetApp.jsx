@@ -415,7 +415,7 @@ export default function BudgetApp() {
 
   if (loading) {
     return (
-      <div className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: "400px", fontFamily: '"Inter", sans-serif' }}>
+      <div className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: "400px", fontFamily: '"Poppins", sans-serif' }}>
         <div className="spinner-border text-success" role="status" style={{ width: "3rem", height: "3rem" }}>
           <span className="visually-hidden">Loading...</span>
         </div>
@@ -425,7 +425,7 @@ export default function BudgetApp() {
   }
 
   return (
-    <div className="fade-in-slide container-fluid py-4" style={{ fontFamily: '"Inter", sans-serif' }}>
+    <div className="fade-in-slide container-fluid py-4" style={{ fontFamily: '"Poppins", sans-serif' }}>
       {/* Upper header */}
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>

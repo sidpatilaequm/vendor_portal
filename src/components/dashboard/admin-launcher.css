@@ -23,7 +23,8 @@
   --oxide:#4955B6; --oxide-soft:#EEF0FB;
   --amber:#8B4B4D; --amber-soft:#FBEEEE;
   --iron:#C81017; --iron-soft:#FDECEB;
-  --sans:'Inter',ui-sans-serif,system-ui,sans-serif;
+  --sans:'Poppins',ui-sans-serif,system-ui,sans-serif;
+  --heading:'Inter',ui-sans-serif,system-ui,sans-serif;
   --mono:'Inter',ui-sans-serif,system-ui,sans-serif;
 
   margin:0;font-family:var(--sans);background:var(--paper);color:var(--text);
@@ -41,7 +42,7 @@
 .nexdadmin .cfg{font-size:14px;line-height:1.45}
 .nexdadmin .cfg table{border-collapse:collapse;font-variant-numeric:tabular-nums}
 .nexdadmin .cfg .hero{margin-bottom:18px}
-.nexdadmin .cfg .hero h1{font-size:21px;font-weight:600;margin:0}
+.nexdadmin .cfg .hero h1{font-family:var(--heading);font-size:21px;font-weight:600;margin:0}
 .nexdadmin .cfg .hero p{color:var(--muted);font-size:14px;margin:7px 0 0;max-width:62ch}
 .nexdadmin .cfg .eyebrow-row{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:14px;flex-wrap:wrap}
 .nexdadmin .cfg .eyebrow-row h1,.nexdadmin .cfg .eyebrow-row h2{font-family:var(--sans);font-size:11.5px;letter-spacing:.1em;
@@ -58,7 +59,7 @@
 
 .nexdadmin .cfg .card{border:1px solid var(--line);border-radius:8px;background:var(--panel)}
 .nexdadmin .cfg .card-head{padding:11px 18px;border-bottom:1px solid var(--line);background:#F7FAF9;
-           font-family:var(--sans);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+           font-family:var(--heading);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
            color:var(--ink);font-weight:700;display:flex;justify-content:space-between;
            align-items:center;gap:12px}
 .nexdadmin .cfg .card-body{padding:18px 20px}

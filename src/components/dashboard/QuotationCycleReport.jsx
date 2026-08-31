@@ -182,7 +182,7 @@ export default function QuotationCycleReport({ onBack }) {
   }
 
   return (
-    <div className="p-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Inter", sans-serif' }}>
+    <div className="p-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
       {/* Header */}
       <div className="mb-4 d-flex justify-content-between align-items-center">
         <div>

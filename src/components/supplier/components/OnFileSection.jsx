@@ -72,7 +72,7 @@ const OnFileSection = ({ state, readiness }) => {
         </>
       )}
 
-      <h3 style={{ fontFamily: "'Fraunces',serif", fontSize: 16, fontWeight: 600, margin: '20px 0 8px' }}>Cross-checks</h3>
+      <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, margin: '20px 0 8px' }}>Cross-checks</h3>
       <div className="xcheck">
         {readiness.crossChecks.length === 0 ? (
           <div className="muted">Nothing to compare yet.</div>

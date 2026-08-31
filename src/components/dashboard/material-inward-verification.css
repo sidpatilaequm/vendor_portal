@@ -3,7 +3,8 @@
   --line:#D5DDDA; --line-soft:#E7ECEA; --text:#1A2326; --muted:#6B7A78;
   --oxide:#293383; --oxide-soft:#EEF0FB; --amber:#8B4B4D; --amber-soft:#FBEEEE;
   --iron:#C81017; --iron-soft:#FDECEB; --blue:#4955B6; --blue-soft:#ECEEFA;
-  --sans:'IBM Plex Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --sans:'Poppins',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --heading:'Inter',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
   --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
 }
 
@@ -17,7 +18,7 @@
 .miv-pane *, .miv-pane *::before, .miv-pane *::after { box-sizing:border-box; }
 .miv-pane button, .miv-pane input, .miv-pane select, .miv-pane textarea { font:inherit; color:inherit; }
 .miv-pane :focus-visible { outline:2px solid var(--oxide); outline-offset:2px; }
-.miv-pane h1, .miv-pane h2, .miv-pane h3 { font-weight:600; margin:0; }
+.miv-pane h1, .miv-pane h2, .miv-pane h3 { font-family:var(--heading); font-weight:600; margin:0; }
 .miv-pane .mono { font-family:var(--mono); }
 .miv-pane [hidden] { display:none !important; }
 
@@ -65,7 +66,7 @@
 .miv-card { background:var(--panel); border:1px solid var(--line); border-radius:4px; margin-bottom:16px; }
 .miv-card > header { display:flex; align-items:center; justify-content:space-between; gap:12px;
   padding:13px 18px; border-bottom:1px solid var(--line); background:#F7F9F8; flex-wrap:wrap; }
-.miv-card > header h2 { font-size:14px; }
+.miv-card > header h2 { font-family:var(--heading); font-size:14px; }
 .miv-card-body { padding:16px 18px; }
 
 .miv-hdr { display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr));

@@ -20,7 +20,7 @@
 .supplier-portal-home {
   background: var(--paper);
   color: var(--ink);
-  font-family: 'Epilogue', sans-serif;
+  font-family: 'Poppins', sans-serif;
   font-size: 14px;
   line-height: 1.5;
   min-height: 100%;
@@ -83,13 +83,13 @@
   color: #fff;
   display: grid;
   place-items: center;
-  font-family: 'Fraunces', serif;
+  font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 16px;
 }
 
 .supplier-portal-home .brand .b1 {
-  font-family: 'Fraunces', serif;
+  font-family: 'Inter', sans-serif;
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -.01em;
@@ -136,7 +136,7 @@
 }
 
 .supplier-portal-home h1 {
-  font-family: 'Fraunces', serif;
+  font-family: 'Inter', sans-serif;
   font-size: 30px;
   font-weight: 700;
   letter-spacing: -.012em;
@@ -221,7 +221,7 @@
 .supplier-portal-home .i-pine { background: var(--pine-soft); color: var(--pine); }
 
 .supplier-portal-home .tname {
-  font-family: 'Fraunces', serif;
+  font-family: 'Inter', sans-serif;
   font-size: 18px;
   font-weight: 600;
   letter-spacing: -.01em;
@@ -320,7 +320,7 @@
   border-radius: 10px;
   padding: 5px 9px 5px 5px;
   cursor: pointer;
-  font-family: 'Epilogue', sans-serif;
+  font-family: 'Poppins', sans-serif;
   color: inherit;
 }
 

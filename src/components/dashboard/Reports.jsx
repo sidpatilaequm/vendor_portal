@@ -212,7 +212,7 @@ const Reports = ({ onNavigate }) => {
   // Render Coming Soon screen
   if (selectedComingSoon) {
     return (
-      <div className="fade-in-slide container-fluid py-5 text-start" style={{ fontFamily: '"Inter", sans-serif' }}>
+      <div className="fade-in-slide container-fluid py-5 text-start" style={{ fontFamily: '"Poppins", sans-serif' }}>
         <div className="mb-4">
           <button
             className="btn btn-link text-muted text-decoration-none small fw-semibold ps-0 d-flex align-items-center gap-2"
@@ -312,7 +312,7 @@ const Reports = ({ onNavigate }) => {
   }
 
   return (
-    <div className="fade-in-slide container-fluid py-4 bg-light bg-opacity-50" style={{ minHeight: '100%', fontFamily: '"Inter", sans-serif' }}>
+    <div className="fade-in-slide container-fluid py-4 bg-light bg-opacity-50" style={{ minHeight: '100%', fontFamily: '"Poppins", sans-serif' }}>
       {/* Grid of Report Cards */}
       <div className="row g-4 mb-4">
         {reportCards.map((card) => (

@@ -12,12 +12,21 @@
 }
 
 body {
-  font-family: 'Inter', sans-serif !important;
+  font-family: 'Poppins', sans-serif !important;
   background-color: var(--background-light);
   margin: 0;
   padding: 0;
   min-height: 100vh;
   color: var(--text-dark);
+}
+
+h1, h2, h3, h4, h5, h6,
+.brand-logo,
+.sidebar-title,
+.step-title,
+.form-card-title,
+.custom-modal-title {
+  font-family: 'Inter', sans-serif;
 }
 
 .auth-container {

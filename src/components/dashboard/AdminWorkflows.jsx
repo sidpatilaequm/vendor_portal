@@ -994,7 +994,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   const stats = computeAnalytics();
 
   return (
-    <div className="fade-in-slide container-fluid py-4 text-start" style={{ fontFamily: '"Outfit", "Inter", sans-serif', minHeight: '100%' }}>
+    <div className="fade-in-slide container-fluid py-4 text-start" style={{ fontFamily: '"Poppins", sans-serif', minHeight: '100%' }}>
       {/* Sub-Header Navigation Tabs */}
       <div className="row align-items-center mb-4">
         <div className="col">

@@ -107,7 +107,7 @@ export default function OnboardingComplianceDashboard({ onBack }) {
       ];
 
   return (
-    <div className="container-fluid py-4 fade-in-slide" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Inter", sans-serif' }}>
+    <div className="container-fluid py-4 fade-in-slide" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
       {onBack && (
         <div 
           onClick={onBack} 

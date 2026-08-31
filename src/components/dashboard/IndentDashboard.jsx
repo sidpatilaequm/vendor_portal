@@ -259,7 +259,7 @@ const IndentDashboard = ({ onBack }) => {
   };
 
   return (
-    <div className="container-fluid py-4 fade-in-slide" style={{ fontFamily: '"Inter", sans-serif', maxWidth: '1400px' }}>
+    <div className="container-fluid py-4 fade-in-slide" style={{ fontFamily: '"Poppins", sans-serif', maxWidth: '1400px' }}>
       {/* Header section */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>

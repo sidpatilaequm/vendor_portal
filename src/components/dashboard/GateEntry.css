@@ -14,7 +14,7 @@
   --bad: #C81017;
   --bad-bg: #FDECEB;
 
-  font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  font-family: "Poppins", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
   background: var(--paper);
   color: var(--ink);
   font-size: 16px;
@@ -188,6 +188,7 @@
 }
 
 .gate-entry-container .card>h2 {
+  font-family: "Inter", sans-serif;
   margin: 0;
   padding: 14px 18px;
   border-bottom: 1px solid var(--line);

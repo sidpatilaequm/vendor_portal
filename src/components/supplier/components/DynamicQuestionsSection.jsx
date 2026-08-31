@@ -54,7 +54,7 @@ const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer, uploadDyn
       {questionnaire.sections.map((section) => (
         <div key={section.sectionId} style={{ marginBottom: 20 }}>
           {section.title && (
-            <h3 style={{ fontFamily: "'Fraunces',serif", fontSize: 16, fontWeight: 600, marginBottom: 12 }}>
+            <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, marginBottom: 12 }}>
               {section.title}
             </h3>
           )}

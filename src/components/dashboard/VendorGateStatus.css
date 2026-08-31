@@ -2,7 +2,7 @@
   padding: 40px;
   background: var(--paper, #f9fafb);
   min-height: 100vh;
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: "Poppins", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
 .vgs-header {
@@ -14,6 +14,7 @@
 
 .vgs-header h2 {
   margin: 0;
+  font-family: "Inter", sans-serif;
   font-size: 24px;
   font-weight: 700;
   color: #111827;
@@ -166,6 +167,7 @@
 
 .vgs-modal-header h3 {
   margin: 0;
+  font-family: "Inter", sans-serif;
   font-size: 20px;
   color: #111827;
   font-weight: 700;

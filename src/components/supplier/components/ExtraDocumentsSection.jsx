@@ -24,7 +24,7 @@ const ExtraDocumentsSection = ({ form }) => {
     <section className="sec" id="sec-other">
       <div className="sh">
         <h2>Other documents</h2>
-        <span className="n">02</span>
+        <span className="n">03</span>
       </div>
       <p className="sdesc">
         Anything else you'd like us to see — reference letters, insurance certificates, brochures — that doesn't fit

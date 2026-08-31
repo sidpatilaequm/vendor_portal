@@ -136,6 +136,13 @@
   position: sticky;
   top: 66px;
 }
+.supplier-page .wrap > main {
+  /* A grid item's default min-width is "auto", which lets its intrinsic content (like a wide
+     table question) grow the whole 1fr track — and the whole page — instead of respecting it.
+     Pinning this to 0 hands width control back to the grid track, so a wide table's own
+     overflow-x:auto wrapper (below) scrolls internally instead of stretching the form. */
+  min-width: 0;
+}
 @media (max-width: 920px) {
   .supplier-page .rail {
     position: static;

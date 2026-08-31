@@ -17,7 +17,7 @@ const OnFileSection = ({ state, readiness }) => {
     <section className="sec" id="sec-file">
       <div className="sh">
         <h2>On file</h2>
-        <span className="n">03</span>
+        <span className="n">04</span>
       </div>
       <p className="sdesc">Everything you have uploaded, kept with this draft until you submit. Open any of them here.</p>
 

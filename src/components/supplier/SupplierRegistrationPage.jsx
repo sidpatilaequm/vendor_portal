@@ -106,10 +106,10 @@ const SupplierRegistrationPage = () => {
           ) : (
             <>
               <ResumeStrip onResume={form.resumeDraft} message={resumeMessage} />
+              <YouSection form={form} />
               <DocumentsSection form={form} />
               <ExtraDocumentsSection form={form} />
               <OnFileSection state={state} readiness={readiness} />
-              <YouSection form={form} />
               {hasQuestionnaire && (
                 <DynamicQuestionsSection state={state} readiness={readiness} setDynamicAnswer={form.setDynamicAnswer} uploadDynamicQuestionFile={form.uploadDynamicQuestionFile} />
               )}

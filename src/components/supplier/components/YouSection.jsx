@@ -16,7 +16,7 @@ const YouSection = ({ form }) => {
     <section className="sec" id="sec-you">
       <div className="sh">
         <h2>Who we deal with</h2>
-        <span className="n">04</span>
+        <span className="n">01</span>
       </div>
       <p className="sdesc">
         This is the primary email for your account — every notification (the draft code, questions from a

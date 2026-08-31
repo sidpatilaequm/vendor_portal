@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthLayout from './components/layout/AuthLayout';
 import LoginForm from './components/auth/LoginForm';
 import SignupForm from './components/auth/SignupForm';
+import SsoCallback from './components/auth/SsoCallback';
 import Alert from './components/common/Alert';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import AdminDashboardLayout from './components/dashboard/AdminDashboardLayout';
@@ -136,6 +137,13 @@ const AppRoutes = () => {
         <Route
           path="/become-a-supplier"
           element={<SupplierRegistrationPage />}
+        />
+        {/* MicrosoftSsoController redirects here with ?token=... once Microsoft sign-in
+            finishes — unguarded, same reasoning as /login: the visitor isn't authenticated yet
+            when they land on it. */}
+        <Route
+          path="/auth/callback"
+          element={<SsoCallback />}
         />
         <Route
           path="/vendor/login"

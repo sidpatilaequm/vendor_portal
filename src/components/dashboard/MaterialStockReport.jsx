@@ -16,14 +16,14 @@ const C = {
   ink: "#1B2A32",
   inkSoft: "#5B6B72",
   line: "#DEE4E6",
-  pine: "#0E5F4B",
-  pineSoft: "#E4F0EC",
-  blue: "#1D4E89",
-  blueSoft: "#E3ECF6",
-  red: "#8C2B2B",
-  redSoft: "#F6E3E3",
-  amber: "#8A6510",
-  amberSoft: "#F6EED9",
+  pine: "#293383",
+  pineSoft: "#EEF0FB",
+  blue: "#4955B6",
+  blueSoft: "#ECEEFA",
+  red: "#C81017",
+  redSoft: "#FDECEB",
+  amber: "#8B4B4D",
+  amberSoft: "#FBEEEE",
 };
 
 /* ------------------------------------------------------------------ *
@@ -96,7 +96,7 @@ function ExportButton({ onClick, label = "Export CSV" }) {
     <button
       onClick={onClick}
       className="btn btn-sm text-white shadow-sm px-4 fw-bold"
-      style={{ backgroundColor: '#0f766e', borderRadius: '6px', height: '31px' }}
+      style={{ backgroundColor: '#293383', borderRadius: '6px', height: '31px' }}
     >
       {label}
     </button>
@@ -187,9 +187,9 @@ function downloadCsv(filename, header, rows) {
  * Material Stock — point-in-time balance, no period filter.
  */
 const DOT = {
-  "In stock": "#10b981", // success
-  "Low stock": "#f59e0b", // warning
-  "Out of stock": "#ef4444", // danger
+  "In stock": "#0E7C86", // success
+  "Low stock": "#8B4B4D", // warning
+  "Out of stock": "#C81017", // danger
 };
 
 export default function MaterialStockReport({ bpNo = "BP-MARK-01", onBack }) {
@@ -209,8 +209,8 @@ export default function MaterialStockReport({ bpNo = "BP-MARK-01", onBack }) {
     { label: "Line items", value: String(t.lineItems ?? 0), sub: "materials tracked", color: "#111827" },
     { label: "Own stock", value: qty(t.ownTotal), sub: "units · client-owned", color: "#3b82f6" },
     { label: "Consignment stock", value: qty(t.consignTotal), sub: "units · vendor-owned", color: "#111827" },
-    { label: "Low stock", value: String(t.lowStock ?? 0), sub: "below reorder level", color: "#f59e0b" },
-    { label: "Out of stock", value: String(t.outOfStock ?? 0), sub: "nil balance", color: "#ef4444" },
+    { label: "Low stock", value: String(t.lowStock ?? 0), sub: "below reorder level", color: "#8B4B4D" },
+    { label: "Out of stock", value: String(t.outOfStock ?? 0), sub: "nil balance", color: "#C81017" },
   ];
 
   const exportCsv = () =>
@@ -225,7 +225,7 @@ export default function MaterialStockReport({ bpNo = "BP-MARK-01", onBack }) {
     );
 
   return (
-    <div className="fade-in-slide container-fluid py-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Inter", sans-serif' }}>
+    <div className="fade-in-slide container-fluid py-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
       <div className="d-flex flex-wrap justify-content-between align-items-end mb-4">
         <div>
           <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>

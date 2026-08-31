@@ -16,14 +16,14 @@ const C = {
   ink: "#1B2A32",
   inkSoft: "#5B6B72",
   line: "#DEE4E6",
-  pine: "#0E5F4B",
-  pineSoft: "#E4F0EC",
-  blue: "#1D4E89",
-  blueSoft: "#E3ECF6",
-  red: "#8C2B2B",
-  redSoft: "#F6E3E3",
-  amber: "#8A6510",
-  amberSoft: "#F6EED9",
+  pine: "#293383",
+  pineSoft: "#EEF0FB",
+  blue: "#4955B6",
+  blueSoft: "#ECEEFA",
+  red: "#C81017",
+  redSoft: "#FDECEB",
+  amber: "#8B4B4D",
+  amberSoft: "#FBEEEE",
 };
 
 /* ------------------------------------------------------------------ *
@@ -96,7 +96,7 @@ function ExportButton({ onClick, label = "Export CSV" }) {
     <button
       onClick={onClick}
       className="btn btn-sm text-white shadow-sm px-4 fw-bold"
-      style={{ backgroundColor: '#0f766e', borderRadius: '6px', height: '31px' }}
+      style={{ backgroundColor: '#293383', borderRadius: '6px', height: '31px' }}
     >
       {label}
     </button>
@@ -234,8 +234,8 @@ export default function VendorPaymentReport({ bpNo = "BP-MARK-01", onBack }) {
   const kpis = [
     { label: "Invoice amount (before GST)", value: inr(t.base), sub: `${t.count ?? 0} invoices paid`, color: "#111827" },
     { label: "GST paid", value: inr(t.gstAmount), sub: "@ 18% on invoice amount", color: "#3b82f6" },
-    { label: "TDS deducted", value: inr(t.tdsAmount), sub: "@ 2% u/s 194C", color: "#ef4444" },
-    { label: "Net received", value: inr(t.netReceived), sub: "Invoice + GST − TDS", color: "#10b981" },
+    { label: "TDS deducted", value: inr(t.tdsAmount), sub: "@ 2% u/s 194C", color: "#C81017" },
+    { label: "Net received", value: inr(t.netReceived), sub: "Invoice + GST − TDS", color: "#0E7C86" },
   ];
 
   const exportCsv = () =>
@@ -250,7 +250,7 @@ export default function VendorPaymentReport({ bpNo = "BP-MARK-01", onBack }) {
     );
 
   return (
-    <div className="fade-in-slide container-fluid py-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Inter", sans-serif' }}>
+    <div className="fade-in-slide container-fluid py-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
       <div className="d-flex flex-wrap justify-content-between align-items-end mb-4">
         <div>
           <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
@@ -338,7 +338,7 @@ export default function VendorPaymentReport({ bpNo = "BP-MARK-01", onBack }) {
                           − {inr(r.tdsAmount)}
                           <span className="d-block text-muted" style={{ fontSize: '10px' }}>@ {r.tdsPct}%</span>
                         </td>
-                        <td className="text-end font-monospace fw-bold align-top" style={{ fontSize: '13px', paddingTop: '16px', color: '#10b981' }}>
+                        <td className="text-end font-monospace fw-bold align-top" style={{ fontSize: '13px', paddingTop: '16px', color: '#0E7C86' }}>
                           {inr(r.netReceived)}
                         </td>
                         <td className="text-center text-muted pe-4 align-top" style={{ paddingTop: '16px' }}>
@@ -378,7 +378,7 @@ export default function VendorPaymentReport({ bpNo = "BP-MARK-01", onBack }) {
                     <td className="text-end font-monospace fw-bold">{inr(t.base)}</td>
                     <td className="text-end font-monospace fw-bold">{inr(t.gstAmount)}</td>
                     <td className="text-end font-monospace fw-bold">− {inr(t.tdsAmount)}</td>
-                    <td className="text-end font-monospace fw-bold" style={{ color: '#10b981' }}>{inr(t.netReceived)}</td>
+                    <td className="text-end font-monospace fw-bold" style={{ color: '#0E7C86' }}>{inr(t.netReceived)}</td>
                     <td />
                   </tr>
                 </tfoot>

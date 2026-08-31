@@ -44,8 +44,8 @@ function Ribbon({ alloc, cons, big = false }) {
         const isCur = m === CUR_PERIOD;
         const unutil = closed && a - c > 0.5;
         const barH = big ? (16 + 96 * (a / max)) : (6 + 36 * (a / max));
-        const fillBg = over ? "#dc2626" : unutil ? "#d97706" : "#059669";
-        const emptyBg = isCur ? "#a7f3d0" : "#f3f4f6";
+        const fillBg = over ? "#C81017" : unutil ? "#8B4B4D" : "#0E7C86";
+        const emptyBg = isCur ? "#CDF3F5" : "#f3f4f6";
         const title = `${mm} · alloc ${fmtK(a)} · cons ${fmtK(c)}` + (unutil ? ` · unutilised ${fmtK(a - c)} (lapsing)` : over ? ` · over by ${fmtK(c - a)}` : "");
         return (
           <div key={m} title={title}
@@ -53,7 +53,7 @@ function Ribbon({ alloc, cons, big = false }) {
               flex: 1, display: "flex", flexDirection: "column", alignItems: "stretch",
               height: barH, borderRadius: 2, overflow: "hidden",
               background: emptyBg,
-              outline: isCur ? "2px solid #10b981" : "none",
+              outline: isCur ? "2px solid #0E7C86" : "none",
               outlineOffset: isCur ? "-1px" : 0
             }}>
             <div style={{ marginTop: "auto", height: `${Math.min(fill, 1) * 100}%`, background: fillBg, transition: "height .3s" }} />
@@ -66,11 +66,11 @@ function Ribbon({ alloc, cons, big = false }) {
 
 function RibbonLegend() {
   const items = [
-    { color: "#059669", label: "Consumed" },
+    { color: "#0E7C86", label: "Consumed" },
     { color: "#f3f4f6", label: "Allocated (remaining)", border: "1px solid #e5e7eb" },
-    { color: "#d97706", label: "Unutilised in a closed month — lapsing" },
-    { color: "#dc2626", label: "Over-utilised" },
-    { color: "#fff", label: `Current period (${MONTHS[CUR_PERIOD]})`, outline: "2px solid #10b981" },
+    { color: "#8B4B4D", label: "Unutilised in a closed month — lapsing" },
+    { color: "#C81017", label: "Over-utilised" },
+    { color: "#fff", label: `Current period (${MONTHS[CUR_PERIOD]})`, outline: "2px solid #0E7C86" },
   ];
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: "12px 20px", marginTop: 10, fontSize: 11.5, color: "#6b7280" }}>
@@ -415,7 +415,7 @@ export default function BudgetApp() {
 
   if (loading) {
     return (
-      <div className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: "400px", fontFamily: '"Inter", sans-serif' }}>
+      <div className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: "400px", fontFamily: '"Poppins", sans-serif' }}>
         <div className="spinner-border text-success" role="status" style={{ width: "3rem", height: "3rem" }}>
           <span className="visually-hidden">Loading...</span>
         </div>
@@ -425,15 +425,15 @@ export default function BudgetApp() {
   }
 
   return (
-    <div className="fade-in-slide container-fluid py-4" style={{ fontFamily: '"Inter", sans-serif' }}>
+    <div className="fade-in-slide container-fluid py-4" style={{ fontFamily: '"Poppins", sans-serif' }}>
       {/* Upper header */}
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
-          <h4 className="fw-bold text-uppercase mb-1" style={{ color: "#064e3b" }}>Budget Management</h4>
+          <h4 className="fw-bold text-uppercase mb-1" style={{ color: "#293383" }}>Budget Management</h4>
           <p className="text-muted mb-0 small">Governed capital & operating expenditure WBS control panel</p>
         </div>
         <div className="d-flex gap-2">
-          <span className="badge px-3 py-2 text-uppercase d-flex align-items-center" style={{ backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#064e3b", border: "1px solid rgba(16, 185, 129, 0.2)" }}>
+          <span className="badge px-3 py-2 text-uppercase d-flex align-items-center" style={{ backgroundColor: "rgba(41, 51, 131, 0.1)", color: "#293383", border: "1px solid rgba(41, 51, 131, 0.2)" }}>
             <i className="fas fa-calendar-alt me-1.5"></i> {curBudget?.fiscal_year ?? FY}
           </span>
           <span className={`badge px-3 py-2 text-uppercase d-flex align-items-center ${curBudget?.is_locked ? "bg-warning-subtle text-warning-emphasis" : "bg-success-subtle text-success-emphasis"}`}>
@@ -651,7 +651,7 @@ function DashboardPage({ ctx }) {
           <Ribbon alloc={orgAlloc} cons={orgCons} big={true} />
           <div className="d-flex gap-1 mt-2 mb-3">
             {MONTHS.map((m, i) => (
-              <div key={i} style={{ flex: 1, textAlign: "center", fontSize: "9.5px", color: i === CUR_PERIOD ? "#064e3b" : "#9ca3af", fontWeight: i === CUR_PERIOD ? 700 : 400 }}>
+              <div key={i} style={{ flex: 1, textAlign: "center", fontSize: "9.5px", color: i === CUR_PERIOD ? "#293383" : "#9ca3af", fontWeight: i === CUR_PERIOD ? 700 : 400 }}>
                 {m.split("-")[0]}
               </div>
             ))}
@@ -670,9 +670,9 @@ function DashboardPage({ ctx }) {
             </div>
             <div className="card-body p-4">
               {[
-                { label: "PR Committed", val: totals.pr, p: prPct, color: "#10b981" },
-                { label: "PO Approved", val: totals.po, p: poPct, color: "#059669" },
-                { label: "Consumed / Invoiced", val: totals.invoiced, p: invoicedPct, color: "#064e3b" },
+                { label: "PR Committed", val: totals.pr, p: prPct, color: "#0E7C86" },
+                { label: "PO Approved", val: totals.po, p: poPct, color: "#0E7C86" },
+                { label: "Consumed / Invoiced", val: totals.invoiced, p: invoicedPct, color: "#293383" },
               ].map(r => (
                 <div key={r.label} className="mb-4">
                   <div className="d-flex justify-content-between mb-1 small fw-medium">
@@ -814,7 +814,7 @@ function BudgetBookPage({ ctx }) {
 
   const toggle = key => setCollapsed(c => ({ ...c, [key]: !c[key] }));
 
-  const metricColors = { alloc: "#047857", pr: "#10b981", po: "#0f766e", cons: "#064e3b" };
+  const metricColors = { alloc: "#0E7C86", pr: "#0E7C86", po: "#4955B6", cons: "#293383" };
 
   const hasLapse = (act) => {
     const alloc = getPhaseArr(act.phases, "alloc");

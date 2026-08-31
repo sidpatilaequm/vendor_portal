@@ -267,7 +267,7 @@ export function useSupplierForm() {
     setTimeout(() => setToast((t) => (t && t.id === id ? null : t)), ms);
   }, []);
 
-  const primaryEmail = state.fields[`c${state.primaryContact}_email`] || '';
+  const primaryEmail = state.fields.c1_email || '';
 
   const runVerify = useCallback((doc, updatedFields, registrationId) => {
     if (!doc.verifyKind || !registrationId) return;
@@ -429,6 +429,47 @@ export function useSupplierForm() {
     [showToast]
   );
 
+  // The file behind one dynamic file_upload question's answer — same upload mechanics as
+  // uploadExtraFile (no OCR, "pioneer" registration-id coordination), but tagged with the
+  // question id server-side (uploadQuestionFile) instead of being a free-form attachment, and
+  // stored into dynamicAnswers[questionId].textValue (the filename) rather than a separate
+  // files list, since a file_upload question's answer IS that one file.
+  const uploadDynamicQuestionFile = useCallback(
+    async (questionId, file) => {
+      setDynamicAnswer(questionId, { uploadStatus: 'reading', fileName: file.name });
+      try {
+        let knownId = registrationIdRef.current;
+        if (!knownId && pendingFirstUpload.current) {
+          knownId = await pendingFirstUpload.current;
+        }
+
+        const form = new FormData();
+        form.append('file', file);
+        const params = knownId ? { registrationId: knownId } : {};
+        const uploadPromise = axios.post(`/api/public/supplier-registration/dynamic-question-file/${questionId}`, form, {
+          params,
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        const isPioneer = !knownId && !pendingFirstUpload.current;
+        if (isPioneer) {
+          pendingFirstUpload.current = uploadPromise
+            .then((res) => res.data.data?.result?.registrationId)
+            .finally(() => { pendingFirstUpload.current = null; });
+        }
+
+        const { data } = await uploadPromise;
+        const result = data.data?.result || {};
+        if (result.registrationId) registrationIdRef.current = result.registrationId;
+        setDynamicAnswer(questionId, { textValue: result.fileName || file.name, uploadStatus: 'done', fileName: result.fileName || file.name });
+      } catch (err) {
+        setDynamicAnswer(questionId, { textValue: '', uploadStatus: 'error', fileName: '' });
+        showToast(`Could not upload ${file.name}.`);
+      }
+    },
+    [showToast, setDynamicAnswer]
+  );
+
   const removeExtraFile = useCallback(
     (localId) => {
       const f = state.extraFiles.find((x) => x.localId === localId);
@@ -450,15 +491,12 @@ export function useSupplierForm() {
       // autosave — so the draft-saved email fires on every explicit save instead of a single
       // one-time trigger, without turning into an email per keystroke while someone's typing.
       explicitSave: !!explicitSave,
-      contact1Name: f.c1_name || '',
-      contact1Role: f.c1_role || '',
+      // Name/designation/phone and the second-contact concept were dropped from the "Who we
+      // deal with" section — only the primary email remains, so contact1Email is the only one
+      // of these still filled in; contact2* and primaryContact stay in the payload only because
+      // the backend DTO/entity still has the columns (nullable, unused going forward).
       contact1Email: f.c1_email || '',
-      contact1Phone: f.c1_phone || '',
-      contact2Name: state.contactsCount === 2 ? f.c2_name || '' : '',
-      contact2Role: state.contactsCount === 2 ? f.c2_role || '' : '',
-      contact2Email: state.contactsCount === 2 ? f.c2_email || '' : '',
-      contact2Phone: state.contactsCount === 2 ? f.c2_phone || '' : '',
-      primaryContact: state.primaryContact,
+      primaryContact: 1,
       businessTypes: state.businessTypes.join(','),
       businessScope: f.businessScope || '',
       companyType: f.companyType || '',
@@ -492,6 +530,15 @@ export function useSupplierForm() {
       isoCertificateNo: f.isoNo || '',
       isoCertifyingBody: f.isoBody || '',
       isoExpiry: f.isoExpiry || '',
+      iso14001CertificateNo: f.iso14001No || '',
+      iso14001CertifyingBody: f.iso14001Body || '',
+      iso14001Expiry: f.iso14001Expiry || '',
+      iso45001CertificateNo: f.iso45001No || '',
+      iso45001CertifyingBody: f.iso45001Body || '',
+      iso45001Expiry: f.iso45001Expiry || '',
+      iso27001CertificateNo: f.iso27001No || '',
+      iso27001CertifyingBody: f.iso27001Body || '',
+      iso27001Expiry: f.iso27001Expiry || '',
       as9100dCertificateNo: f.asNo || '',
       as9100dCertifyingBody: f.asBody || '',
       as9100dExpiry: f.asExpiry || '',
@@ -527,13 +574,13 @@ export function useSupplierForm() {
   const confirmEmailAndSave = useCallback(
     (email) => {
       dispatch({ type: 'SET_EMAIL', email });
-      if (!state.fields[`c${state.primaryContact}_email`]) {
-        setField(`c${state.primaryContact}_email`, email);
+      if (!state.fields.c1_email) {
+        setField('c1_email', email);
       }
       setEmailDialogOpen(false);
       setTimeout(() => commitSave(true), 0);
     },
-    [state.fields, state.primaryContact, setField, commitSave]
+    [state.fields, setField, commitSave]
   );
 
   const resumeDraft = useCallback(async (rawCode) => {
@@ -560,10 +607,12 @@ export function useSupplierForm() {
       }
 
       const fields = {
-        c1_name: reg.contact1Name || '', c1_role: reg.contact1Role || '',
-        c1_email: reg.contact1Email || '', c1_phone: reg.contact1Phone || '',
-        c2_name: reg.contact2Name || '', c2_role: reg.contact2Role || '',
-        c2_email: reg.contact2Email || '', c2_phone: reg.contact2Phone || '',
+        // Name/designation/phone and the second-contact concept are gone — but a draft saved
+        // before that change might have had contact 2 marked primary, with the real working
+        // email sitting in contact2Email rather than contact1Email. reg.email is the backend's
+        // already-resolved "whichever contact was primary" mirror, so fall back to it rather
+        // than risk surfacing a blank email for a returning vendor.
+        c1_email: reg.contact1Email || (reg.email && !reg.email.includes('@placeholder.local') ? reg.email : '') || '',
         businessScope: reg.businessScope || '', companyType: reg.companyType || '',
         telephone: reg.telephone || '', fax: reg.fax || '', weeklyOff: reg.weeklyOff || '',
         annualTurnover: reg.annualTurnover || '', turnoverYear: reg.turnoverYear || '',
@@ -574,6 +623,9 @@ export function useSupplierForm() {
         gstin: reg.gstNumber || '', pan: reg.panNumber || '', udyam: reg.msmeNumber || '', cin: reg.cinNumber || '',
         benName: reg.beneficiaryName || '', acctNo: reg.accountNumber || '', ifsc: reg.ifscCode || '',
         isoNo: reg.isoCertificateNo || '', isoBody: reg.isoCertifyingBody || '', isoExpiry: reg.isoExpiry || '',
+        iso14001No: reg.iso14001CertificateNo || '', iso14001Body: reg.iso14001CertifyingBody || '', iso14001Expiry: reg.iso14001Expiry || '',
+        iso45001No: reg.iso45001CertificateNo || '', iso45001Body: reg.iso45001CertifyingBody || '', iso45001Expiry: reg.iso45001Expiry || '',
+        iso27001No: reg.iso27001CertificateNo || '', iso27001Body: reg.iso27001CertifyingBody || '', iso27001Expiry: reg.iso27001Expiry || '',
         asNo: reg.as9100dCertificateNo || '', asBody: reg.as9100dCertifyingBody || '', asExpiry: reg.as9100dExpiry || '',
         nadcapNo: reg.nadcapCertificateNo || '', nadcapExpiry: reg.nadcapExpiry || '',
       };
@@ -587,7 +639,6 @@ export function useSupplierForm() {
         };
         Object.keys(d.values || {}).forEach((k) => { src[k] = d.docType; });
       });
-      const hasSecondContact = !!(reg.contact2Name || reg.contact2Email || reg.contact2Role || reg.contact2Phone);
       const extraFiles = (result.attachments || []).map((a) => ({
         localId: `extra-remote-${a.id}`, id: a.id, name: a.fileName, size: 0, url: null,
         status: 'read', remoteStatus: 'uploaded',
@@ -608,8 +659,8 @@ export function useSupplierForm() {
         dynamicAnswers: reg.dynamicAnswersJson
           ? Object.fromEntries(JSON.parse(reg.dynamicAnswersJson).map(({ questionId, ...rest }) => [questionId, rest]))
           : {},
-        contactsCount: hasSecondContact ? 2 : 1,
-        primaryContact: reg.primaryContact || 1,
+        contactsCount: 1,
+        primaryContact: 1,
         declaration: !!reg.declarationAccepted,
         docs,
         extraFiles,
@@ -649,7 +700,7 @@ export function useSupplierForm() {
       setSubmission({
         ref: savedCode || String(savedRegistrationId),
         legalName: state.fields.benName || '',
-        primaryEmail: state.fields[`c${state.primaryContact}_email`] || '',
+        primaryEmail: state.fields.c1_email || '',
         files,
       });
       return true;
@@ -684,6 +735,7 @@ export function useSupplierForm() {
     updateRow,
     removeRow,
     setDynamicAnswer,
+    uploadDynamicQuestionFile,
     setContactsCount,
     setPrimaryContact,
     ingestFile,

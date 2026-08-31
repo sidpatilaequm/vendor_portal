@@ -4,19 +4,19 @@
   --ink: #1b2a32;
   --ink-soft: #5b6b72;
   --line: #dee4e6;
-  --pine: #0e5f4b;
-  --pine-soft: #e4f0ec;
-  --pine-deep: #083f32;
-  --amber: #8a6510;
-  --amber-soft: #f6eed9;
-  --blue: #1d4e89;
-  --blue-soft: #e3ecf6;
-  --red: #8c2b2b;
-  --red-soft: #f6e3e3;
+  --pine: #293383;
+  --pine-soft: #eef0fb;
+  --pine-deep: #0f172a;
+  --amber: #8b4b4d;
+  --amber-soft: #fbeeee;
+  --blue: #4955b6;
+  --blue-soft: #eceefa;
+  --red: #c81017;
+  --red-soft: #fdeceb;
 
   background: var(--paper);
   color: var(--ink);
-  font-family: "Epilogue", sans-serif;
+  font-family: "Poppins", sans-serif;
   font-size: 14px;
   line-height: 1.5;
   min-height: 100vh;
@@ -78,12 +78,12 @@
   color: #fff;
   display: grid;
   place-items: center;
-  font-family: "Fraunces", serif;
+  font-family: "Inter", sans-serif;
   font-weight: 700;
   font-size: 15px;
 }
 .supplier-page .brand .b1 {
-  font-family: "Fraunces", serif;
+  font-family: "Inter", sans-serif;
   font-size: 16px;
   font-weight: 700;
 }
@@ -96,7 +96,7 @@
   align-items: center;
   gap: 10px;
   background: var(--pine-soft);
-  border: 1px solid #c6dcd4;
+  border: 1px solid #c9cef0;
   border-radius: 8px;
   padding: 5px 10px;
 }
@@ -136,6 +136,13 @@
   position: sticky;
   top: 66px;
 }
+.supplier-page .wrap > main {
+  /* A grid item's default min-width is "auto", which lets its intrinsic content (like a wide
+     table question) grow the whole 1fr track — and the whole page — instead of respecting it.
+     Pinning this to 0 hands width control back to the grid track, so a wide table's own
+     overflow-x:auto wrapper (below) scrolls internally instead of stretching the form. */
+  min-width: 0;
+}
 @media (max-width: 920px) {
   .supplier-page .rail {
     position: static;
@@ -149,7 +156,7 @@
   margin-bottom: 12px;
 }
 .supplier-page .pct {
-  font-family: "Fraunces", serif;
+  font-family: "Inter", sans-serif;
   font-size: 32px;
   font-weight: 700;
   line-height: 1;
@@ -233,7 +240,7 @@
   border: 1px solid var(--ink);
   background: var(--ink);
   color: #fff;
-  font-family: "Epilogue", sans-serif;
+  font-family: "Poppins", sans-serif;
   font-weight: 600;
   font-size: 13.5px;
   padding: 10px 16px;
@@ -290,7 +297,7 @@
   flex-wrap: wrap;
 }
 .supplier-page .sh h2 {
-  font-family: "Fraunces", serif;
+  font-family: "Inter", sans-serif;
   font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -337,7 +344,7 @@
   margin-bottom: 12px;
 }
 .supplier-page .doc.read {
-  border-color: #bfd8cf;
+  border-color: #a3dde1;
   background: #fbfdfc;
 }
 .supplier-page .doc.reading {
@@ -516,7 +523,7 @@
 .supplier-page select,
 .supplier-page textarea {
   width: 100%;
-  font-family: "Epilogue", sans-serif;
+  font-family: "Poppins", sans-serif;
   font-size: 13.5px;
   color: var(--ink);
   background: #fff;
@@ -767,7 +774,7 @@
   padding: 24px;
 }
 .supplier-page .dlg h3 {
-  font-family: "Fraunces", serif;
+  font-family: "Inter", sans-serif;
   font-size: 19px;
   font-weight: 600;
   margin-bottom: 6px;

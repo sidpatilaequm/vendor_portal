@@ -24,6 +24,19 @@ export function ruleError(ruleKey, rawValue) {
 }
 
 /**
+ * A question with no dependsOnQuestionId is always visible; otherwise only once the respondent
+ * picked dependsOnOptionId on that earlier question. Same rule enforced server-side (Java's
+ * isQuestionVisible, Form Studio's own _question_is_visible) — shared here between
+ * DynamicQuestionsSection (what to render) and computeDynamicReadiness (what to require) so the
+ * two can't drift apart client-side.
+ */
+export function isDynamicQuestionVisible(question, dynamicAnswers) {
+  if (!question.dependsOnQuestionId) return true;
+  const depAnswer = dynamicAnswers[question.dependsOnQuestionId];
+  return !!depAnswer && (depAnswer.optionIds || []).includes(question.dependsOnOptionId);
+}
+
+/**
  * Generic readiness pass over the admin-defined questionnaire's questions — mandatory required,
  * choice min/max — since these rules are admin-authored data, not developer-authored code, unlike
  * every other field in this form.
@@ -37,10 +50,11 @@ export function computeDynamicReadiness(questionnaire, dynamicAnswers) {
   for (const section of questionnaire.sections) {
     for (const q of section.questions) {
       if (!q.isMandatory) continue;
+      if (!isDynamicQuestionVisible(q, dynamicAnswers)) continue;
       total++;
       const answer = dynamicAnswers[q.questionId] || {};
       let ok;
-      if (q.questionType === 'short_text' || q.questionType === 'counter') {
+      if (q.questionType === 'short_text' || q.questionType === 'counter' || q.questionType === 'file_upload') {
         ok = isFilled(answer.textValue);
       } else if (q.questionType === 'table') {
         const floor = q.minRows || 1;
@@ -128,19 +142,8 @@ export function computeReadiness(state) {
 
   const youRequired = [
     { id: 'dTrue', label: 'Declaration', filled: state.declaration },
-    { id: 'c1_name', label: 'Contact name', filled: isFilled(state.fields.c1_name) },
-    { id: 'c1_role', label: 'Contact designation', filled: isFilled(state.fields.c1_role) },
     { id: 'c1_email', label: 'Contact email', filled: isFilled(state.fields.c1_email) },
-    { id: 'c1_phone', label: 'Contact number', filled: isFilled(state.fields.c1_phone) },
   ];
-  if (state.contactsCount === 2) {
-    youRequired.push(
-      { id: 'c2_name', label: 'Second contact name', filled: isFilled(state.fields.c2_name) },
-      { id: 'c2_role', label: 'Second contact designation', filled: isFilled(state.fields.c2_role) },
-      { id: 'c2_email', label: 'Second contact email', filled: isFilled(state.fields.c2_email) },
-      { id: 'c2_phone', label: 'Second contact number', filled: isFilled(state.fields.c2_phone) }
-    );
-  }
   youRequired.forEach((r) => {
     youTotal++;
     if (r.filled) {
@@ -150,22 +153,11 @@ export function computeReadiness(state) {
     }
   });
 
-  ['c1_email', 'c2_email'].forEach((id) => {
-    if (state.contactsCount === 1 && id === 'c2_email') return;
-    const msg = ruleError('email', state.fields[id]);
-    if (msg) {
-      errors[id] = msg;
-      bad++;
-    }
-  });
-  ['c1_phone', 'c2_phone'].forEach((id) => {
-    if (state.contactsCount === 1 && id === 'c2_phone') return;
-    const msg = ruleError('phone', state.fields[id]);
-    if (msg) {
-      errors[id] = msg;
-      bad++;
-    }
-  });
+  const emailMsg = ruleError('email', state.fields.c1_email);
+  if (emailMsg) {
+    errors.c1_email = emailMsg;
+    bad++;
+  }
 
   total += youTotal;
   filled += youFilled;

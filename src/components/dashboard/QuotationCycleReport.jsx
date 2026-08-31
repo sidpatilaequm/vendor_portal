@@ -182,7 +182,7 @@ export default function QuotationCycleReport({ onBack }) {
   }
 
   return (
-    <div className="p-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Inter", sans-serif' }}>
+    <div className="p-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
       {/* Header */}
       <div className="mb-4 d-flex justify-content-between align-items-center">
         <div>
@@ -245,7 +245,7 @@ export default function QuotationCycleReport({ onBack }) {
           <button
             onClick={openPrSelection}
             className="btn btn-sm text-white fw-medium shadow-sm d-flex align-items-center gap-2"
-            style={{ backgroundColor: '#059669' }}
+            style={{ backgroundColor: '#0E7C86' }}
           >
             <i className="fas fa-file-contract"></i>
             Create from PR

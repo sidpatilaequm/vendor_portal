@@ -1,4 +1,5 @@
 import React from 'react';
+import { isDynamicQuestionVisible } from '../lib/validation';
 
 // Renders whichever questionnaire an admin has published and marked active (Questionnaire tab
 // in the admin panel), generically — short_text / single_choice (radio or dropdown) /
@@ -6,7 +7,7 @@ import React from 'react';
 // like the rest of this form. Structurally mirrors dynamic_questions/frontend/src/pages/
 // FillForm.jsx's branches, styled with this page's own supplier-form.css classes instead of Form
 // Studio's CSS.
-const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
+const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer, uploadDynamicQuestionFile }) => {
   const { questionnaire, dynamicAnswers } = state;
 
   if (!questionnaire?.sections?.length) return null;
@@ -53,11 +54,11 @@ const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
       {questionnaire.sections.map((section) => (
         <div key={section.sectionId} style={{ marginBottom: 20 }}>
           {section.title && (
-            <h3 style={{ fontFamily: "'Fraunces',serif", fontSize: 16, fontWeight: 600, marginBottom: 12 }}>
+            <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, marginBottom: 12 }}>
               {section.title}
             </h3>
           )}
-          {section.questions.map((q) => {
+          {section.questions.filter((q) => isDynamicQuestionVisible(q, dynamicAnswers)).map((q) => {
             const answer = answerFor(q.questionId);
             const selected = answer.optionIds || [];
             return (
@@ -73,6 +74,22 @@ const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
                     maxLength={q.maxLength || undefined}
                     onChange={(e) => setDynamicAnswer(q.questionId, { textValue: e.target.value })}
                   />
+                )}
+
+                {q.questionType === 'file_upload' && (
+                  <div>
+                    <input
+                      type="file"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) uploadDynamicQuestionFile(q.questionId, file);
+                        e.target.value = '';
+                      }}
+                    />
+                    {answer.uploadStatus === 'reading' && <p className="sm muted">Uploading {answer.fileName}…</p>}
+                    {answer.uploadStatus === 'done' && <p className="sm muted">Uploaded: {answer.fileName}</p>}
+                    {answer.uploadStatus === 'error' && <p className="sm" style={{ color: 'var(--danger, #b03225)' }}>Could not upload — try again.</p>}
+                  </div>
                 )}
 
                 {q.questionType === 'single_choice' && q.isDropdown && (
@@ -170,12 +187,25 @@ const DynamicQuestionsSection = ({ state, readiness, setDynamicAnswer }) => {
                             <tr key={rowIndex}>
                               {q.columns.map((c) => (
                                 <td key={c.columnId} style={{ padding: '4px 6px', borderBottom: '1px solid var(--line, #dee4e6)' }}>
-                                  <input
-                                    type={c.columnType === 'number' ? 'number' : c.columnType === 'date' ? 'date' : 'text'}
-                                    value={row[String(c.columnId)] ?? ''}
-                                    onChange={(e) => setCell(q, rowIndex, String(c.columnId), e.target.value)}
-                                    style={{ minWidth: 120 }}
-                                  />
+                                  {c.columnType === 'dropdown' ? (
+                                    <select
+                                      value={row[String(c.columnId)] ?? ''}
+                                      onChange={(e) => setCell(q, rowIndex, String(c.columnId), e.target.value)}
+                                      style={{ minWidth: 120 }}
+                                    >
+                                      <option value="">—</option>
+                                      {(c.options ?? []).map((o) => (
+                                        <option key={o.optionId} value={o.label}>{o.label}</option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <input
+                                      type={c.columnType === 'number' ? 'number' : c.columnType === 'date' ? 'date' : 'text'}
+                                      value={row[String(c.columnId)] ?? ''}
+                                      onChange={(e) => setCell(q, rowIndex, String(c.columnId), e.target.value)}
+                                      style={{ minWidth: 120 }}
+                                    />
+                                  )}
                                 </td>
                               ))}
                               <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--line, #dee4e6)' }}>

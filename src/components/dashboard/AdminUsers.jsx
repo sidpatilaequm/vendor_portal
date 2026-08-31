@@ -315,7 +315,7 @@ const AdminUsers = () => {
               </div>
               <div className="custom-modal-footer gap-2">
                 <button type="button" className="btn btn-outline-secondary px-3 py-1 fw-semibold" onClick={() => setShowAddModal(false)} style={{ borderRadius: '8px', fontSize: '12px' }}>Cancel</button>
-                <Button type="submit" loading={saving} className="btn-success px-4" style={{ backgroundColor: '#064e3b', borderColor: '#064e3b', fontSize: '12px' }}>
+                <Button type="submit" loading={saving} className="btn-success px-4" style={{ backgroundColor: '#293383', borderColor: '#293383', fontSize: '12px' }}>
                   Save User
                 </Button>
               </div>

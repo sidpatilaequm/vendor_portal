@@ -12,6 +12,7 @@ const QUESTION_TYPES = [
   { value: 'multi_choice', name: 'Multiple choice', hint: 'Options, any number of which can be picked.', tag: 'MANY' },
   { value: 'counter', name: 'Counter', hint: 'A single whole number, optionally bounded.', tag: 'NUM' },
   { value: 'table', name: 'Table', hint: 'Columns you define, filled in row by row.', tag: 'GRID' },
+  { value: 'file_upload', name: 'File upload', hint: 'A single file the respondent uploads.', tag: 'FILE' },
 ];
 
 const CHOICE_DISPLAYS = [
@@ -23,6 +24,7 @@ const COLUMN_TYPES = [
   { value: 'text', name: 'Text', input: 'text' },
   { value: 'number', name: 'Number', input: 'number' },
   { value: 'date', name: 'Date', input: 'date' },
+  { value: 'dropdown', name: 'Dropdown', input: 'select' },
 ];
 
 const typeInfo = (v) => QUESTION_TYPES.find((t) => t.value === v) ?? QUESTION_TYPES[0];
@@ -36,6 +38,7 @@ const newColumn = (col = {}) => ({
   label: col.label ?? '',
   column_type: col.column_type ?? 'text',
   is_required: col.is_required ?? false,
+  options: col.options?.length ? col.options.map((o) => newOption(o.label)) : [newOption(), newOption()],
 });
 
 function draftFrom(question) {
@@ -46,6 +49,7 @@ function draftFrom(question) {
       is_dropdown: false, min_value: '', max_value: '', min_rows: '', max_rows: '',
       options: [newOption(), newOption()],
       columns: [newColumn(), newColumn()],
+      depends_on_question_id: '', depends_on_option_id: '',
     };
   }
   return {
@@ -63,6 +67,8 @@ function draftFrom(question) {
     max_rows: question.max_rows ?? '',
     options: question.options?.length ? question.options.map((o) => newOption(o.label)) : [newOption(), newOption()],
     columns: question.columns?.length ? question.columns.map((c) => newColumn(c)) : [newColumn(), newColumn()],
+    depends_on_question_id: question.depends_on_question_id ?? '',
+    depends_on_option_id: question.depends_on_option_id ?? '',
   };
 }
 
@@ -73,6 +79,11 @@ function checkDraft(draft, mandatoryBlocked) {
   if (mandatoryBlocked && draft.is_mandatory) {
     return "This process already has recorded responses, so a brand-new question can't be marked mandatory — existing respondents were never shown it and can't retroactively answer it. Add it as optional, or duplicate the process if this must be required going forward.";
   }
+  if (!!draft.depends_on_question_id !== !!draft.depends_on_option_id) {
+    return 'Pick both a question and an answer for the "show only if" condition, or clear both.';
+  }
+
+  if (draft.question_type === 'file_upload') return null;
 
   if (draft.question_type === 'table') {
     const headings = draft.columns.map((c) => c.label.trim()).filter(Boolean);
@@ -82,6 +93,13 @@ function checkDraft(draft, mandatoryBlocked) {
     const lo = draft.min_rows ? Number(draft.min_rows) : null;
     const hi = draft.max_rows ? Number(draft.max_rows) : null;
     if (lo && hi && lo > hi) return 'The fewest rows cannot be more than the most rows.';
+    for (const c of draft.columns) {
+      if (c.column_type !== 'dropdown') continue;
+      const optLabels = c.options.map((o) => o.label.trim()).filter(Boolean);
+      if (optLabels.length < 2) return `Dropdown column "${c.label.trim() || 'untitled'}" needs at least two options.`;
+      if (new Set(optLabels.map((l) => l.toLowerCase())).size !== optLabels.length)
+        return `Dropdown column "${c.label.trim() || 'untitled'}" has two options with the same label.`;
+    }
     return null;
   }
 
@@ -130,8 +148,15 @@ function draftToPayload(draft) {
     columns: isTable
       ? draft.columns
           .filter((c) => c.label.trim())
-          .map((c) => ({ label: c.label.trim(), column_type: c.column_type, is_required: !!c.is_required }))
+          .map((c) => ({
+            label: c.label.trim(),
+            column_type: c.column_type,
+            is_required: !!c.is_required,
+            options: c.column_type === 'dropdown' ? c.options.map((o) => ({ label: o.label.trim() })).filter((o) => o.label) : [],
+          }))
       : [],
+    depends_on_question_id: draft.depends_on_question_id ? Number(draft.depends_on_question_id) : null,
+    depends_on_option_id: draft.depends_on_option_id ? Number(draft.depends_on_option_id) : null,
   };
 }
 
@@ -139,6 +164,15 @@ const blankRow = (question) => Object.fromEntries(question.columns.map((c) => [S
 const startingRows = (question) =>
   Array.from({ length: Math.max(question.min_rows ?? 1, 1) }, () => blankRow(question));
 const filledRows = (rows) => rows.filter((row) => Object.values(row).some((v) => v.trim()));
+
+/** Same rule the backend enforces server-side (see check_shape/_question_is_visible) — a
+    question with no depends_on_question_id is always visible; otherwise only once the
+    respondent picked depends_on_option_id on that earlier question. */
+const isFillVisible = (question, answers) => {
+  if (!question.depends_on_question_id) return true;
+  const depAnswer = answers[question.depends_on_question_id];
+  return !!depAnswer && (depAnswer.options ?? []).includes(question.depends_on_option_id);
+};
 
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}` });
 
@@ -355,6 +389,26 @@ const QuestionnaireBuilder = ({ processId, onBack }) => {
     return { ...e, draft: { ...e.draft, columns: list } };
   });
 
+  // A dropdown column's own choice list — same shape as question-level options, just nested
+  // one level down under the column it belongs to.
+  const updateColumnOption = (colKey, optKey, label) => setEditing((e) => ({
+    ...e,
+    draft: {
+      ...e.draft,
+      columns: e.draft.columns.map((c) =>
+        c.key === colKey ? { ...c, options: c.options.map((o) => (o.key === optKey ? { ...o, label } : o)) } : c
+      ),
+    },
+  }));
+  const addColumnOption = (colKey) => setEditing((e) => ({
+    ...e,
+    draft: { ...e.draft, columns: e.draft.columns.map((c) => (c.key === colKey ? { ...c, options: [...c.options, newOption()] } : c)) },
+  }));
+  const removeColumnOption = (colKey, optKey) => setEditing((e) => ({
+    ...e,
+    draft: { ...e.draft, columns: e.draft.columns.map((c) => (c.key === colKey ? { ...c, options: c.options.filter((o) => o.key !== optKey) } : c)) },
+  }));
+
   // ---------------- fill-in ----------------
 
   const setFillText = (qid, text) => setFill((f) => ({ ...f, answers: { ...f.answers, [qid]: { ...f.answers[qid], text } } }));
@@ -511,6 +565,7 @@ const QuestionnaireBuilder = ({ processId, onBack }) => {
             setEditing={setEditing}
             updateDraftOption={updateDraftOption} addDraftOption={addDraftOption} removeDraftOption={removeDraftOption} moveDraftOption={moveDraftOption}
             updateDraftColumn={updateDraftColumn} addDraftColumn={addDraftColumn} removeDraftColumn={removeDraftColumn} moveDraftColumn={moveDraftColumn}
+            updateColumnOption={updateColumnOption} addColumnOption={addColumnOption} removeColumnOption={removeColumnOption}
           />
         )}
         {tab === 'fill' && (
@@ -540,6 +595,7 @@ const BuildTab = ({
   onDeleteQuestion, onMoveQuestion, onMoveQuestionToSection, setEditing,
   updateDraftOption, addDraftOption, removeDraftOption, moveDraftOption,
   updateDraftColumn, addDraftColumn, removeDraftColumn, moveDraftColumn,
+  updateColumnOption, addColumnOption, removeColumnOption,
 }) => (
   <div className="qs-stack">
     {locked && (
@@ -585,11 +641,14 @@ const BuildTab = ({
                   editing={editing} saving={saving} onCancel={onCancelEdit} onSave={onSaveQuestion} setEditing={setEditing}
                   updateDraftOption={updateDraftOption} addDraftOption={addDraftOption} removeDraftOption={removeDraftOption} moveDraftOption={moveDraftOption}
                   updateDraftColumn={updateDraftColumn} addDraftColumn={addDraftColumn} removeDraftColumn={removeDraftColumn} moveDraftColumn={moveDraftColumn}
+                  updateColumnOption={updateColumnOption} addColumnOption={addColumnOption} removeColumnOption={removeColumnOption}
+                  dependencyCandidates={process.sections.flatMap((s) => s.questions).filter((q) => q.question_type === 'single_choice' && q.id !== question.id)}
                 />
               ) : (
                 <QuestionCard
                   question={question} code={`S${sIndex + 1}·Q${qIndex + 1}`} section={section} qIndex={qIndex} locked={locked}
                   elsewhere={process.sections.filter((s) => s.id !== section.id)}
+                  dependsOnQuestion={process.sections.flatMap((s) => s.questions).find((q) => q.id === question.depends_on_question_id)}
                   onEdit={() => onStartEdit(section.id, question)}
                   onMoveUp={() => onMoveQuestion(section, question.id, -1)}
                   onMoveDown={() => onMoveQuestion(section, question.id, 1)}
@@ -606,6 +665,8 @@ const BuildTab = ({
             editing={editing} locked={locked} saving={saving} onCancel={onCancelEdit} onSave={onSaveQuestion} setEditing={setEditing}
             updateDraftOption={updateDraftOption} addDraftOption={addDraftOption} removeDraftOption={removeDraftOption} moveDraftOption={moveDraftOption}
             updateDraftColumn={updateDraftColumn} addDraftColumn={addDraftColumn} removeDraftColumn={removeDraftColumn} moveDraftColumn={moveDraftColumn}
+            updateColumnOption={updateColumnOption} addColumnOption={addColumnOption} removeColumnOption={removeColumnOption}
+            dependencyCandidates={process.sections.flatMap((s) => s.questions).filter((q) => q.question_type === 'single_choice')}
           />
         ) : (
           <button className="btn btn--dashed" onClick={() => onStartAdd(section.id)}>+ Add a question to {section.title}</button>
@@ -617,8 +678,9 @@ const BuildTab = ({
   </div>
 );
 
-const QuestionCard = ({ question: q, code, section, qIndex, locked, elsewhere, onEdit, onMoveUp, onMoveDown, onMoveToSection, onDelete }) => {
+const QuestionCard = ({ question: q, code, section, qIndex, locked, elsewhere, dependsOnQuestion, onEdit, onMoveUp, onMoveDown, onMoveToSection, onDelete }) => {
   const info = typeInfo(q.question_type);
+  const dependsOnOptionLabel = dependsOnQuestion?.options.find((o) => o.id === q.depends_on_option_id)?.label;
   let preview;
 
   if (q.question_type === 'short_text') {
@@ -697,6 +759,9 @@ const QuestionCard = ({ question: q, code, section, qIndex, locked, elsewhere, o
           <span className={`stamp ${q.is_mandatory ? '' : 'stamp--optional'}`}>{q.is_mandatory ? 'Required' : 'Optional'}</span>
         </div>
         {q.help_text && <p className="qs-muted">{q.help_text}</p>}
+        {dependsOnQuestion && (
+          <p className="qs-muted">Shown only if "{dependsOnQuestion.prompt}" is answered "{dependsOnOptionLabel ?? '—'}".</p>
+        )}
         {preview}
         {limits}
         <div className="q-actions">
@@ -720,6 +785,8 @@ const QuestionEditor = ({
   editing, locked, saving, onCancel, onSave, setEditing,
   updateDraftOption, addDraftOption, removeDraftOption, moveDraftOption,
   updateDraftColumn, addDraftColumn, removeDraftColumn, moveDraftColumn,
+  updateColumnOption, addColumnOption, removeColumnOption,
+  dependencyCandidates = [],
 }) => {
   const { draft, questionId, problem } = editing;
   const isTable = draft.question_type === 'table';
@@ -847,19 +914,37 @@ const QuestionEditor = ({
             <p className="qs-muted" style={{ marginBottom: 8 }}>Name each column and pick what it accepts. The respondent fills in one row at a time and adds as many rows as they need.</p>
             <ul className="column-editor">
               {draft.columns.map((column, index) => (
-                <li key={column.key}>
-                  <span className="qs-code">C{index + 1}</span>
-                  <input className="input" placeholder={`Column ${index + 1} heading`} value={column.label} onChange={(e) => updateDraftColumn(column.key, 'label', e.target.value)} />
-                  <select className="select select--tiny" aria-label={`Column ${index + 1} accepts`} value={column.column_type} onChange={(e) => updateDraftColumn(column.key, 'column_type', e.target.value)}>
-                    {COLUMN_TYPES.map((t) => <option key={t.value} value={t.value}>{t.name}</option>)}
-                  </select>
-                  <label className="inline-check" title="Every row must fill this column in">
-                    <input type="checkbox" checked={column.is_required} onChange={(e) => updateDraftColumn(column.key, 'is_required', e.target.checked)} />
-                    <span>Required</span>
-                  </label>
-                  <button className="icon-btn" title="Move left" disabled={index === 0} onClick={() => moveDraftColumn(column.key, -1)}>←</button>
-                  <button className="icon-btn" title="Move right" disabled={index === draft.columns.length - 1} onClick={() => moveDraftColumn(column.key, 1)}>→</button>
-                  <button className="icon-btn icon-btn--danger" title="Remove" disabled={draft.columns.length <= 1} onClick={() => removeDraftColumn(column.key)}>✕</button>
+                <li key={column.key} className={column.column_type === 'dropdown' ? 'column-editor__item--dropdown' : ''}>
+                  <div className="column-editor__row">
+                    <span className="qs-code">C{index + 1}</span>
+                    <input className="input" placeholder={`Column ${index + 1} heading`} value={column.label} onChange={(e) => updateDraftColumn(column.key, 'label', e.target.value)} />
+                    <select className="select select--tiny" aria-label={`Column ${index + 1} accepts`} value={column.column_type} onChange={(e) => updateDraftColumn(column.key, 'column_type', e.target.value)}>
+                      {COLUMN_TYPES.map((t) => <option key={t.value} value={t.value}>{t.name}</option>)}
+                    </select>
+                    <label className="inline-check" title="Every row must fill this column in">
+                      <input type="checkbox" checked={column.is_required} onChange={(e) => updateDraftColumn(column.key, 'is_required', e.target.checked)} />
+                      <span>Required</span>
+                    </label>
+                    <button className="icon-btn" title="Move left" disabled={index === 0} onClick={() => moveDraftColumn(column.key, -1)}>←</button>
+                    <button className="icon-btn" title="Move right" disabled={index === draft.columns.length - 1} onClick={() => moveDraftColumn(column.key, 1)}>→</button>
+                    <button className="icon-btn icon-btn--danger" title="Remove" disabled={draft.columns.length <= 1} onClick={() => removeDraftColumn(column.key)}>✕</button>
+                  </div>
+                  {column.column_type === 'dropdown' && (
+                    <ul className="option-editor option-editor--nested">
+                      {column.options.map((option, optIndex) => (
+                        <li key={option.key}>
+                          <span className="qs-code">{optIndex + 1}</span>
+                          <input className="input" placeholder={`Option ${optIndex + 1}`} value={option.label}
+                            onChange={(e) => updateColumnOption(column.key, option.key, e.target.value)} />
+                          <button className="icon-btn icon-btn--danger" title="Remove" disabled={column.options.length <= 2}
+                            onClick={() => removeColumnOption(column.key, option.key)}>✕</button>
+                        </li>
+                      ))}
+                      <li>
+                        <button className="btn btn--tiny" onClick={() => addColumnOption(column.key)}>+ Add option</button>
+                      </li>
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>
@@ -876,6 +961,33 @@ const QuestionEditor = ({
             </label>
           </div>
         </>
+      )}
+
+      {dependencyCandidates.length > 0 && (
+        <fieldset className="field" style={{ border: 0, padding: 0, margin: '0 0 12px' }}>
+          <legend className="label">Show only if</legend>
+          <p className="qs-muted" style={{ marginBottom: 8 }}>Optional. Hides this question unless the respondent picked a specific answer on an earlier single-choice question — it also won't be required even if marked Mandatory above, since a hidden question can't be answered.</p>
+          <div className="pair">
+            <label className="field field--narrow">
+              <span className="label">Question</span>
+              <select className="select" value={draft.depends_on_question_id}
+                onChange={(e) => setEditing((ed) => ({ ...ed, draft: { ...ed.draft, depends_on_question_id: e.target.value, depends_on_option_id: '' }, problem: null }))}>
+                <option value="">— Always shown —</option>
+                {dependencyCandidates.map((q) => <option key={q.id} value={q.id}>{q.prompt}</option>)}
+              </select>
+            </label>
+            {draft.depends_on_question_id && (
+              <label className="field field--narrow">
+                <span className="label">Answer</span>
+                <select className="select" value={draft.depends_on_option_id} onChange={(e) => setDraft('depends_on_option_id', e.target.value)}>
+                  <option value="">— Pick an answer —</option>
+                  {(dependencyCandidates.find((q) => String(q.id) === String(draft.depends_on_question_id))?.options ?? [])
+                    .map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                </select>
+              </label>
+            )}
+          </div>
+        </fieldset>
       )}
 
       {problem && <p className="qs-alert">{problem}</p>}
@@ -942,7 +1054,7 @@ const FillTab = ({ process, allQuestions, fill, saving, setFillText, setFillOne,
         </div>
       </div>
 
-      {process.sections.filter((s) => s.questions.length).map((section, sIndex) => (
+      {process.sections.map((s) => ({ ...s, questions: s.questions.filter((q) => isFillVisible(q, fill.answers)) })).filter((s) => s.questions.length).map((section, sIndex) => (
         <section key={section.id} className="section-block">
           <div className="section-tab">
             <span className="qs-code">S{sIndex + 1}</span>
@@ -968,7 +1080,12 @@ const FillTab = ({ process, allQuestions, fill, saving, setFillText, setFillOne,
 
       <div className="submit-row">
         <button className="btn btn--primary btn--lg" disabled={!collecting || saving} onClick={onSubmit}>{saving ? 'Submitting…' : 'Submit response'}</button>
-        <p className="qs-muted">{allQuestions.filter((q) => q.is_mandatory).length} of {allQuestions.length} questions are required.</p>
+        <p className="qs-muted">
+          {(() => {
+            const visible = allQuestions.filter((q) => isFillVisible(q, fill.answers));
+            return `${visible.filter((q) => q.is_mandatory).length} of ${visible.length} shown questions are required.`;
+          })()}
+        </p>
       </div>
     </div>
   );
@@ -987,6 +1104,16 @@ const FillQuestion = ({ question: q, sIndex, qIndex, answer, bad, setFillText, s
     );
   } else if (q.question_type === 'counter') {
     control = <input id={inputId} className="input" type="number" min={q.min_value ?? undefined} max={q.max_value ?? undefined} value={answer.text} onChange={(e) => setFillText(q.id, e.target.value)} />;
+  } else if (q.question_type === 'file_upload') {
+    // Form Studio itself has no file storage — the real vendor form uploads through
+    // backend_java's FolderIt-backed endpoint instead. This self-test simulates it with a
+    // filename, just enough to exercise the mandatory/conditional-visibility logic.
+    control = (
+      <>
+        <input id={inputId} className="input" placeholder="Type a filename to simulate uploading one" value={answer.text} onChange={(e) => setFillText(q.id, e.target.value)} />
+        <p className="qs-muted">Simulated — the real form uploads an actual file here.</p>
+      </>
+    );
   } else if (q.question_type === 'single_choice' && q.is_dropdown) {
     control = (
       <select id={inputId} className="select" value={answer.options[0] ?? ''} onChange={(e) => setFillOne(q.id, e.target.value)}>
@@ -1035,8 +1162,16 @@ const FillQuestion = ({ question: q, sIndex, qIndex, answer, bad, setFillText, s
                   <td className="data-grid__rownum">{rowIndex + 1}</td>
                   {q.columns.map((c) => (
                     <td key={c.id}>
-                      <input className="input input--cell" type={columnInfo(c.column_type).input} aria-label={`${c.label}, row ${rowIndex + 1}`}
-                        value={row[String(c.id)] ?? ''} onChange={(e) => setFillCell(q.id, rowIndex, String(c.id), e.target.value)} />
+                      {c.column_type === 'dropdown' ? (
+                        <select className="select select--tiny input--cell" aria-label={`${c.label}, row ${rowIndex + 1}`}
+                          value={row[String(c.id)] ?? ''} onChange={(e) => setFillCell(q.id, rowIndex, String(c.id), e.target.value)}>
+                          <option value="">—</option>
+                          {(c.options ?? []).map((o) => <option key={o.id} value={o.label}>{o.label}</option>)}
+                        </select>
+                      ) : (
+                        <input className="input input--cell" type={columnInfo(c.column_type).input} aria-label={`${c.label}, row ${rowIndex + 1}`}
+                          value={row[String(c.id)] ?? ''} onChange={(e) => setFillCell(q.id, rowIndex, String(c.id), e.target.value)} />
+                      )}
                     </td>
                   ))}
                   <td className="data-grid__rownum">

@@ -10,7 +10,7 @@ const DocumentsSection = ({ form }) => {
     <section className="sec" id="sec-docs">
       <div className="sh">
         <h2>Your documents</h2>
-        <span className="n">01</span>
+        <span className="n">02</span>
       </div>
       <p className="sdesc">
         Upload a document and its details appear underneath it, read automatically. Check each one against the

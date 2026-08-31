@@ -1,20 +1,20 @@
 .gate-entry-container {
-  --steel: #064e3b;
-  --steel-2: #059669;
-  --steel-3: #ecfdf5;
+  --steel: #293383;
+  --steel-2: #4955B6;
+  --steel-3: #EEF0FB;
   --ink: #0F172A;
   --mute: #5A6B80;
   --line: #CBD6E2;
   --paper: #F2F5F9;
   --card: #FFFFFF;
-  --ok: #15803D;
-  --ok-bg: #E7F5EC;
-  --warn: #B45309;
-  --warn-bg: #FDF3E3;
-  --bad: #B91C1C;
-  --bad-bg: #FCEBEB;
+  --ok: #0E7C86;
+  --ok-bg: #E3FBFC;
+  --warn: #8B4B4D;
+  --warn-bg: #FBEEEE;
+  --bad: #C81017;
+  --bad-bg: #FDECEB;
 
-  font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  font-family: "Poppins", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
   background: var(--paper);
   color: var(--ink);
   font-size: 16px;
@@ -188,6 +188,7 @@
 }
 
 .gate-entry-container .card>h2 {
+  font-family: "Inter", sans-serif;
   margin: 0;
   padding: 14px 18px;
   border-bottom: 1px solid var(--line);

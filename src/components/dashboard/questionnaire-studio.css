@@ -12,17 +12,18 @@
   --ink-soft: #5c6e7e;
   --rule: #c6d3dd;
   --rule-soft: #dde5ec;
-  --blue: #10508c;
-  --blue-deep: #0b3a68;
-  --blue-wash: #e3eef9;
-  --stamp: #b03225;
-  --stamp-wash: #fae9e6;
-  --amber: #7d6413;
-  --amber-wash: #f7efd8;
-  --green: #1c6047;
-  --green-wash: #dfefe8;
+  --blue: #293383;
+  --blue-deep: #0f172a;
+  --blue-wash: #eef0fb;
+  --stamp: #c81017;
+  --stamp-wash: #fdeceb;
+  --amber: #8b4b4d;
+  --amber-wash: #fbeeee;
+  --green: #0e7c86;
+  --green-wash: #e3fbfc;
 
-  --qs-body: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --qs-body: 'Poppins', system-ui, -apple-system, sans-serif;
+  --qs-heading: 'Inter', system-ui, -apple-system, sans-serif;
   --qs-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
 
   --radius: 3px;
@@ -86,7 +87,7 @@
   border: 1px dashed var(--rule); border-radius: var(--radius); padding: 28px;
   text-align: center; background: rgba(255,255,255,.5);
 }
-.qstudio .qs-empty__title { font-weight: 600; margin: 0 0 4px; }
+.qstudio .qs-empty__title { font-family: var(--qs-heading); font-weight: 600; margin: 0 0 4px; }
 .qstudio .qs-alert {
   background: var(--stamp-wash); border-left: 3px solid var(--stamp);
   padding: 9px 12px; border-radius: var(--radius); font-size: 14px; margin: 0;
@@ -96,7 +97,7 @@
   background: var(--amber-wash); border-left: 3px solid var(--amber);
   padding: 12px 14px; border-radius: var(--radius);
 }
-.qstudio .qs-banner__title { font-weight: 600; margin: 0 0 2px; }
+.qstudio .qs-banner__title { font-family: var(--qs-heading); font-weight: 600; margin: 0 0 2px; }
 
 /* ---------------- buttons ---------------- */
 .qstudio .btn {
@@ -156,7 +157,7 @@
 /* ---------------- workspace ---------------- */
 .qstudio .workspace-head { display: flex; flex-direction: column; gap: 6px; }
 .qstudio .title-input {
-  font: inherit; font-size: 27px; font-weight: 700; letter-spacing: -.02em; color: var(--ink);
+  font: inherit; font-family: var(--qs-heading); font-size: 27px; font-weight: 700; letter-spacing: -.02em; color: var(--ink);
   border: 1px solid transparent; background: transparent; border-radius: var(--radius);
   padding: 2px 6px; margin-left: -6px; width: 100%;
 }
@@ -191,7 +192,7 @@
 }
 .qstudio .section-tab { display: flex; align-items: center; gap: 10px; }
 .qstudio .section-title {
-  font: inherit; font-size: 17px; font-weight: 700; color: var(--ink); flex: 1;
+  font: inherit; font-family: var(--qs-heading); font-size: 17px; font-weight: 700; color: var(--ink); flex: 1;
   border: 1px solid transparent; background: transparent; border-radius: var(--radius); padding: 3px 6px;
 }
 .qstudio .section-title:hover { border-color: var(--rule-soft); }
@@ -244,10 +245,12 @@
 .qstudio .type-option__hint { grid-area: hint; font-size: 12.5px; color: var(--ink-soft); }
 .qstudio .option-editor, .qstudio .column-editor { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .qstudio .option-editor li { display: flex; align-items: center; gap: 8px; }
-.qstudio .column-editor li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.qstudio .column-editor li .input { flex: 1 1 180px; min-width: 140px; }
+.qstudio .column-editor__row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.qstudio .column-editor__row .input { flex: 1 1 180px; min-width: 140px; }
 .qstudio .option-editor .qs-code { width: 16px; text-align: right; flex: none; }
 .qstudio .column-editor .qs-code { width: 24px; text-align: right; flex: none; }
+.qstudio .option-editor--nested { margin: 6px 0 0 32px; padding-left: 12px; border-left: 2px solid var(--line-soft, #e7ecea); }
+.qstudio .option-editor--nested .qs-code { width: 16px; }
 .qstudio .inline-check {
   display: flex; align-items: center; gap: 6px; flex: none;
   font-size: 13px; color: var(--ink-soft); cursor: pointer; white-space: nowrap;

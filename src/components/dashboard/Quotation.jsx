@@ -373,7 +373,7 @@ const Quotation = ({ onBack, onNavigate }) => {
         {isVendorUser ? (
           <>
             <div className="text-start">
-              <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#064e3b' }}>My Quotations</h4>
+              <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#293383' }}>My Quotations</h4>
               {/* <p className="text-muted mb-0 small">Create, edit and track all your quotations — with or without a PR reference</p> */}
             </div>
             <div className="d-flex gap-2">
@@ -409,7 +409,7 @@ const Quotation = ({ onBack, onNavigate }) => {
         ) : (
           <>
             <div className="text-start">
-              <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#064e3b' }}>Manage Quotations</h4>
+              <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#293383' }}>Manage Quotations</h4>
               <p className="text-muted mb-0 small">Review, compare and award vendor quotations submitted against purchase requisitions</p>
             </div>
             <div className="d-flex gap-2">
@@ -483,7 +483,7 @@ const Quotation = ({ onBack, onNavigate }) => {
         <div className="col-md col-6">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body p-3 text-start">
-              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#d97706' }}>Draft</p>
+              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#8B4B4D' }}>Draft</p>
               <h3 className="fw-bold text-warning mb-0">{draftCount}</h3>
               <p className="text-muted small mb-0">Not yet submitted</p>
             </div>
@@ -492,7 +492,7 @@ const Quotation = ({ onBack, onNavigate }) => {
         <div className="col-md col-6">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body p-3 text-start">
-              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#0284c7' }}>Submitted</p>
+              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#293383' }}>Submitted</p>
               <h3 className="fw-bold text-info mb-0">{submittedCount}</h3>
               <p className="text-muted small mb-0">Awaiting buyer</p>
             </div>
@@ -501,7 +501,7 @@ const Quotation = ({ onBack, onNavigate }) => {
         <div className="col-md col-6">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body p-3 text-start">
-              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#16a34a' }}>Awarded</p>
+              <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px', color: '#0E7C86' }}>Awarded</p>
               <h3 className="fw-bold text-success mb-0">{awardedCount}</h3>
               <p className="text-muted small mb-0">Won</p>
             </div>
@@ -511,7 +511,7 @@ const Quotation = ({ onBack, onNavigate }) => {
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body p-3 text-start">
               <p className="text-muted text-uppercase fw-bold mb-2" style={{ fontSize: '11px' }}>Total Value</p>
-              <h3 className="fw-bold mb-0" style={{ color: '#0f766e' }}>₹ {totalValue.toLocaleString('en-IN')}</h3>
+              <h3 className="fw-bold mb-0" style={{ color: '#293383' }}>₹ {totalValue.toLocaleString('en-IN')}</h3>
               <p className="text-muted small mb-0">Submitted & Awarded</p>
             </div>
           </div>

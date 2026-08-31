@@ -97,7 +97,7 @@ export default function QuoteComparison({ onBack, initialPrNumber }) {
   };
 
   return (
-    <div className="container-fluid py-4" style={{ fontFamily: "'Inter', sans-serif", backgroundColor: '#fafafa', minHeight: '100vh' }}>
+    <div className="container-fluid py-4" style={{ fontFamily: "'Poppins', sans-serif", backgroundColor: '#fafafa', minHeight: '100vh' }}>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div className="d-flex align-items-center gap-3">
           <button className="btn btn-sm btn-light border shadow-sm rounded-circle d-flex align-items-center justify-content-center" onClick={onBack} style={{ width: '36px', height: '36px' }}>

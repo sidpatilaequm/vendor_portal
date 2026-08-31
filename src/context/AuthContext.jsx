@@ -26,6 +26,33 @@ export const AuthProvider = ({ children }) => {
 
   const clearAlert = () => setAlert(null);
 
+  // Shared by every way a session can start (password login, Microsoft SSO callback, ...): writes
+  // the token/user blob to localStorage + state, and computes which dashboard it belongs on. The
+  // role -> route mapping is computed here rather than trusted from the server, since the server
+  // can't know in advance which of those routing buckets the caller's UI will land them in — kept
+  // in one place so a new sign-in path can't drift from RouteGuards'/the "*" fallback's own
+  // categorization in App.jsx.
+  const applySession = (data) => {
+    const userData = {
+      ...data,
+      role: data.role || data.authName || 'EMPLOYEE'
+    };
+
+    localStorage.setItem('auth_token', data.token);
+    setAuthToken(data.token);
+    localStorage.setItem('user_data', JSON.stringify(userData));
+    setCurrentUser(userData);
+
+    const role = String(userData.role).toUpperCase();
+    const redirectUrl = role === 'VENDOR'
+      ? '/vendor/dashboard'
+      : (role === 'EMPLOYEE' || role === 'PURCHASE_DEPT')
+        ? '/employee/dashboard'
+        : '/admin/dashboard';
+
+    return redirectUrl;
+  };
+
   // Role comes back from the credentials themselves (data.authName, via the super_admin ->
   // user_details/user_authentication/authorization lookup chain AuthController.login already
   // does server-side) — there's no separate "which kind of account" choice for the caller to
@@ -44,29 +71,7 @@ export const AuthProvider = ({ children }) => {
 
       const data = response.data;
       if (response.status === 200 && data.token) {
-        let userData = {
-          ...data,
-          role: data.role || data.authName || 'EMPLOYEE'
-        };
-
-        if (data.token) {
-          localStorage.setItem('auth_token', data.token);
-          setAuthToken(data.token);
-        }
-
-        localStorage.setItem('user_data', JSON.stringify(userData));
-        setCurrentUser(userData);
-
-        // Matches RouteGuards'/the "*" fallback route's own role categorization in App.jsx —
-        // computed here rather than trusted from the server, since the server can't know
-        // in advance which of those routing buckets the caller's UI will land them in.
-        const role = String(userData.role).toUpperCase();
-        const redirectUrl = role === 'VENDOR'
-          ? '/vendor/dashboard'
-          : (role === 'EMPLOYEE' || role === 'PURCHASE_DEPT')
-            ? '/employee/dashboard'
-            : '/admin/dashboard';
-
+        const redirectUrl = applySession(data);
         showAlert('Login successful! Redirecting...', 'success');
         return { success: true, redirectUrl };
       } else {
@@ -77,6 +82,32 @@ export const AuthProvider = ({ children }) => {
       console.error(err);
       const errMsg = err.response?.data?.error || 'Could not connect to the authentication server.';
       showAlert(errMsg, 'danger');
+      return { success: false };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Lands here after the Microsoft SSO redirect round trip (see SsoCallback.jsx) — the backend
+  // already turned "signed in with Microsoft" into a plain JWT for an existing account, this just
+  // needs to trade that token for the same rich session payload /api/auth/login/ would have
+  // returned, via /api/users/session (JwtRequestFilter already accepts the bearer token; that
+  // endpoint just echoes back who it belongs to, same shape as a password login).
+  const loginWithToken = async (token) => {
+    setLoading(true);
+    setAlert(null);
+    try {
+      const response = await axios.get('/api/users/session', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // /session mints its own fresh token for the same account rather than echoing the one
+      // passed in — response.data.token is that one, already the right shape for applySession.
+      const redirectUrl = applySession(response.data);
+      showAlert('Signed in with Microsoft. Redirecting...', 'success');
+      return { success: true, redirectUrl };
+    } catch (err) {
+      console.error(err);
+      showAlert('Could not complete Microsoft sign-in.', 'danger');
       return { success: false };
     } finally {
       setLoading(false);
@@ -151,6 +182,7 @@ export const AuthProvider = ({ children }) => {
       showAlert,
       clearAlert,
       login,
+      loginWithToken,
       registerRequest,
       logout
     }}>

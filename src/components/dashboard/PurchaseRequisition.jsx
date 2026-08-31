@@ -798,7 +798,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
           {userRole !== 'VENDOR' && mode !== 'rfq' && (
             <button
               className="btn btn-success px-4 fw-medium d-flex align-items-center justify-content-center gap-2 shadow-sm"
-              style={{ backgroundColor: '#064e3b', borderColor: '#064e3b', borderRadius: '8px', whiteSpace: 'nowrap' }}
+              style={{ backgroundColor: '#293383', borderColor: '#293383', borderRadius: '8px', whiteSpace: 'nowrap' }}
               onClick={() => {
                 fetchCreateOptions();
                 setShowCreateModal(true);
@@ -1264,7 +1264,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
                 <button
                   type="submit"
                   className="btn btn-success px-4 fw-bold text-white animate-hover"
-                  style={{ backgroundColor: '#064e3b', borderColor: '#064e3b', borderRadius: '6px' }}
+                  style={{ backgroundColor: '#293383', borderColor: '#293383', borderRadius: '6px' }}
                   disabled={createLoading}
                 >
                   {createLoading ? 'Submitting...' : 'Submit PR'}
@@ -1379,7 +1379,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
               </button>
               <button
                 className="btn btn-success fw-bold px-4 py-2 d-flex align-items-center gap-2"
-                style={{ backgroundColor: '#064e3b', borderColor: '#064e3b', borderRadius: '8px', fontSize: '13px' }}
+                style={{ backgroundColor: '#293383', borderColor: '#293383', borderRadius: '8px', fontSize: '13px' }}
                 disabled={extractionLoading}
                 onClick={handleExtractInvoice}
               >
@@ -1695,7 +1695,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
                     </div>
                     <div className="d-flex justify-content-between align-items-center pt-2 border-top border-light-subtle">
                       <span className="fw-bold text-dark" style={{ fontSize: '13px' }}>Grand Total</span>
-                      <span className="fw-bold fs-5" style={{ color: '#059669' }}>{formatCurrencyVal(extractedData.grandTotal)}</span>
+                      <span className="fw-bold fs-5" style={{ color: '#0E7C86' }}>{formatCurrencyVal(extractedData.grandTotal)}</span>
                     </div>
                   </div>
                 </div>
@@ -1733,7 +1733,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
               </button>
               <button
                 className="btn btn-success fw-bold px-4 py-2 d-flex align-items-center gap-2"
-                style={{ backgroundColor: '#064e3b', borderColor: '#064e3b', borderRadius: '8px', fontSize: '13px' }}
+                style={{ backgroundColor: '#293383', borderColor: '#293383', borderRadius: '8px', fontSize: '13px' }}
                 onClick={handleSaveInvoice}
                 disabled={loading}
               >
@@ -1751,7 +1751,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
           position: 'fixed',
           bottom: '24px',
           right: '24px',
-          backgroundColor: '#064e3b',
+          backgroundColor: '#293383',
           color: '#ffffff',
           padding: '12px 24px',
           borderRadius: '8px',
@@ -1764,7 +1764,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
           fontSize: '14px',
           fontWeight: '500'
         }}>
-          <i className="fas fa-check-circle fs-5" style={{ color: '#34d399' }}></i>
+          <i className="fas fa-check-circle fs-5" style={{ color: '#0E7C86' }}></i>
           {toastMessage}
         </div>
       )}

@@ -1,59 +1,59 @@
 /* Dashboard layout & Sidebar styling */
 .active-tab-style {
-  background-color: #ecfdf5 !important;
-  color: #064e3b !important;
+  background-color: #eef0fb !important;
+  color: #293383 !important;
   font-weight: 500 !important;
 }
 
 .hover-tab-style:hover {
   background-color: #f8fafc !important;
-  color: #064e3b !important;
+  color: #293383 !important;
 }
 
 .text-emerald {
-  color: #064e3b !important;
+  color: #293383 !important;
 }
 
 /* Soft status badges */
 .bg-soft-success {
-  background-color: #f0fdf4 !important;
-  color: #16a34a !important;
+  background-color: #e3fbfc !important;
+  color: #0e7c86 !important;
 }
 
 .bg-soft-warning {
-  background-color: #fffbeb !important;
-  color: #d97706 !important;
+  background-color: #fbeeee !important;
+  color: #8b4b4d !important;
 }
 
 .bg-soft-info {
-  background-color: #f0f9ff !important;
-  color: #0284c7 !important;
+  background-color: #eef0fb !important;
+  color: #293383 !important;
 }
 
 .bg-soft-danger {
-  background-color: #fef2f2 !important;
-  color: #dc2626 !important;
+  background-color: #fdeceb !important;
+  color: #c81017 !important;
 }
 
 .bg-soft-secondary {
-  background-color: #f8fafc !important;
-  color: #475569 !important;
+  background-color: #f2f2f2 !important;
+  color: #5b6265 !important;
 }
 
 .text-success {
-  color: #16a34a !important;
+  color: #0e7c86 !important;
 }
 
 .text-warning {
-  color: #d97706 !important;
+  color: #8b4b4d !important;
 }
 
 .text-info {
-  color: #0284c7 !important;
+  color: #293383 !important;
 }
 
 .text-danger {
-  color: #dc2626 !important;
+  color: #c81017 !important;
 }
 
 .pr-item-hover {
@@ -62,9 +62,9 @@
 }
 
 .pr-item-hover:hover {
-  background-color: rgba(114, 124, 245, 0.05) !important;
+  background-color: rgba(73, 85, 182, 0.05) !important;
   transform: translateX(5px);
-  border-left: 4px solid #727cf5 !important;
+  border-left: 4px solid #4955b6 !important;
 }
 
 /* Table styling fixes */

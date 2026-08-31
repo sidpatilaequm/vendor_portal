@@ -96,7 +96,7 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
             </h3>
 
             <div className="border border-light-subtle rounded overflow-hidden shadow-sm">
-              <div className="p-3 d-flex align-items-center justify-content-center gap-2" style={{ backgroundColor: '#e2ece9', color: '#064e3b' }}>
+              <div className="p-3 d-flex align-items-center justify-content-center gap-2" style={{ backgroundColor: '#EEF0FB', color: '#293383' }}>
                 <i className="fas fa-user-shield fs-5"></i>
                 <span className="fw-bold">
                   System Administrator Profile

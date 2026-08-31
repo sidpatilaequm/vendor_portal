@@ -17,7 +17,7 @@ const OnFileSection = ({ state, readiness }) => {
     <section className="sec" id="sec-file">
       <div className="sh">
         <h2>On file</h2>
-        <span className="n">03</span>
+        <span className="n">04</span>
       </div>
       <p className="sdesc">Everything you have uploaded, kept with this draft until you submit. Open any of them here.</p>
 
@@ -72,7 +72,7 @@ const OnFileSection = ({ state, readiness }) => {
         </>
       )}
 
-      <h3 style={{ fontFamily: "'Fraunces',serif", fontSize: 16, fontWeight: 600, margin: '20px 0 8px' }}>Cross-checks</h3>
+      <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, margin: '20px 0 8px' }}>Cross-checks</h3>
       <div className="xcheck">
         {readiness.crossChecks.length === 0 ? (
           <div className="muted">Nothing to compare yet.</div>

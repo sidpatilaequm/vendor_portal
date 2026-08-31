@@ -57,6 +57,13 @@ function AnswerEditor({ question, initialAnswer, value, onChange }) {
     );
   }
 
+  if (question.questionType === 'file_upload') {
+    // Re-uploading a replacement file isn't wired up in this flow yet — contact support is the
+    // honest answer for now rather than silently rendering nothing (the fallback below) or
+    // pretending a text field can stand in for a file.
+    return <p className="qs-muted">Changing an uploaded file isn't supported here yet — contact support to replace this document.</p>;
+  }
+
   if (question.questionType === 'single_choice' || question.questionType === 'multi_choice') {
     const inputType = question.questionType === 'single_choice' ? 'radio' : 'checkbox';
     return (
@@ -92,12 +99,25 @@ function AnswerEditor({ question, initialAnswer, value, onChange }) {
                 <tr key={rowIndex}>
                   {question.columns.map((c) => (
                     <td key={c.columnId}>
-                      <input
-                        className="input input--cell"
-                        type={c.columnType === 'number' ? 'number' : c.columnType === 'date' ? 'date' : 'text'}
-                        value={row[String(c.columnId)] ?? ''}
-                        onChange={(e) => setCell(rowIndex, String(c.columnId), e.target.value)}
-                      />
+                      {c.columnType === 'dropdown' ? (
+                        <select
+                          className="input input--cell"
+                          value={row[String(c.columnId)] ?? ''}
+                          onChange={(e) => setCell(rowIndex, String(c.columnId), e.target.value)}
+                        >
+                          <option value="">—</option>
+                          {(c.options ?? []).map((o) => (
+                            <option key={o.optionId} value={o.label}>{o.label}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          className="input input--cell"
+                          type={c.columnType === 'number' ? 'number' : c.columnType === 'date' ? 'date' : 'text'}
+                          value={row[String(c.columnId)] ?? ''}
+                          onChange={(e) => setCell(rowIndex, String(c.columnId), e.target.value)}
+                        />
+                      )}
                     </td>
                   ))}
                   <td>

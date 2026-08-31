@@ -456,7 +456,7 @@ const AdminVendors = ({ onBack }) => {
               <button 
                 className="btn btn-success px-4 fw-bold shadow-sm" 
                 onClick={() => handleVerifyKyc('APPROVED')}
-                style={{ backgroundColor: '#064e3b', borderColor: '#064e3b', borderRadius: '8px', fontSize: '12px' }}
+                style={{ backgroundColor: '#293383', borderColor: '#293383', borderRadius: '8px', fontSize: '12px' }}
               >
                 Approve & Activate
               </button>
@@ -555,6 +555,15 @@ function VendorFullProfile({ detail }) {
         <Field label="ISO 9001 — Certificate No." value={reg.isoCertificateNo} mono />
         <Field label="ISO 9001 — Certifying Body" value={reg.isoCertifyingBody} />
         <Field label="ISO 9001 — Valid To" value={reg.isoExpiry} />
+        <Field label="ISO 14001 — Certificate No." value={reg.iso14001CertificateNo} mono />
+        <Field label="ISO 14001 — Certifying Body" value={reg.iso14001CertifyingBody} />
+        <Field label="ISO 14001 — Valid To" value={reg.iso14001Expiry} />
+        <Field label="ISO 45001 — Certificate No." value={reg.iso45001CertificateNo} mono />
+        <Field label="ISO 45001 — Certifying Body" value={reg.iso45001CertifyingBody} />
+        <Field label="ISO 45001 — Valid To" value={reg.iso45001Expiry} />
+        <Field label="ISO 27001 — Certificate No." value={reg.iso27001CertificateNo} mono />
+        <Field label="ISO 27001 — Certifying Body" value={reg.iso27001CertifyingBody} />
+        <Field label="ISO 27001 — Valid To" value={reg.iso27001Expiry} />
         <Field label="AS9100D — Certificate No." value={reg.as9100dCertificateNo} mono />
         <Field label="AS9100D — Certifying Body" value={reg.as9100dCertifyingBody} />
         <Field label="AS9100D — Valid To" value={reg.as9100dExpiry} />

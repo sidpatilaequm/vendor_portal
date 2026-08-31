@@ -80,8 +80,8 @@ export default function OnboardingComplianceDashboard({ onBack }) {
   );
 
   const complianceData = [
-    { name: 'Compliant', value: data.compliance_percentage, color: '#10b981' },
-    { name: 'Non-Compliant', value: 100 - data.compliance_percentage, color: '#ef4444' }
+    { name: 'Compliant', value: data.compliance_percentage, color: '#0E7C86' },
+    { name: 'Non-Compliant', value: 100 - data.compliance_percentage, color: '#C81017' }
   ];
 
   const extendedCoverage = [
@@ -107,7 +107,7 @@ export default function OnboardingComplianceDashboard({ onBack }) {
       ];
 
   return (
-    <div className="container-fluid py-4 fade-in-slide" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Inter", sans-serif' }}>
+    <div className="container-fluid py-4 fade-in-slide" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
       {onBack && (
         <div 
           onClick={onBack} 
@@ -250,7 +250,7 @@ export default function OnboardingComplianceDashboard({ onBack }) {
                         <div 
                           className={`progress-bar rounded-pill ${item.value >= 90 ? 'bg-success' : item.value >= 70 ? 'bg-warning' : 'bg-danger'}`} 
                           role="progressbar" 
-                          style={{width: `${item.value}%`, backgroundColor: item.value >= 90 ? '#10b981' : undefined}}
+                          style={{width: `${item.value}%`, backgroundColor: item.value >= 90 ? '#0E7C86' : undefined}}
                         ></div>
                       </div>
                       <button 
@@ -335,11 +335,11 @@ export default function OnboardingComplianceDashboard({ onBack }) {
 
               <div className="text-start mt-2">
                 <div className="d-flex justify-content-between small mb-2 align-items-center">
-                  <span><i className="fas fa-circle text-success me-2" style={{fontSize:'10px', color: '#10b981'}}></i> Fully compliant</span>
+                  <span><i className="fas fa-circle text-success me-2" style={{fontSize:'10px', color: '#0E7C86'}}></i> Fully compliant</span>
                   <span className="fw-bold text-dark">{data.fully_compliant} <span className="text-muted fw-normal ms-1">({data.compliance_percentage}%)</span></span>
                 </div>
                 <div className="d-flex justify-content-between small align-items-center">
-                  <span><i className="fas fa-circle text-danger me-2" style={{fontSize:'10px', color: '#ef4444'}}></i> Non-compliant</span>
+                  <span><i className="fas fa-circle text-danger me-2" style={{fontSize:'10px', color: '#C81017'}}></i> Non-compliant</span>
                   <span className="fw-bold text-dark">{data.total - data.fully_compliant} <span className="text-muted fw-normal ms-1">({100 - data.compliance_percentage}%)</span></span>
                 </div>
               </div>
@@ -359,7 +359,7 @@ export default function OnboardingComplianceDashboard({ onBack }) {
                     </div>
                     {doc.count > 0 && (
                       <div className="progress rounded-pill bg-light" style={{height: '6px'}}>
-                        <div className="progress-bar bg-danger rounded-pill" role="progressbar" style={{width: `${(doc.count/Math.max(data.total, 1))*100}%`, backgroundColor: '#ef4444'}}></div>
+                        <div className="progress-bar bg-danger rounded-pill" role="progressbar" style={{width: `${(doc.count/Math.max(data.total, 1))*100}%`, backgroundColor: '#C81017'}}></div>
                       </div>
                     )}
                   </div>

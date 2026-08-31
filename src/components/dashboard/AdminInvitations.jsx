@@ -130,14 +130,14 @@ const AdminInvitations = () => {
             <button 
               className={`btn btn-sm border-0 px-3 fw-bold ${activeSubTab === 'list' ? 'bg-success text-white' : 'text-dark'}`}
               onClick={() => setActiveSubTab('list')}
-              style={activeSubTab === 'list' ? { backgroundColor: '#064e3b', color: '#fff' } : {}}
+              style={activeSubTab === 'list' ? { backgroundColor: '#293383', color: '#fff' } : {}}
             >
               Manage Invitations
             </button>
             <button 
               className={`btn btn-sm border-0 px-3 fw-bold ${activeSubTab === 'create' ? 'bg-success text-white' : 'text-dark'}`}
               onClick={() => setActiveSubTab('create')}
-              style={activeSubTab === 'create' ? { backgroundColor: '#064e3b', color: '#fff' } : {}}
+              style={activeSubTab === 'create' ? { backgroundColor: '#293383', color: '#fff' } : {}}
             >
               Create Invitation
             </button>
@@ -317,7 +317,7 @@ const AdminInvitations = () => {
                       className="btn btn-success px-3 fw-bold" 
                       type="button" 
                       onClick={() => handleCopyLink(generatedLink)}
-                      style={{ backgroundColor: '#064e3b', borderColor: '#064e3b' }}
+                      style={{ backgroundColor: '#293383', borderColor: '#293383' }}
                     >
                       <i className="far fa-copy"></i> Copy Link
                     </button>

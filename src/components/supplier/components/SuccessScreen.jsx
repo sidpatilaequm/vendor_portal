@@ -14,7 +14,7 @@ const SuccessScreen = ({ submission }) => (
       procurement team. Nothing was retyped along the way, so what finance verifies is exactly what your
       certificates say.
     </p>
-    <h3 style={{ fontFamily: "'Fraunces',serif", fontSize: 16, fontWeight: 600, margin: '18px 0 8px' }}>
+    <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 600, margin: '18px 0 8px' }}>
       Released with this submission
     </h3>
     <table>

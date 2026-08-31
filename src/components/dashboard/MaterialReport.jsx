@@ -92,7 +92,7 @@ export default function MaterialReport({ onBack }) {
   const num = (val) => val != null ? val.toLocaleString('en-IN') : '—';
 
   return (
-    <div className="p-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Inter", sans-serif' }}>
+    <div className="p-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
       {/* Header */}
       {onBack && (
         <div

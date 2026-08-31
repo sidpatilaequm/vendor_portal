@@ -344,7 +344,7 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
             {currentStep === 4 ? (
               <button 
                 className="btn btn-dark shadow-sm px-4 fw-bold" 
-                style={{ borderRadius: '6px', backgroundColor: '#064e3b' }}
+                style={{ borderRadius: '6px', backgroundColor: '#293383' }}
                 disabled={submitting}
                 onClick={() => handleSubmit(false)}
               >
@@ -1065,7 +1065,7 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
               </button>
               <button 
                 className="btn btn-dark btn-sm px-4 fw-bold" 
-                style={{ borderRadius: '6px', backgroundColor: '#064e3b', borderColor: '#064e3b' }}
+                style={{ borderRadius: '6px', backgroundColor: '#293383', borderColor: '#293383' }}
                 disabled={submitting}
                 onClick={() => handleSubmit(false)}
               >
@@ -1175,7 +1175,7 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
             </div>
           </div>
 
-          <div className="alert alert-soft-success border-0 d-flex align-items-center mb-5" style={{ backgroundColor: '#ecfdf5', color: '#065f46' }}>
+          <div className="alert alert-soft-success border-0 d-flex align-items-center mb-5" style={{ backgroundColor: '#E3FBFC', color: '#0E7C86' }}>
             <i className="fas fa-check-circle me-2 fs-5"></i>
             <div className="small text-start">
               By submitting, you confirm that all prices, quantities, and terms in this quotation are accurate and commercially binding for the validity period.

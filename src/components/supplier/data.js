@@ -59,6 +59,39 @@ export const DOCS = [
     ],
   },
   {
+    id: 'iso14001',
+    name: 'ISO 14001 certificate',
+    req: false,
+    gives: 'Certificate number and expiry',
+    fields: [
+      { k: 'iso14001No', label: 'Certificate number', req: true, mono: true },
+      { k: 'iso14001Body', label: 'Certifying body', req: true },
+      { k: 'iso14001Expiry', label: 'Valid to', req: true, type: 'date', expiry: true },
+    ],
+  },
+  {
+    id: 'iso45001',
+    name: 'ISO 45001 certificate',
+    req: false,
+    gives: 'Certificate number and expiry',
+    fields: [
+      { k: 'iso45001No', label: 'Certificate number', req: true, mono: true },
+      { k: 'iso45001Body', label: 'Certifying body', req: true },
+      { k: 'iso45001Expiry', label: 'Valid to', req: true, type: 'date', expiry: true },
+    ],
+  },
+  {
+    id: 'iso27001',
+    name: 'ISO 27001 certificate',
+    req: false,
+    gives: 'Certificate number and expiry',
+    fields: [
+      { k: 'iso27001No', label: 'Certificate number', req: true, mono: true },
+      { k: 'iso27001Body', label: 'Certifying body', req: true },
+      { k: 'iso27001Expiry', label: 'Valid to', req: true, type: 'date', expiry: true },
+    ],
+  },
+  {
     id: 'as',
     name: 'AS9100D certificate',
     req: false,
@@ -156,10 +189,10 @@ export const REVIEW_FLOW = [
 ];
 
 export const SECTIONS = [
+  { id: 'sec-you', name: 'Only you can answer' },
   { id: 'sec-docs', name: 'Documents and details' },
   { id: 'sec-other', name: 'Other documents' },
   { id: 'sec-file', name: 'On file' },
-  { id: 'sec-you', name: 'Only you can answer' },
   { id: 'sec-questions', name: 'Additional questions' },
   { id: 'sec-submit', name: 'Submit' },
 ];

@@ -167,7 +167,7 @@ const AdminProspects = () => {
                             <Button 
                               onClick={() => handleGenerateLink(item.userId)} 
                               className="btn-success btn-xs"
-                              style={{ backgroundColor: '#064e3b', borderColor: '#064e3b', fontSize: '11px', padding: '4px 10px' }}
+                              style={{ backgroundColor: '#293383', borderColor: '#293383', fontSize: '11px', padding: '4px 10px' }}
                             >
                               <i className="fas fa-link me-1"></i> Create Link
                             </Button>

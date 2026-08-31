@@ -12,6 +12,7 @@ const SSO_ERROR_MESSAGES = {
   cancelled: 'Microsoft sign-in was cancelled.',
   exchange_failed: 'Could not complete Microsoft sign-in — try again.',
   no_account: 'No account here matches that Microsoft sign-in — ask an admin to add you first.',
+  account_disabled: 'This account has been deactivated.',
   missing_token: 'Microsoft sign-in did not complete — try again.',
   session_failed: 'Could not complete Microsoft sign-in — try again.',
 };

@@ -7,7 +7,7 @@ import react from '@vitejs/plugin-react'
 // service. Its port differs per environment (8000 locally, 8001 on the production host), so it's
 // read from WORKFLOW_PORT rather than hardcoded — hardcoding it once already broke the other
 // environment when "fixed" for just one.
-const WORKFLOW_TARGET = `http://localhost:${process.env.WORKFLOW_PORT || 8001}`
+const WORKFLOW_TARGET = `http://localhost:${process.env.WORKFLOW_PORT || 8000}`
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -52,11 +52,11 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/employee/quote-comparison': {
-        target: 'http://localhost:8001',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
       },
       '/api/employee/award-quote': {
-        target: 'http://localhost:8001',
+        target: WORKFLOW_TARGET,
         changeOrigin: true,
       },
       '/api/employee': {

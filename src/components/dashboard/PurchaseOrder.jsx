@@ -13,33 +13,37 @@ const getStatusBadge = (s) => {
 };
 
 const PurchaseOrder = ({ onBack }) => {
-  const [vendorCodeInput, setVendorCodeInput] = useState('');
-  const [appliedVendorCode, setAppliedVendorCode] = useState('');
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [expandedIdx, setExpandedIdx] = useState(null);
-
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showKpis, setShowKpis] = useState(false);
-  const [isVendorUser, setIsVendorUser] = useState(false);
-
-  useEffect(() => {
-    // When the component mounts, check if the current user is a vendor and preset their code
+  const [isVendorUser, setIsVendorUser] = useState(() => {
     try {
       const userStr = localStorage.getItem('user_data');
       if (userStr) {
         const user = JSON.parse(userStr);
-        const isV = user.role === 'VENDOR' || user.email === 'markjhon@gmail.com';
-        setIsVendorUser(isV);
-        // If it's our mock user Mark Jhon Supplies, default it to BP-MARK-01
-        if (isV) {
-          setVendorCodeInput('BP-MARK-01');
-          setAppliedVendorCode('BP-MARK-01');
-        }
+        return user.role === 'VENDOR' || user.email === 'markjhon@gmail.com';
       }
-    } catch (e) { }
+    } catch (e) {}
+    return false;
+  });
+
+  const [appliedVendorCode, setAppliedVendorCode] = useState(() => {
+    if (isVendorUser) return 'BP-MARK-01';
+    return '';
+  });
+
+  const [vendorCodeInput, setVendorCodeInput] = useState(() => {
+    if (isVendorUser) return 'BP-MARK-01';
+    return '';
+  });
+
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [expandedIdx, setExpandedIdx] = useState(null);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showKpis, setShowKpis] = useState(false);
+
+  useEffect(() => {
+    // Role is already initialized synchronously
   }, []);
 
   useEffect(() => {
@@ -224,6 +228,72 @@ const PurchaseOrder = ({ onBack }) => {
             Export CSV
           </button> */}
 
+          {!isVendorUser && (
+            <div className="d-flex align-items-center">
+              <input
+                type="file"
+                id="poUploadInput"
+                accept=".xlsx, .xls"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  const formData = new FormData();
+                  formData.append('file', file);
+                  setLoading(true);
+                  try {
+                    const token = localStorage.getItem('auth_token');
+                    await axios.post('/api/master-purchase-orders/upload', formData, {
+                      headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'multipart/form-data' 
+                      }
+                    });
+                    alert('PO Excel Uploaded Successfully!');
+                    fetchData(); // Refresh the list
+                  } catch (err) {
+                    console.error(err);
+                    alert('Upload failed: ' + (err.response?.data?.error || err.message));
+                  } finally {
+                    setLoading(false);
+                    e.target.value = null;
+                  }
+                }}
+              />
+              <button 
+                onClick={() => document.getElementById('poUploadInput').click()}
+                className="btn btn-sm btn-primary shadow-sm px-3 fw-bold me-2" 
+                style={{ borderRadius: '6px', height: '31px' }}
+              >
+                <i className="fas fa-upload me-2"></i> Upload SAP PO
+              </button>
+              <button 
+                onClick={async () => {
+                  const uid = window.prompt("Enter FolderIt File UID:");
+                  if (!uid) return;
+                  setLoading(true);
+                  try {
+                    const token = localStorage.getItem('auth_token');
+                    await axios.post(`/api/master-purchase-orders/sync-folderit?uid=${uid}`, null, {
+                      headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    alert('PO Synced from FolderIt Successfully!');
+                    fetchData();
+                  } catch (err) {
+                    console.error(err);
+                    alert('Sync failed: ' + (err.response?.data?.error || err.message));
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="btn btn-sm shadow-sm px-3 fw-bold me-2 text-white" 
+                style={{ borderRadius: '6px', height: '31px', backgroundColor: '#0ea5e9', border: 'none' }}
+              >
+                <i className="fas fa-sync-alt me-2"></i> Sync FolderIt
+              </button>
+            </div>
+          )}
+
           {onBack && (
             <div
               onClick={onBack}
@@ -390,7 +460,7 @@ const PurchaseOrder = ({ onBack }) => {
                         </td>
                         {isVendorUser && (
                           <td className="text-center">
-                            {r.poStatus === 'RELEASED' ? (
+                            {r.poStatus === 'RELEASED' || r.poStatus === 'APPROVED' ? (
                               <div className="d-flex justify-content-center gap-2">
                                 <button 
                                   className="btn btn-sm btn-outline-success rounded-pill fw-bold" 

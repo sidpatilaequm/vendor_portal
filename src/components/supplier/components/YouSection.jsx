@@ -1,21 +1,16 @@
 import React from 'react';
-import ContactCard from './ContactCard';
 
 // Ported from become-a-supplier/app/become-a-supplier/components/YouSection.tsx. The
 // AA-PUR-F-03-derived business-profile fields (business type, company type, directors,
 // production facilities, machinery) that lived here were pulled per explicit request — that
 // content now belongs to whatever the admin builds in the Questionnaire tab (see
 // DynamicQuestionsSection), so this section is back to just the one thing no document can answer:
-// who to actually contact.
+// who to actually contact. Previously this collected up to two named contacts (name/designation/
+// email/phone each, one marked primary) — simplified per request down to a single email, since
+// that's the only piece every downstream consumer (draft-code delivery, reviewer questions,
+// orders, payment advice, the portal login) actually reads.
 const YouSection = ({ form }) => {
-  const { state, readiness, setField, setDeclaration, setContactsCount, setPrimaryContact } = form;
-
-  const contactValues = (n) => ({
-    name: state.fields[`c${n}_name`] || '',
-    role: state.fields[`c${n}_role`] || '',
-    email: state.fields[`c${n}_email`] || '',
-    phone: state.fields[`c${n}_phone`] || '',
-  });
+  const { state, readiness, setField } = form;
 
   return (
     <section className="sec" id="sec-you">
@@ -24,37 +19,21 @@ const YouSection = ({ form }) => {
         <span className="n">04</span>
       </div>
       <p className="sdesc">
-        Add up to two people and mark one as primary. Every notification — the draft code, questions from a
-        reviewer, orders, payment advice — goes to the primary contact, and the portal login is created in their
-        name. The second person is copied on nothing unless you make them primary.
+        This is the primary email for your account — every notification (the draft code, questions from a
+        reviewer, orders, payment advice) goes here, and it's what your portal login is created against.
       </p>
 
       <div>
-        <ContactCard
-          n={1}
-          isPrimary={state.primaryContact === 1}
-          values={contactValues(1)}
-          errors={readiness.errors}
-          onFieldChange={setField}
-          onSetPrimary={() => setPrimaryContact(1)}
+        <label htmlFor="c1_email">Email <span className="req">*</span></label>
+        <input
+          id="c1_email"
+          type="email"
+          className={readiness.errors.c1_email ? 'err' : ''}
+          value={state.fields.c1_email || ''}
+          onChange={(e) => setField('c1_email', e.target.value)}
         />
-        {state.contactsCount === 2 && (
-          <ContactCard
-            n={2}
-            isPrimary={state.primaryContact === 2}
-            values={contactValues(2)}
-            errors={readiness.errors}
-            onFieldChange={setField}
-            onSetPrimary={() => setPrimaryContact(2)}
-            onRemove={() => setContactsCount(1)}
-          />
-        )}
+        <div className={'emsg' + (readiness.errors.c1_email ? ' on' : '')}>{readiness.errors.c1_email}</div>
       </div>
-      {state.contactsCount === 1 && (
-        <button className="btn ghost sm" style={{ marginTop: 10 }} type="button" onClick={() => setContactsCount(2)}>
-          Add a second contact
-        </button>
-      )}
 
       {!!state.fields.udyam && (
         <div className="note amber">

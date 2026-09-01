@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 
 const Header = ({ onNavigate }) => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, selectedCompanyCode, updateSelectedCompanyCode } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [vendorCode, setVendorCode] = useState('');
   const [vendorName, setVendorName] = useState('');
@@ -49,6 +49,21 @@ const Header = ({ onNavigate }) => {
               <span className="fw-semibold text-dark" style={{ fontSize: '13px' }}>
                 {vendorCode} - {vendorName}
               </span>
+            </div>
+          )}
+
+          {/* Company Code Dropdown - Only for Vendors */}
+          {currentUser?.role?.toUpperCase() === 'VENDOR' && (
+            <div className="me-2">
+              <select
+                className="form-select form-select-sm"
+                value={selectedCompanyCode || '1000'}
+                onChange={(e) => updateSelectedCompanyCode(e.target.value)}
+                style={{ minWidth: '150px', fontSize: '13px' }}
+              >
+                <option value="1000">1000 - Ankit Aerospace</option>
+                <option value="1001">1001 - Ankit Fasteners</option>
+              </select>
             </div>
           )}
           <div className="position-relative">

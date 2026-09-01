@@ -8,6 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [authToken, setAuthToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
+  const [selectedCompanyCode, setSelectedCompanyCode] = useState(null);
 
   useEffect(() => {
     // Restore session on mount
@@ -16,6 +17,12 @@ export const AuthProvider = ({ children }) => {
     if (token && user) {
       setAuthToken(token);
       setCurrentUser(JSON.parse(user));
+    }
+    const storedCompanyCode = localStorage.getItem('selected_company_code');
+    if (storedCompanyCode) {
+      setSelectedCompanyCode(storedCompanyCode);
+    } else {
+      setSelectedCompanyCode('1000');
     }
   }, []);
 
@@ -58,6 +65,15 @@ export const AuthProvider = ({ children }) => {
         : '/admin/dashboard';
 
     return redirectUrl;
+  };
+
+  const updateSelectedCompanyCode = (code) => {
+    if (code) {
+      localStorage.setItem('selected_company_code', code);
+    } else {
+      localStorage.removeItem('selected_company_code');
+    }
+    setSelectedCompanyCode(code);
   };
 
   // Role comes back from the credentials themselves (data.authName, via the super_admin ->
@@ -171,6 +187,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('user_data');
       setAuthToken('');
       setCurrentUser(null);
+      setSelectedCompanyCode(null);
+      localStorage.removeItem('selected_company_code');
       await axios.get('/logout/');
     } catch (err) {
       console.error("Django logout error", err);
@@ -191,7 +209,9 @@ export const AuthProvider = ({ children }) => {
       login,
       loginWithToken,
       registerRequest,
-      logout
+      logout,
+      selectedCompanyCode,
+      updateSelectedCompanyCode
     }}>
       {children}
     </AuthContext.Provider>

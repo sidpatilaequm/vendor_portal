@@ -4,6 +4,7 @@ import Button from '../common/Button';
 import Modal from '../common/Modal';
 import PurchaseRequisitionDetail from './PurchaseRequisitionDetail';
 import * as XLSX from 'xlsx';
+import { useAuth } from '../../context/AuthContext';
 
 const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
   const [prs, setPrs] = useState([]);
@@ -11,6 +12,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
   const [filter, setFilter] = useState('all');
   const [selectedPrId, setSelectedPrId] = useState(null);
   const [showKpis, setShowKpis] = useState(false);
+  const { selectedCompanyCode } = useAuth();
 
   // Modal states
   const [showActionModal, setShowActionModal] = useState(false);
@@ -74,6 +76,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
     locationId: '',
     requiredDate: '',
     remarks: '',
+    companyCode: '',
     requestDate: getTodayDateStr(),
     items: [
       {
@@ -96,7 +99,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
       'Accept': 'application/json'
     };
     try {
-      const res = await axios.get('/api/vendor/create-pr-options', { headers });
+      const res = await axios.get('/api/purchase-requisitions/create-pr-options', { headers });
       const data = res.data;
       setLocations(data.locations || []);
       setMaterials(data.materials || []);
@@ -159,12 +162,14 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
         if (selectedMat) {
           updated[index].sku = selectedMat.materialCode || selectedMat.sku || '';
           updated[index].name = selectedMat.description || selectedMat.materialName || selectedMat.name || '';
-          updated[index].uom = selectedMat.baseUnit || selectedMat.uom || 'NOS';
+          updated[index].uom = selectedMat.baseUnitOfMeasure || selectedMat.baseUnit || selectedMat.uom || 'NOS';
+          updated[index].hsnCode = selectedMat.hsnCode || '';
           updated[index].estimatedPrice = selectedMat.unitPrice || selectedMat.estimatedPrice || 0;
         } else {
           updated[index].sku = '';
           updated[index].name = '';
           updated[index].uom = 'NOS';
+          updated[index].hsnCode = '';
           updated[index].estimatedPrice = 0;
         }
       }
@@ -209,6 +214,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
     const token = localStorage.getItem('auth_token');
     const payload = {
       locationId: Number(newPr.locationId),
+      companyCode: newPr.companyCode,
       requiredDate: newPr.requiredDate,
       remarks: newPr.remarks,
       status: 'CREATED',
@@ -506,9 +512,13 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
     }
 
     try {
-      const endpoint = role === 'VENDOR'
+      let endpoint = role === 'VENDOR'
         ? `/api/vendor/purchase-requisitions?vendor_id=${vendorId}`
         : '/api/purchase-requisitions';
+        
+      if (role === 'VENDOR' && selectedCompanyCode) {
+        endpoint += `&company_code=${selectedCompanyCode}`;
+      }
 
       const response = await axios.get(endpoint, {
         headers: {
@@ -623,35 +633,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
   };
 
   const loadMockPRs = () => {
-    setPrs([
-      {
-        pr_number: 'PR-2026-00121',
-        pr_status: 'OPEN',
-        status_slug: 'open',
-        status_badge: 'secondary',
-        line_count: 4,
-        created_by: 'Procurement Specialist',
-        created_date: '2026-06-18'
-      },
-      {
-        pr_number: 'PR-2026-0009',
-        pr_status: 'RELEASED',
-        status_slug: 'released',
-        status_badge: 'success',
-        line_count: 1,
-        created_by: 'Inventory Manager',
-        created_date: '2026-05-07'
-      },
-      {
-        pr_number: 'PR-2026-00098',
-        pr_status: 'REJECTED',
-        status_slug: 'rejected',
-        status_badge: 'danger',
-        line_count: 1,
-        created_by: 'Procurement Specialist',
-        created_date: '2026-05-20'
-      }
-    ]);
+    setPrs([]);
   };
 
   const fetchActivities = async () => {
@@ -681,7 +663,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
     }
     fetchPRs();
     fetchActivities();
-  }, []);
+  }, [selectedCompanyCode]);
 
   const openActionModal = (pr) => {
     setActivePr(pr);
@@ -1107,6 +1089,23 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
                     </div>
 
                     <div className="row align-items-center mb-3">
+                      <label className="col-sm-4 col-form-label text-muted small fw-bold text-uppercase">Company <span className="text-danger">*</span></label>
+                      <div className="col-sm-8">
+                        <select
+                          className="form-select border-light-subtle"
+                          style={{ borderRadius: '6px' }}
+                          value={newPr.companyCode}
+                          onChange={(e) => setNewPr({ ...newPr, companyCode: e.target.value })}
+                          required
+                        >
+                          <option value="">Select Company...</option>
+                          <option value="1000">1000 - Ankit Aerospace</option>
+                          <option value="1001">1001 - Ankit Fasteners</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="row align-items-center mb-3">
                       <label className="col-sm-4 col-form-label text-muted small fw-bold text-uppercase">Plant <span className="text-danger">*</span></label>
                       <div className="col-sm-8">
                         <select
@@ -1158,8 +1157,10 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
                     <thead className="bg-light text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>
                       <tr>
                         <th style={{ width: '40px' }}></th>
-                        <th style={{ minWidth: '180px' }}>Item No.</th>
+                        <th style={{ minWidth: '150px' }}>Item No.</th>
                         <th style={{ minWidth: '220px' }}>Description</th>
+                        <th style={{ minWidth: '100px' }}>HSN</th>
+                        <th style={{ minWidth: '100px' }}>UOM</th>
                         <th style={{ minWidth: '120px' }}>Plant</th>
                         <th style={{ minWidth: '100px' }} className="text-end">Availability</th>
                         <th style={{ minWidth: '100px' }} className="text-end">Quantity</th>
@@ -1203,6 +1204,22 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
                                 type="text"
                                 className="form-control border-0 bg-transparent py-1"
                                 value={item.name}
+                                readOnly
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="text"
+                                className="form-control border-0 bg-transparent py-1"
+                                value={item.hsnCode || ''}
+                                readOnly
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="text"
+                                className="form-control border-0 bg-transparent py-1"
+                                value={item.uom || ''}
                                 readOnly
                               />
                             </td>

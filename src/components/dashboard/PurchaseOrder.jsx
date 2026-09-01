@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
 
 const formatCurrency = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0);
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -41,6 +42,7 @@ const PurchaseOrder = ({ onBack }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showKpis, setShowKpis] = useState(false);
+  const { selectedCompanyCode } = useAuth();
 
   useEffect(() => {
     // Role is already initialized synchronously
@@ -48,7 +50,7 @@ const PurchaseOrder = ({ onBack }) => {
 
   useEffect(() => {
     fetchData();
-  }, [appliedVendorCode, isVendorUser]);
+  }, [appliedVendorCode, isVendorUser, selectedCompanyCode]);
 
 
   const fetchData = async () => {
@@ -57,7 +59,11 @@ const PurchaseOrder = ({ onBack }) => {
     try {
       const token = localStorage.getItem('auth_token');
       
-      const endpoint = isVendorUser ? '/api/vendor/purchase-orders' : '/api/purchase-orders';
+      let endpoint = isVendorUser ? '/api/vendor/purchase-orders' : '/api/purchase-orders';
+
+      if (isVendorUser && selectedCompanyCode) {
+        endpoint += `?company_code=${selectedCompanyCode}`;
+      }
 
       const response = await axios.get(endpoint, {
         headers: { 'Authorization': `Bearer ${token}` }

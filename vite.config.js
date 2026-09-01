@@ -103,6 +103,10 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/api/vendor/material-list': {
+        target: WORKFLOW_TARGET,
+        changeOrigin: true,
+      },
       '/api/purchase-orders': {
         target: 'http://localhost:8080',
         changeOrigin: true,

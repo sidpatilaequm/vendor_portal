@@ -3,6 +3,7 @@ import axios from 'axios';
 import Button from '../common/Button';
 import NewAsnWizard from './NewAsnWizard';
 import AsnDetail from './AsnDetail';
+import { useAuth } from '../../context/AuthContext';
 
 const ASN = ({ onBack }) => {
   const [selectedAsnId, setSelectedAsnId] = useState(null);
@@ -22,68 +23,18 @@ const ASN = ({ onBack }) => {
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(false);
   const [showKpis, setShowKpis] = useState(false);
-  const [asns, setAsns] = useState([
-    {
-      asn_number: 'ASN-2026-00121',
-      display_number: 'ASN-2026-00121',
-      delivery_note: '',
-      po_reference: 'PO-2026-04588',
-      despatch_date: '18 Jun 2026',
-      expected_delivery: '22 Jun 2026',
-      carrier: '—',
-      lr_number: '',
-      packages: '4 Pallet',
-      gross_weight: '82,000 KG',
-      eway_bill: '—',
-      eway_validity: '',
-      invoice_number: '—',
-      status: 'Draft',
-      status_slug: 'draft',
-      status_badge: 'warning'
-    },
-    {
-      asn_number: 'ASN-2026-00112',
-      display_number: 'ASN-2026-00112',
-      delivery_note: 'AMB/DN/2026/0891',
-      po_reference: 'PO-2026-04512',
-      despatch_date: '10 Jun 2026',
-      expected_delivery: '13 Jun 2026',
-      carrier: 'Mahindra Logistics',
-      lr_number: 'LR/MHI /2026/11245',
-      packages: '50 Pallet',
-      gross_weight: '2,52,000 KG',
-      eway_bill: '240612345678',
-      eway_validity: 'Valid: 13 Jun 2026',
-      invoice_number: 'AMB/INV/2026/0556',
-      status: 'Submitted',
-      status_slug: 'submitted',
-      status_badge: 'success'
-    },
-    {
-      asn_number: 'ASN-2026-00098',
-      display_number: 'ASN-2026-00098',
-      delivery_note: 'AMB/DN/2026/0877',
-      po_reference: 'PO-2026-04488',
-      despatch_date: '20 May 2026',
-      expected_delivery: '23 May 2026',
-      carrier: 'Blue Dart',
-      lr_number: 'BD/2026/44221',
-      packages: '12 Carton',
-      gross_weight: '840 KG',
-      eway_bill: '230522345671',
-      eway_validity: 'Valid: 23 May 2026',
-      invoice_number: 'AMB/INV/2026/0532',
-      status: 'Delivered',
-      status_slug: 'delivered',
-      status_badge: 'info'
-    }
-  ]);
+  const { selectedCompanyCode } = useAuth();
+  const [asns, setAsns] = useState([]);
 
   const fetchASNs = async () => {
     setLoading(true);
     const token = localStorage.getItem('auth_token');
     try {
-      const response = await axios.get('/api/vendor/asns', {
+      let endpoint = '/api/vendor/asns';
+      if (selectedCompanyCode) {
+        endpoint += `?company_code=${selectedCompanyCode}`;
+      }
+      const response = await axios.get(endpoint, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -174,7 +125,7 @@ const ASN = ({ onBack }) => {
 
   useEffect(() => {
     fetchASNs();
-  }, []);
+  }, [selectedCompanyCode]);
 
   const openPoSelectionModal = () => {
     fetchAvailablePOs();

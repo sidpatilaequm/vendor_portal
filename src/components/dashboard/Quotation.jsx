@@ -3,6 +3,7 @@ import axios from 'axios';
 import Button from '../common/Button';
 import QuotationDetail from './QuotationDetail';
 import NewQuotationWizard from './NewQuotationWizard';
+import { useAuth } from '../../context/AuthContext';
 
 const Quotation = ({ onBack, onNavigate }) => {
   const [quotations, setQuotations] = useState([]);
@@ -10,6 +11,7 @@ const Quotation = ({ onBack, onNavigate }) => {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const { selectedCompanyCode } = useAuth();
 
   const extractPrId = (prStr) => {
     if (!prStr) return null;
@@ -78,6 +80,9 @@ const Quotation = ({ onBack, onNavigate }) => {
     let apiEndpoint = `/api/vendor/quotations?vendor_id=${vendorId}`;
     if (role !== 'VENDOR' && role !== 'VENDOR_ADMIN') {
       apiEndpoint = `/api/vendor/all`;
+    }
+    if ((role === 'VENDOR' || role === 'VENDOR_ADMIN') && selectedCompanyCode) {
+      apiEndpoint += `&company_code=${selectedCompanyCode}`;
     }
 
     try {
@@ -171,50 +176,7 @@ const Quotation = ({ onBack, onNavigate }) => {
   };
 
   const loadMockQuotations = () => {
-    setQuotations([
-      {
-        quotation_id: 'QTN-81308',
-        display_number: 'QTN-81308',
-        remarks: 'Please find our quotation.',
-        pr_id: 'PR-3',
-        display_date: '2026-06-10',
-        display_valid_until: '2028-04-07',
-        grand_total: 708.82,
-        currency: 'INR',
-        status: 'SUBMITTED',
-        status_lower: 'submitted',
-        status_badge: 'info',
-        line_count: 1
-      },
-      {
-        quotation_id: '2',
-        display_number: 'QTN-2026-00042',
-        remarks: 'Custom machined bolts & fasteners',
-        pr_id: 'PR-2026-0009',
-        display_date: '2026-06-10',
-        display_valid_until: '2026-07-10',
-        grand_total: 1850000,
-        currency: 'INR',
-        status: 'AWARDED',
-        status_lower: 'awarded',
-        status_badge: 'success',
-        line_count: 2
-      },
-      {
-        quotation_id: '3',
-        display_number: 'QTN-2026-00038',
-        remarks: 'Consulting and engineering services',
-        pr_id: '',
-        display_date: '2026-05-25',
-        display_valid_until: '2026-06-25',
-        grand_total: 95000,
-        currency: 'INR',
-        status: 'DRAFT',
-        status_lower: 'draft',
-        status_badge: 'warning',
-        line_count: 1
-      }
-    ]);
+    setQuotations([]);
   };
 
   const fetchAvailablePrs = async () => {
@@ -281,7 +243,7 @@ const Quotation = ({ onBack, onNavigate }) => {
 
   useEffect(() => {
     fetchQuotations();
-  }, [selectedPrId]);
+  }, [selectedPrId, selectedCompanyCode]);
 
   const getFilteredQuotations = () => {
     return quotations.filter((item) => {

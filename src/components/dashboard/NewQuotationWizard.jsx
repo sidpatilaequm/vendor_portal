@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Button from '../common/Button';
+import { useAuth } from '../../context/AuthContext';
 
 const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [prData, setPrData] = useState(null);
   const [loadingPr, setLoadingPr] = useState(false);
+  const { selectedCompanyCode } = useAuth();
 
   // Form State
   const [qtnNumber, setQtnNumber] = useState(`QTN-${Math.floor(100000 + Math.random() * 900000)}`);
@@ -257,7 +259,8 @@ const NewQuotationWizard = ({ prId, onBack, onSuccess }) => {
         quality_certificate: Object.keys(additionalDocs).filter(k => k.startsWith('quality')).map(k => ({ file_name: additionalDocs[k].name, file_size: additionalDocs[k].size, file_type: additionalDocs[k].type, file_path: '' })),
         product_brochure: Object.keys(additionalDocs).filter(k => k.startsWith('product')).map(k => ({ file_name: additionalDocs[k].name, file_size: additionalDocs[k].size, file_type: additionalDocs[k].type, file_path: '' })),
         other_documents: Object.keys(additionalDocs).filter(k => k.startsWith('other')).map(k => ({ file_name: additionalDocs[k].name, file_size: additionalDocs[k].size, file_type: additionalDocs[k].type, file_path: '' }))
-      }
+      },
+      company_code: selectedCompanyCode || null
     };
 
     try {

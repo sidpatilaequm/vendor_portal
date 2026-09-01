@@ -42,47 +42,7 @@ const AdminVendors = ({ onBack }) => {
   };
 
   // Fallback mock vendor list if backend returns empty or errors
-  const mockVendors = [
-    {
-      id: 1,
-      name: 'Acme Aerospace Ltd',
-      email: 'onboarding@acme-aero.com',
-      phone: '+91 98765 43210',
-      status: 'ACTIVE',
-      gstin: '29AAAAA1111A1Z1',
-      pan: 'AAAAA1111A',
-      contactPerson: 'John Smith',
-      kycStatus: 'VERIFIED',
-      plantCode: 'PL-01',
-      location: 'Bangalore, India'
-    },
-    {
-      id: 2,
-      name: 'Global Circuits Corp',
-      email: 'sales@globalcircuits.com',
-      phone: '+91 88888 77777',
-      status: 'PENDING_KYC',
-      gstin: '36BBBBB2222B2Z2',
-      pan: 'BBBBB2222B',
-      contactPerson: 'Sarah Connor',
-      kycStatus: 'PENDING',
-      plantCode: 'PL-03',
-      location: 'Hyderabad, India'
-    },
-    {
-      id: 3,
-      name: 'Vertex Machining Inc',
-      email: 'procure@vertex.in',
-      phone: '+91 99000 88112',
-      status: 'ACTIVE',
-      gstin: '27CCCCC3333C3Z3',
-      pan: 'CCCCC3333C',
-      contactPerson: 'David Miller',
-      kycStatus: 'VERIFIED',
-      plantCode: 'PL-02',
-      location: 'Pune, India'
-    }
-  ];
+  const mockVendors = [];
 
   const fetchVendors = () => {
     setLoading(true);

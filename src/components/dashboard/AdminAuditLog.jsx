@@ -21,6 +21,12 @@ const ACTIONS = [
   { value: 'ROLE_ASSIGNED', label: 'Role assigned', badge: 'bg-info-subtle text-info' },
   { value: 'USER_UPDATED', label: 'Updated', badge: 'bg-primary-subtle text-primary' },
   { value: 'USER_DEACTIVATED', label: 'Deactivated', badge: 'bg-danger-subtle text-danger' },
+  { value: 'PLATFORM_CREDENTIAL_UPDATED', label: 'Credential updated', badge: 'bg-warning-subtle text-warning' },
+  { value: 'ROLE_PERMISSIONS_UPDATED', label: 'Role permissions updated', badge: 'bg-info-subtle text-info' },
+  { value: 'VENDOR_PERMISSIONS_UPDATED', label: 'Vendor permissions updated', badge: 'bg-info-subtle text-info' },
+  { value: 'VENDOR_TERMS_CREATED', label: 'Vendor terms created', badge: 'bg-success-subtle text-success' },
+  { value: 'VENDOR_TERMS_UPDATED', label: 'Vendor terms updated', badge: 'bg-primary-subtle text-primary' },
+  { value: 'BUDGET_UPLOADED', label: 'Budget uploaded', badge: 'bg-success-subtle text-success' },
 ];
 
 const actionMeta = (value) => ACTIONS.find((a) => a.value === value) || { label: value, badge: 'bg-secondary-subtle text-secondary' };
@@ -28,6 +34,12 @@ const actionMeta = (value) => ACTIONS.find((a) => a.value === value) || { label:
 const FIELD_LABELS = {
   email: 'Email', role: 'Role', firstName: 'First name', lastName: 'Last name',
   phoneNumber: 'Phone', isActive: 'Active',
+  permissionsUpdated: 'Permissions changed', fiscalYear: 'Fiscal year', totalAmount: 'Total amount',
+  paymentTermsFile: 'Payment terms file', incotermsFile: 'Incoterms file', deliveryTermsFile: 'Delivery terms file',
+  'azure.tenant_id': 'Azure tenant ID', 'azure.client_id': 'Azure client ID', 'azure.client_secret': 'Azure client secret',
+  'google.client_id': 'Google client ID', 'google.client_secret': 'Google client secret', 'google.hosted_domain': 'Google Workspace domain',
+  'folderit.client_id': 'FolderIt client ID', 'folderit.client_secret': 'FolderIt client secret', 'folderit.account_uid': 'FolderIt account UID',
+  'microvista.token_id': 'Microvista token ID', 'microvista.token_secret': 'Microvista token secret',
 };
 const fieldLabel = (f) => FIELD_LABELS[f] || f;
 
@@ -101,11 +113,17 @@ const AccountChangesTab = () => {
                   </td>
                   <td>
                     {changes.map((c, i) => (
-                      <div key={i} style={{ fontSize: 12 }}>
-                        <span className="text-muted">{fieldLabel(c.field)}:</span>{' '}
-                        {c.oldValue ? <><span className="text-muted">{c.oldValue}</span> {'→'} </> : null}
-                        <span className="fw-semibold">{c.newValue}</span>
-                      </div>
+                      c.oldValue == null && c.newValue == null ? (
+                        <div key={i} style={{ fontSize: 12 }}>
+                          <span className="fw-semibold">{fieldLabel(c.field)}</span> <span className="text-muted">changed</span>
+                        </div>
+                      ) : (
+                        <div key={i} style={{ fontSize: 12 }}>
+                          <span className="text-muted">{fieldLabel(c.field)}:</span>{' '}
+                          {c.oldValue ? <><span className="text-muted">{c.oldValue}</span> {'→'} </> : null}
+                          <span className="fw-semibold">{c.newValue}</span>
+                        </div>
+                      )
                     ))}
                     {e.passwordReset && <Pill text="Password reset" className="bg-warning-subtle text-warning" />}
                     {changes.length === 0 && !e.passwordReset && <span className="text-muted">—</span>}

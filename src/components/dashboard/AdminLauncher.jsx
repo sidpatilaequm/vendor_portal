@@ -8,6 +8,7 @@ import AdminUsers from './AdminUsers';
 import AdminAuditLog from './AdminAuditLog';
 import AdminMasterData from './AdminMasterData';
 import AdminEnterpriseStructure from './AdminEnterpriseStructure';
+import AdminPurchaseRoles from './AdminPurchaseRoles';
 import AdminWorkflows from './AdminWorkflows';
 import AdminAnalytics from './AdminAnalytics';
 import AdminEmailTemplates from './AdminEmailTemplates';
@@ -81,6 +82,8 @@ const MENU = {
         real: () => <AdminMasterData /> },
       enterpriseStructure: { name: 'Enterprise Structure', icon: 'fa-industry', color: 'success', desc: 'Company, plant and purchasing organisation/group master data.',
         real: () => <AdminEnterpriseStructure /> },
+      purchaseRoles: { name: 'Purchasing Roles', icon: 'fa-user-shield', color: 'warning', desc: 'Which document types a vendor or employee role can act on, per company code.',
+        real: () => <AdminPurchaseRoles /> },
     },
   },
   settings: {

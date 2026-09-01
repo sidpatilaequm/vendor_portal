@@ -116,7 +116,7 @@ const AdminUsers = () => {
 
   const handleDeactivate = (user) => {
     const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
-    if (!window.confirm(`Deactivate ${name} (${user.email})? They will no longer be able to sign in, by password or Microsoft.`)) {
+    if (!window.confirm(`Deactivate ${name} (${user.email})? They will no longer be able to sign in, by password, Microsoft or Google.`)) {
       return;
     }
     axios.delete(`/api/users/${user.userId}`, { headers: authHeaders() })

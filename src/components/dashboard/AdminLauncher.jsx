@@ -5,6 +5,7 @@ import AdminVendors from './AdminVendors';
 import AdminProspects from './AdminProspects';
 import AdminInvitations from './AdminInvitations';
 import AdminUsers from './AdminUsers';
+import AdminAuditLog from './AdminAuditLog';
 import AdminMasterData from './AdminMasterData';
 import AdminEnterpriseStructure from './AdminEnterpriseStructure';
 import AdminWorkflows from './AdminWorkflows';
@@ -89,8 +90,10 @@ const MENU = {
       company: { name: 'Company Profile', icon: 'fa-id-card', color: 'secondary', desc: 'Legal entity, tax registration and registered address.', stub: true,
         table: 'company_profile', endpoint: '/api/company-profile' },
       users: { name: 'User Accounts', icon: 'fa-user-cog', color: 'primary', desc: 'People who can sign in, and their role.', real: () => <AdminUsers /> },
-      directory: { name: 'Directory (SSO)', icon: 'fa-address-book', color: 'info', desc: 'Microsoft sign-in is live for staff with an existing account; Google is next.',
-        real: () => <PlatformCredentialsPanel group="azure" /> },
+      auditLog: { name: 'Audit Log', icon: 'fa-clipboard-list', color: 'secondary', desc: 'Who changed what on employee and admin accounts.',
+        real: () => <AdminAuditLog /> },
+      directory: { name: 'Directory (SSO)', icon: 'fa-address-book', color: 'info', desc: 'Microsoft and Google sign-in are live for staff with an existing account.',
+        real: () => <PlatformCredentialsPanel group={['azure', 'google']} /> },
       workflows: { name: 'Workflow Templates', icon: 'fa-project-diagram', color: 'primary', desc: 'Approval routes for requisitions, orders and invoices.',
         real: (_, subTab, onNavigate) => <AdminWorkflows subTab={subTab} onNavigate={onNavigate} /> },
       emails: { name: 'Email Templates', icon: 'fa-envelope', color: 'warning', desc: 'Messages the portal sends to vendors and staff.', real: () => <AdminEmailTemplates /> },
@@ -324,9 +327,15 @@ const GROUP_META = {
   folderit: { title: 'FolderIt', desc: 'Used to file vendor certificates and other documents during onboarding.' },
   microvista: { title: 'Microvista', desc: 'Used to verify PAN, GSTIN, CIN, Udyam/MSME and bank details during KYC.' },
   azure: { title: 'Microsoft Entra ID', desc: "Tenant, client ID and secret for staff Microsoft sign-in. Redirect URI to register in Azure: this app's address + /api/auth/microsoft/callback." },
+  google: { title: 'Google Workspace', desc: "Client ID, secret and (optional) Workspace domain for staff Google sign-in. Redirect URI to register in Google Cloud Console: this app's address + /api/auth/google/callback." },
 };
 
+// `group` is either a single key ("azure") or an array of keys (["azure", "google"]) — the
+// Directory (SSO) page renders both providers' cards side by side on one page rather than each
+// opening its own; every other caller still passes a single group and gets the original
+// one-card behaviour.
 function PlatformCredentialsPanel({ group }) {
+  const groups = Array.isArray(group) ? group : [group];
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
 
@@ -339,8 +348,8 @@ function PlatformCredentialsPanel({ group }) {
 
   useEffect(load, []);
 
-  const save = async (values) => {
-    const payload = Object.fromEntries(Object.entries(values).map(([field, value]) => [`${group}.${field}`, value]));
+  const saveGroup = (g) => async (values) => {
+    const payload = Object.fromEntries(Object.entries(values).map(([field, value]) => [`${g}.${field}`, value]));
     await axios.patch('/api/admin/platform-credentials', payload, { headers: authHeaders() });
     load();
   };
@@ -348,13 +357,14 @@ function PlatformCredentialsPanel({ group }) {
   if (error) return <div className="cfg"><div className="card"><div className="card-body"><p style={{ color: 'var(--iron)', fontSize: 13.5, margin: 0 }}>{error}</p></div></div></div>;
   if (!data) return <div className="cfg"><p style={{ color: 'var(--muted)', fontSize: 13 }}>Loading…</p></div>;
 
-  const fields = Object.entries(data[group] || {}).map(([field, f]) => ({ key: field, label: f.label, value: f.value }));
-  const meta = GROUP_META[group];
-
   return (
     <div className="cfg">
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(360px,1fr))' }}>
-        <CredentialGroupCard title={meta.title} desc={meta.desc} fields={fields} onSave={save} />
+        {groups.map((g) => {
+          const fields = Object.entries(data[g] || {}).map(([field, f]) => ({ key: field, label: f.label, value: f.value }));
+          const meta = GROUP_META[g];
+          return <CredentialGroupCard key={g} title={meta.title} desc={meta.desc} fields={fields} onSave={saveGroup(g)} />;
+        })}
       </div>
     </div>
   );

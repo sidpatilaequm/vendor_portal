@@ -158,6 +158,7 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
       { title: "Vendor Payment", desc: "Track vendor payments", icon: "fa-wallet", colorClass: "secondary" },
       { title: "Vendor Returns", desc: "Manage purchase returns and debit notes", icon: "fa-undo", colorClass: "danger" },
       { title: "Work Flow Approval", desc: "View and manage pending workflow requests", icon: "fa-check-circle", colorClass: "primary" },
+      { title: "Dashboards", desc: "Reports published for everyone in your team", icon: "fa-chart-pie", colorClass: "info" },
     ];
 
     const routeMap = {
@@ -175,7 +176,8 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
       "Invoice": "invoice",
       "Vendor Payment": "vendor-payment",
       "Vendor Returns": "vendor-returns",
-      "Work Flow Approval": "admin-workflows"
+      "Work Flow Approval": "admin-workflows",
+      "Dashboards": "dashboards"
     };
 
     return (

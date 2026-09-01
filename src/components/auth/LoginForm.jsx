@@ -4,17 +4,18 @@ import { useAuth } from '../../context/AuthContext';
 import Input from '../common/Input';
 import Button from '../common/Button';
 
-// What MicrosoftSsoController appends to /login?sso_error=... on failure — kept here rather than
-// in AuthContext since it's purely about how this page explains a redirect that already happened,
-// not session state.
+// What MicrosoftSsoController/GoogleSsoController append to /login?sso_error=... on failure —
+// kept here rather than in AuthContext since it's purely about how this page explains a redirect
+// that already happened, not session state. Both providers land on the same reason codes and the
+// same query param, so these stay provider-neutral rather than naming either one.
 const SSO_ERROR_MESSAGES = {
-  not_configured: 'Microsoft sign-in isn’t set up yet — ask an admin to add it under System Settings.',
-  cancelled: 'Microsoft sign-in was cancelled.',
-  exchange_failed: 'Could not complete Microsoft sign-in — try again.',
-  no_account: 'No account here matches that Microsoft sign-in — ask an admin to add you first.',
+  not_configured: 'Sign-in isn’t set up yet — ask an admin to add it under System Settings.',
+  cancelled: 'Sign-in was cancelled.',
+  exchange_failed: 'Could not complete sign-in — try again.',
+  no_account: 'No account here matches that sign-in — ask an admin to add you first.',
   account_disabled: 'This account has been deactivated.',
-  missing_token: 'Microsoft sign-in did not complete — try again.',
-  session_failed: 'Could not complete Microsoft sign-in — try again.',
+  missing_token: 'Sign-in did not complete — try again.',
+  session_failed: 'Could not complete sign-in — try again.',
 };
 
 // Single sign-in form for every account type — the backend resolves the role from the
@@ -30,7 +31,7 @@ const LoginForm = ({ onLoginSuccess }) => {
   useEffect(() => {
     const reason = new URLSearchParams(window.location.search).get('sso_error');
     if (reason) {
-      showAlert(SSO_ERROR_MESSAGES[reason] || 'Microsoft sign-in did not complete.', 'danger');
+      showAlert(SSO_ERROR_MESSAGES[reason] || 'Sign-in did not complete.', 'danger');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -95,11 +96,16 @@ const LoginForm = ({ onLoginSuccess }) => {
 
         <div className="divider-text">or</div>
 
-        {/* Plain navigation, not an axios call — this has to leave the SPA and hit Microsoft's
-            real login page, then come back to /auth/callback (see App.jsx / SsoCallback.jsx). */}
-        <a href="/api/auth/microsoft/authorize" className="btn-outline-green w-100 d-flex align-items-center justify-content-center gap-2 text-decoration-none">
+        {/* Plain navigation, not an axios call — this has to leave the SPA and hit the
+            provider's real login page, then come back to /auth/callback (see App.jsx /
+            SsoCallback.jsx), which is provider-agnostic. */}
+        <a href="/api/auth/microsoft/authorize" className="btn-outline-green w-100 d-flex align-items-center justify-content-center gap-2 text-decoration-none mb-2">
           <i className="fa-brands fa-microsoft"></i>
           Sign in with Microsoft
+        </a>
+        <a href="/api/auth/google/authorize" className="btn-outline-green w-100 d-flex align-items-center justify-content-center gap-2 text-decoration-none">
+          <i className="fa-brands fa-google"></i>
+          Sign in with Google
         </a>
       </div>
     </div>

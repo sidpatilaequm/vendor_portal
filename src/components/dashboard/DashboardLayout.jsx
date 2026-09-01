@@ -25,6 +25,7 @@ import VendorPaymentReport from './VendorPaymentReport';
 import GateEntry from './GateEntry';
 import VendorGateStatus from './VendorGateStatus';
 import MaterialInward from './MaterialInward';
+import EmployeeDashboards from './EmployeeDashboards';
 
 const DashboardLayout = () => {
   const getInitialTab = () => {
@@ -110,6 +111,13 @@ const DashboardLayout = () => {
         return <GateEntry onBack={() => setActiveTab('dashboard')} />;
       case 'material-inward':
         return <MaterialInward onBack={() => setActiveTab('dashboard')} />;
+      case 'dashboards': {
+        const role = getRoleFromStorage();
+        if (role !== 'EMPLOYEE' && role !== 'PURCHASE_DEPT') {
+          return <DashboardHome onNavigate={navigate} />;
+        }
+        return <EmployeeDashboards onBack={() => setActiveTab('dashboard')} />;
+      }
       default:
         return <DashboardHome />;
     }

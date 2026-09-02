@@ -198,9 +198,9 @@ const Quotation = ({ onBack, onNavigate }) => {
 
     try {
       let url = `/api/vendor/purchase-requisitions/details?vendor_id=${vId}`;
-      if (selectedCompanyCode) {
-        url += `&company_code=${selectedCompanyCode}`;
-      }
+      const companyToUse = selectedCompanyCode || localStorage.getItem('selected_company_code') || '1000';
+      url += `&company_code=${companyToUse}`;
+
       const response = await axios.get(url, {
         headers: {
           'Authorization': `Bearer ${token}`,

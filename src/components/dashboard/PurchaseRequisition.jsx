@@ -519,6 +519,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
         : '/api/purchase-requisitions';
         
       if (isVendor) {
+        // Force the use of selectedCompanyCode from context or fallback to localStorage
         const companyToUse = selectedCompanyCode || localStorage.getItem('selected_company_code') || '1000';
         endpoint += `&company_code=${companyToUse}`;
       }

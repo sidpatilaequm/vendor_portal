@@ -7,6 +7,15 @@ const Header = ({ onNavigate }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [vendorCode, setVendorCode] = useState('');
   const [vendorName, setVendorName] = useState('');
+  const [companies, setCompanies] = useState([]); // [{companyCode, companyName}] — real SAP company codes, not the vendor's own profile
+
+  useEffect(() => {
+    if (currentUser?.role?.toUpperCase() !== 'VENDOR') return;
+    const token = localStorage.getItem('auth_token');
+    axios.get('/api/mm/companies', { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => setCompanies(res.data?.companies || []))
+      .catch(() => {});
+  }, [currentUser]);
 
   useEffect(() => {
     try {
@@ -61,8 +70,9 @@ const Header = ({ onNavigate }) => {
                 onChange={(e) => updateSelectedCompanyCode(e.target.value)}
                 style={{ minWidth: '150px', fontSize: '13px' }}
               >
-                <option value="1000">1000 - Ankit Aerospace</option>
-                <option value="1001">1001 - Ankit Fasteners</option>
+                {companies.map((c) => (
+                  <option key={c.companyCode} value={c.companyCode}>{c.companyName}</option>
+                ))}
               </select>
             </div>
           )}

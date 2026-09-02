@@ -66,6 +66,8 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   };
   const vendorTypeLabel = (classification) => VENDOR_TYPE_LABELS[classification] || null;
   const [vendorDocTypeMenu, setVendorDocTypeMenu] = useState({}); // companyCode -> [{code, description, classification}]
+  const [companyNames, setCompanyNames] = useState({}); // companyCode -> companyName
+  const companyLabel = (cc) => companyNames[cc] || cc;
   const [vendorDocTypeChoice, setVendorDocTypeChoice] = useState({});
   const [vendorCategoryError, setVendorCategoryError] = useState('');
   const [decidingCategory, setDecidingCategory] = useState(false);
@@ -396,6 +398,16 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
             }
           }
           setVendorDocTypeMenu(menu);
+        })
+        .catch(() => {});
+    }
+
+    if (Object.keys(companyNames).length === 0) {
+      axios.get('/api/mm/companies', authHeader)
+        .then(({ data }) => {
+          const names = {};
+          for (const c of (data?.companies || [])) names[c.companyCode] = c.companyName;
+          setCompanyNames(names);
         })
         .catch(() => {});
     }
@@ -2176,7 +2188,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                         const menuByCode = Object.fromEntries((vendorDocTypeMenu[cc] || []).map((dt) => [dt.code, dt]));
                         return (
                           <div key={cc} className="mb-3">
-                            <div className="text-muted fw-bold mb-1" style={{ fontSize: '11px' }}>Company {cc}</div>
+                            <div className="text-muted fw-bold mb-1" style={{ fontSize: '11px' }}>{companyLabel(cc)}</div>
                             <table className="table table-sm mb-0 bg-white">
                               <thead>
                                 <tr>
@@ -2204,7 +2216,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                     <div className="bg-light p-3 rounded">
                       {VENDOR_COMPANY_CODES.map((cc) => (
                         <div key={cc} className="mb-3">
-                          <div className="text-muted fw-bold mb-1" style={{ fontSize: '11px' }}>Company {cc}</div>
+                          <div className="text-muted fw-bold mb-1" style={{ fontSize: '11px' }}>{companyLabel(cc)}</div>
                           <div className="d-flex flex-wrap gap-2">
                             {(vendorDocTypeMenu[cc] || []).map((dt) => {
                               const active = (vendorDocTypeChoice[cc] || []).includes(dt.code);

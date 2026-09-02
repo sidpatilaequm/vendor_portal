@@ -246,14 +246,21 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
     );
   }
 
-  // Which of the 4 "Procure to pay" tiles show for the currently selected company code. Nothing
-  // recorded for this vendor/company yet (not decided under the new per-company flow, or this
-  // account predates it entirely) -> show all 4, same as before this feature existed, rather than
-  // leaving the dashboard looking empty/broken.
-  const picksForCompany = (myDocTypeSelections || []).filter((s) => s.companyCode === selectedCompanyCode);
-  const visibleTiles = picksForCompany.length === 0
-    ? new Set(ALL_PROCURE_TILES)
-    : new Set(picksForCompany.flatMap((s) => CLASSIFICATION_TILES[s.classification] || []));
+  // Which of the 4 "Procure to pay" tiles show for the currently selected company code.
+  // myDocTypeSelections is null until the fetch resolves — showing "all 4" during that brief
+  // window (as if nothing were ever recorded) is exactly as wrong as showing none, it's just a
+  // different flash of incorrect content before the real answer arrives a moment later. Show
+  // nothing while genuinely still loading; only fall back to "all 4" once the fetch has actually
+  // come back and confirmed there's nothing recorded for this vendor/company (predates this
+  // feature, or truly not yet decided).
+  const picksForCompany = myDocTypeSelections === null
+    ? null
+    : myDocTypeSelections.filter((s) => s.companyCode === selectedCompanyCode);
+  const visibleTiles = picksForCompany === null
+    ? new Set()
+    : picksForCompany.length === 0
+      ? new Set(ALL_PROCURE_TILES)
+      : new Set(picksForCompany.flatMap((s) => CLASSIFICATION_TILES[s.classification] || []));
 
   // Vendor Portal Dashboard UI
   return (

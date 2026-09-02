@@ -299,11 +299,11 @@ const AdminVendors = ({ onBack }) => {
                               <div key={cc}>
                                 <div className="text-muted" style={{ fontSize: '10px' }}>{companyLabel(cc)}</div>
                                 <div className="d-flex flex-wrap gap-1">
-                                  {picks.flatMap((s) => displayGroupsFor(s.classification).map((g) => (
-                                    <span key={s.docTypeCode + '-' + g} className="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1 rounded-pill" style={{ fontSize: '10.5px' }}>
-                                      {VENDOR_TYPE_LABELS[g] || g} · {s.docTypeCode}
+                                  {[...new Set(picks.flatMap((s) => displayGroupsFor(s.classification)))].map((g) => (
+                                    <span key={g} className="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1 rounded-pill" style={{ fontSize: '10.5px' }}>
+                                      {VENDOR_TYPE_LABELS[g] || g}
                                     </span>
-                                  )))}
+                                  ))}
                                 </div>
                               </div>
                             ))}

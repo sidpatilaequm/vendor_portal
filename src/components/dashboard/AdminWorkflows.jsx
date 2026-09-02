@@ -2198,29 +2198,17 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                       {VENDOR_COMPANY_CODES.map((cc) => {
                         const picks = reviewDetails.documentTypeSelections.filter((s) => s.companyCode === cc);
                         if (picks.length === 0) return null;
+                        const types = [...new Set(picks.flatMap((s) => displayGroupsFor(s.classification)))];
                         return (
                           <div key={cc} className="mb-3">
                             <div className="text-muted fw-bold mb-1" style={{ fontSize: '11px' }}>{companyLabel(cc)}</div>
-                            <table className="table table-sm mb-0 bg-white">
-                              <thead>
-                                <tr>
-                                  <th className="text-muted" style={{ fontSize: '10.5px' }}>Vendor Type</th>
-                                  <th className="text-muted" style={{ fontSize: '10.5px' }}>Vendor Type Code</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {picks.flatMap((s) => {
-                                  const dgs = displayGroupsFor(s.classification);
-                                  const rows = dgs.length ? dgs : [null];
-                                  return rows.map((g) => (
-                                    <tr key={s.docTypeCode + '-' + g}>
-                                      <td>{vendorTypeLabel(g) || '—'}</td>
-                                      <td>{s.docTypeCode}</td>
-                                    </tr>
-                                  ));
-                                })}
-                              </tbody>
-                            </table>
+                            <div className="d-flex flex-wrap gap-2">
+                              {types.map((g) => (
+                                <span key={g} className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2">
+                                  {vendorTypeLabel(g) || g}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         );
                       })}
@@ -2254,7 +2242,6 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                                     <button
                                       key={classification}
                                       type="button"
-                                      title={codes.join(', ')}
                                       className={`btn btn-sm ${active ? 'btn-success' : 'btn-outline-secondary'}`}
                                       onClick={() => {
                                         setVendorDocTypeChoice((prev) => {

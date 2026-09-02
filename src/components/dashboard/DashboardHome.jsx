@@ -218,7 +218,7 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
         {/* greeting */}
         <div className="hello">
           <div>
-            <h1>Good morning, {vendorName || currentUser?.firstName || 'Vendor'}</h1>
+            <h1>{vendorName || currentUser?.firstName || 'Vendor'}</h1>
           </div>
         </div>
 

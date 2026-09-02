@@ -63,10 +63,33 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
     && role !== 'EMPLOYEE' && role !== 'PURCHASE_DEPT' && role !== 'SUBMITTER' && role !== 'APPROVER';
   useEffect(() => {
     if (!isVendorTileGridRole) return;
-    const fetchDocTypeSelections = () => {
-      axios.get('/api/supplier-registration/my-profile', { headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` } })
-        .then((res) => setMyDocTypeSelections(res.data?.data?.result?.documentTypeSelections || []))
-        .catch(() => setMyDocTypeSelections([])); // no supplier_registration row for this login (or load failed) — fall back to showing everything
+    let cancelled = false;
+    // A failed request is not the same thing as "confirmed nothing recorded" — treating it that
+    // way was the real bug behind tiles flashing wrong at login: a transient failure right after
+    // sign-in (token not propagated yet, a network blip) landed on the "show everything" fallback
+    // with no way back except a full page reload. Retry first; only fall back once retries are
+    // truly exhausted.
+    const fetchDocTypeSelections = (attemptsLeft = 3) => {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        // Called from visibilitychange before the token exists yet (shouldn't normally happen
+        // for this role, but don't let it silently claim "nothing recorded").
+        if (attemptsLeft > 0) setTimeout(() => fetchDocTypeSelections(attemptsLeft - 1), 500);
+        return;
+      }
+      axios.get('/api/supplier-registration/my-profile', { headers: { Authorization: `Bearer ${token}` } })
+        .then((res) => {
+          if (cancelled) return;
+          setMyDocTypeSelections(res.data?.data?.result?.documentTypeSelections || []);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          if (attemptsLeft > 0) {
+            setTimeout(() => fetchDocTypeSelections(attemptsLeft - 1), 600);
+          } else {
+            setMyDocTypeSelections([]); // genuinely out of retries — fall back to showing everything
+          }
+        });
     };
     fetchDocTypeSelections();
     // An approver can grant/change this vendor's document types at any time — this component
@@ -74,7 +97,10 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
     // stale tiles until a manual reload. Re-check whenever the tab regains focus instead.
     const onVisible = () => { if (document.visibilityState === 'visible') fetchDocTypeSelections(); };
     document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisible);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVendorTileGridRole]);
 

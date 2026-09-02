@@ -7,6 +7,15 @@ const Header = ({ onNavigate }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [vendorCode, setVendorCode] = useState('');
   const [vendorName, setVendorName] = useState('');
+  const [companies, setCompanies] = useState([]); // [{companyCode, companyName}] — real SAP company codes, not the vendor's own profile
+
+  useEffect(() => {
+    if (currentUser?.role?.toUpperCase() !== 'VENDOR') return;
+    const token = localStorage.getItem('auth_token');
+    axios.get('/api/mm/companies', { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => setCompanies(res.data?.companies || []))
+      .catch(() => {});
+  }, [currentUser]);
 
   useEffect(() => {
     try {

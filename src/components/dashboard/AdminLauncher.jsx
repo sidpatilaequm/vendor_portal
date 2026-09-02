@@ -77,8 +77,6 @@ const MENU = {
       invitations: { name: 'Invitations', icon: 'fa-envelope-open-text', color: 'primary', desc: 'Invite a new supplier to register.', real: () => <AdminInvitations /> },
       materials: { name: 'Materials', icon: 'fa-box', color: 'primary', desc: 'Part master with cost, stock and lead time.', stub: true,
         table: 'material_master', endpoint: '/api/materials' },
-      boms: { name: 'Bill of Materials', icon: 'fa-sitemap', color: 'info', desc: 'Assemblies and their component lines, with rolled-up cost.', stub: true,
-        table: 'bom_header / bom_lines', endpoint: '/api/boms' },
       orgdata: { name: 'Organisation Data', icon: 'fa-building', color: 'secondary', desc: 'Companies, departments, projects and activities behind the budget module.',
         real: () => <AdminMasterData /> },
       enterpriseStructure: { name: 'Enterprise Structure', icon: 'fa-industry', color: 'success', desc: 'Company, plant and purchasing organisation/group master data.',

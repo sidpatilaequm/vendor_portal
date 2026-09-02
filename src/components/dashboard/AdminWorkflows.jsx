@@ -51,7 +51,37 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   const [reviewError, setReviewError] = useState('');
   const [actionComment, setActionComment] = useState('');
   const [actionError, setActionError] = useState('');
-  const [vendorCategoryChoice, setVendorCategoryChoice] = useState([]);
+  // Per-company document type picks, e.g. { '1000': ['ZNB', 'ZSC'], '2000': ['ZFNB'] } — replaces
+  // the old flat vendorCategory (Product/Service/Scheduling agreement/Sub-contracting) pick.
+  const VENDOR_COMPANY_CODES = ['1000', '2000'];
+  // Fixed display order — same sequence for both companies regardless of which order the codes
+  // happen to come back from the API in, or which of the two companies has more/fewer types.
+  const VENDOR_TYPE_ORDER = ['PRODUCTS', 'SERVICE', 'SUBCONTRACTING', 'SCHEDULING_AGREEMENT'];
+  // Document type classification -> the "Vendor Type" label shown for it. Raw Material and
+  // Capital Expenditure are never shown as their own names — there's no dedicated tile for either
+  // on the vendor dashboard (see DashboardHome's CLASSIFICATION_TILES fallback), so here a code
+  // classified as one of those is folded directly into Product / Service instead: Raw Material ->
+  // Product, Capital Expenditure -> both Product and Service (it has to satisfy both).
+  const VENDOR_TYPE_LABELS = {
+    PRODUCTS: 'Product',
+    SUBCONTRACTING: 'Subcontracting',
+    SCHEDULING_AGREEMENT: 'Scheduling Agreement',
+    SERVICE: 'Service',
+  };
+  const DISPLAY_GROUPS_FOR_CLASSIFICATION = {
+    PRODUCTS: ['PRODUCTS'],
+    SERVICE: ['SERVICE'],
+    SUBCONTRACTING: ['SUBCONTRACTING'],
+    SCHEDULING_AGREEMENT: ['SCHEDULING_AGREEMENT'],
+    RAW_MATERIAL: ['PRODUCTS'],
+    CAPITAL_EXPENDITURE: ['PRODUCTS', 'SERVICE'],
+  };
+  const displayGroupsFor = (classification) => DISPLAY_GROUPS_FOR_CLASSIFICATION[classification] || (classification ? [classification] : []);
+  const vendorTypeLabel = (classification) => VENDOR_TYPE_LABELS[classification] || null;
+  const [vendorDocTypeMenu, setVendorDocTypeMenu] = useState({}); // companyCode -> [{code, description, classification}]
+  const [companyNames, setCompanyNames] = useState({}); // companyCode -> companyName
+  const companyLabel = (cc) => companyNames[cc] || cc;
+  const [vendorDocTypeChoice, setVendorDocTypeChoice] = useState({});
   const [vendorCategoryError, setVendorCategoryError] = useState('');
   const [decidingCategory, setDecidingCategory] = useState(false);
   
@@ -355,7 +385,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
     setReviewDetails(null);
     setReviewError('');
     setExpandedDocType(null);
-    setVendorCategoryChoice([]);
+    setVendorDocTypeChoice({});
     setVendorCategoryError('');
     setActionError('');
     const registrationId = selectedRequest?.request_metadata?.registrationId;
@@ -363,10 +393,37 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
 
     setReviewLoading(true);
     const token = localStorage.getItem('auth_token');
-    axios.get(`/api/supplier-registration/${registrationId}`, { headers: { Authorization: `Bearer ${token}` } })
+    const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+    axios.get(`/api/supplier-registration/${registrationId}`, authHeader)
       .then(({ data }) => setReviewDetails(data.data?.result || null))
       .catch(() => setReviewError('Could not load the application details.'))
       .finally(() => setReviewLoading(false));
+
+    if (Object.keys(vendorDocTypeMenu).length === 0) {
+      const qs = VENDOR_COMPANY_CODES.map((c) => `companyCode=${c}`).join('&');
+      axios.get(`/api/supplier-registration/document-types?${qs}`, authHeader)
+        .then(({ data }) => {
+          const menu = {};
+          for (const cc of VENDOR_COMPANY_CODES) menu[cc] = [];
+          for (const dt of (data || [])) {
+            for (const a of (dt.assignments || [])) {
+              if (menu[a.companyCode]) menu[a.companyCode].push({ code: dt.code, description: dt.description, classification: dt.classification });
+            }
+          }
+          setVendorDocTypeMenu(menu);
+        })
+        .catch(() => {});
+    }
+
+    if (Object.keys(companyNames).length === 0) {
+      axios.get('/api/mm/companies', authHeader)
+        .then(({ data }) => {
+          const names = {};
+          for (const c of (data?.companies || [])) names[c.companyCode] = c.companyName;
+          setCompanyNames(names);
+        })
+        .catch(() => {});
+    }
   }, [selectedRequest]);
 
   // A vendor's self-service "change my document/answer" request — same webhook/approval
@@ -667,20 +724,24 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
     }
   };
 
-  // Vendor Type (Product/Service/Scheduling agreement/Sub-contracting) is decided by whichever
-  // approver acts first — see SupplierRegistrationService.setVendorCategory on the backend for
-  // the atomic "first write wins" logic this relies on. Only fires the classification call when
-  // it's actually still undecided; once reviewDetails.registration.vendorCategory is set, this
-  // is a no-op and Approve goes straight through like normal.
+  // Document types (per company code — every vendor is assigned to both 1000 and 2000 for now)
+  // is decided by whichever approver acts first — see
+  // SupplierRegistrationService.setVendorDocumentTypes on the backend for the "first write wins"
+  // logic this relies on. Only fires the call when it's actually still undecided; once
+  // reviewDetails.documentTypeSelections is non-empty, this is a no-op and Approve goes straight
+  // through like normal.
   const handleApproveClick = async () => {
-    const needsCategory = selectedRequest?.request_type === 'vendor_registration'
-      && reviewDetails && !reviewDetails.registration.vendorCategory;
-    if (!needsCategory) {
+    const needsDocTypes = selectedRequest?.request_type === 'vendor_registration'
+      && reviewDetails && (!reviewDetails.documentTypeSelections || reviewDetails.documentTypeSelections.length === 0);
+    if (!needsDocTypes) {
       processRequestAction('approve');
       return;
     }
-    if (vendorCategoryChoice.length === 0) {
-      setVendorCategoryError('Pick what kind of vendor this is before approving.');
+    const selections = VENDOR_COMPANY_CODES.flatMap((cc) =>
+      (vendorDocTypeChoice[cc] || []).map((code) => ({ companyCode: cc, docTypeCode: code }))
+    );
+    if (selections.length === 0) {
+      setVendorCategoryError('Pick at least one document type before approving.');
       return;
     }
     setDecidingCategory(true);
@@ -688,13 +749,13 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
     try {
       const token = localStorage.getItem('auth_token');
       await axios.post(
-        `/api/supplier-registration/${selectedRequest.request_metadata.registrationId}/classification`,
-        { categories: vendorCategoryChoice },
+        `/api/supplier-registration/${selectedRequest.request_metadata.registrationId}/document-types`,
+        { selections },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       processRequestAction('approve');
     } catch (err) {
-      setVendorCategoryError(err.response?.data?.statusMsg || 'Could not record the vendor type. Try again.');
+      setVendorCategoryError(err.response?.data?.statusMsg || 'Could not record the document types. Try again.');
     } finally {
       setDecidingCategory(false);
     }
@@ -2125,49 +2186,90 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                 </div>
               </div>
 
-              {/* Vendor type — one or more picks, decided by whichever approver acts first; read-only once set */}
+              {/* Document types, per company code — every vendor is assigned to both 1000 and
+                  2000 for now, and the approver multi-selects which document types the vendor may
+                  transact under, within each. Decided by whichever approver acts first; read-only
+                  once set. */}
               {selectedRequest.request_type === 'vendor_registration' && reviewDetails && (
                 <div className="mb-4">
-                  <label className="text-muted small fw-bold text-uppercase d-block mb-2">Vendor Type</label>
-                  {reviewDetails.registration.vendorCategory ? (
+                  <label className="text-muted small fw-bold text-uppercase d-block mb-2">Document Types</label>
+                  {reviewDetails.documentTypeSelections && reviewDetails.documentTypeSelections.length > 0 ? (
                     <div className="bg-light p-3 rounded small">
-                      <div className="d-flex flex-wrap gap-2">
-                        {reviewDetails.registration.vendorCategory.split(',').map((c) => (
-                          <span key={c} className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2">
-                            {c.replace(/_/g, ' ')}
-                          </span>
-                        ))}
-                      </div>
+                      {VENDOR_COMPANY_CODES.map((cc) => {
+                        const picks = reviewDetails.documentTypeSelections.filter((s) => s.companyCode === cc);
+                        if (picks.length === 0) return null;
+                        const types = [...new Set(picks.flatMap((s) => displayGroupsFor(s.classification)))];
+                        return (
+                          <div key={cc} className="mb-3">
+                            <div className="text-muted fw-bold mb-1" style={{ fontSize: '11px' }}>{companyLabel(cc)}</div>
+                            <div className="d-flex flex-wrap gap-2">
+                              {types.map((g) => (
+                                <span key={g} className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2">
+                                  {vendorTypeLabel(g) || g}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
                       <div className="text-muted mt-2" style={{ fontSize: '11.5px' }}>
                         Already decided by whichever approver acted first on this request.
                       </div>
                     </div>
                   ) : (
                     <div className="bg-light p-3 rounded">
-                      <div className="d-flex flex-wrap gap-2 mb-2">
-                        {[
-                          ['PRODUCT', 'Product'],
-                          ['SERVICE', 'Service'],
-                          ['SCHEDULING_AGREEMENT', 'Scheduling agreement'],
-                          ['SUBCONTRACTING', 'Sub-contracting'],
-                        ].map(([value, label]) => (
-                          <button
-                            key={value}
-                            type="button"
-                            className={`btn btn-sm ${vendorCategoryChoice.includes(value) ? 'btn-success' : 'btn-outline-secondary'}`}
-                            onClick={() => {
-                              setVendorCategoryChoice((prev) =>
-                                prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
-                              );
-                              setVendorCategoryError('');
-                            }}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
+                      {VENDOR_COMPANY_CODES.map((cc) => (
+                        <div key={cc} className="mb-3">
+                          <div className="text-muted fw-bold mb-1" style={{ fontSize: '11px' }}>{companyLabel(cc)}</div>
+                          <div className="d-flex flex-wrap gap-2">
+                            {(() => {
+                              // One button per vendor type, not per code — picking "Product" grants
+                              // every code classified as Product for this company (e.g. NB and ZNB
+                              // both, for company 1000) in one action.
+                              const groups = {};
+                              for (const dt of (vendorDocTypeMenu[cc] || [])) {
+                                for (const key of displayGroupsFor(dt.classification)) {
+                                  (groups[key] = groups[key] || []).push(dt.code);
+                                }
+                              }
+                              return VENDOR_TYPE_ORDER
+                                .filter((classification) => groups[classification])
+                                .map((classification) => {
+                                  const codes = groups[classification];
+                                  const cur = vendorDocTypeChoice[cc] || [];
+                                  const active = codes.every((c) => cur.includes(c));
+                                  return (
+                                    <button
+                                      key={classification}
+                                      type="button"
+                                      className={`btn btn-sm ${active ? 'btn-success' : 'btn-outline-secondary'}`}
+                                      onClick={() => {
+                                        setVendorDocTypeChoice((prev) => {
+                                          const prevCur = prev[cc] || [];
+                                          const allSelected = codes.every((c) => prevCur.includes(c));
+                                          return {
+                                            ...prev,
+                                            [cc]: allSelected
+                                              ? prevCur.filter((v) => !codes.includes(v))
+                                              : [...new Set([...prevCur, ...codes])],
+                                          };
+                                        });
+                                        setVendorCategoryError('');
+                                      }}
+                                    >
+                                      {vendorTypeLabel(classification) || classification}
+                                    </button>
+                                  );
+                                });
+                            })()}
+                            {(vendorDocTypeMenu[cc] || []).length === 0 && (
+                              <span className="text-muted small">Loading…</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                       <div className="text-muted" style={{ fontSize: '11.5px' }}>
-                        Not yet decided — pick one or more, required before this request can be approved. Whoever approves first sets it.
+                        Not yet decided — pick one or more per company, required before this request can be approved. Whoever approves first sets it.
                       </div>
                       {vendorCategoryError && <div className="text-danger small mt-2">{vendorCategoryError}</div>}
                     </div>

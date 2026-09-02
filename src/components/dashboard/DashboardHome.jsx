@@ -3,8 +3,22 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import './DashboardHome.css';
 
+// A picked document type's classification -> which "Procure to pay" tile(s) it grants. There's no
+// dedicated tile for Raw Material or Capital Expenditure, so those fall back onto the closest
+// existing ones instead of being silently dropped (confirmed: Raw Material -> Products,
+// Capital Expenditure -> both Products and Services).
+const CLASSIFICATION_TILES = {
+  PRODUCTS: ['products'],
+  SERVICE: ['services'],
+  SUBCONTRACTING: ['subcontracting'],
+  SCHEDULING_AGREEMENT: ['scheduling'],
+  RAW_MATERIAL: ['products'],
+  CAPITAL_EXPENDITURE: ['products', 'services'],
+};
+const ALL_PROCURE_TILES = ['products', 'services', 'subcontracting', 'scheduling'];
+
 const DashboardHome = ({ isAdmin, onNavigate }) => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, selectedCompanyCode } = useAuth();
   const role = String(currentUser?.role || '').toUpperCase();
   const resolvedIsAdmin = isAdmin || role === 'SUPER_ADMIN' || role === 'ADMIN';
 
@@ -13,6 +27,7 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
   const [vendorCode, setVendorCode] = useState('');
   const [vendorName, setVendorName] = useState('');
   const [workflowRequests, setWorkflowRequests] = useState([]);
+  const [myDocTypeSelections, setMyDocTypeSelections] = useState(null); // null = not loaded yet
 
   useEffect(() => {
     if (!resolvedIsAdmin) {
@@ -40,6 +55,28 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
       } catch (e) { }
     }
   }, [resolvedIsAdmin]);
+
+  // Which "Procure to pay" tiles this vendor is allowed to see, driven by the approver's
+  // per-company document type picks (see AdminWorkflows' Document Types picker). Only the actual
+  // vendor tile-grid view below needs this — the employee "cards" branch never renders it.
+  const isVendorTileGridRole = !resolvedIsAdmin
+    && role !== 'EMPLOYEE' && role !== 'PURCHASE_DEPT' && role !== 'SUBMITTER' && role !== 'APPROVER';
+  useEffect(() => {
+    if (!isVendorTileGridRole) return;
+    const fetchDocTypeSelections = () => {
+      axios.get('/api/supplier-registration/my-profile', { headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` } })
+        .then((res) => setMyDocTypeSelections(res.data?.data?.result?.documentTypeSelections || []))
+        .catch(() => setMyDocTypeSelections([])); // no supplier_registration row for this login (or load failed) — fall back to showing everything
+    };
+    fetchDocTypeSelections();
+    // An approver can grant/change this vendor's document types at any time — this component
+    // fetches once on mount, so a tab left open from before that happened would otherwise show
+    // stale tiles until a manual reload. Re-check whenever the tab regains focus instead.
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchDocTypeSelections(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVendorTileGridRole]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -209,6 +246,15 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
     );
   }
 
+  // Which of the 4 "Procure to pay" tiles show for the currently selected company code. Nothing
+  // recorded for this vendor/company yet (not decided under the new per-company flow, or this
+  // account predates it entirely) -> show all 4, same as before this feature existed, rather than
+  // leaving the dashboard looking empty/broken.
+  const picksForCompany = (myDocTypeSelections || []).filter((s) => s.companyCode === selectedCompanyCode);
+  const visibleTiles = picksForCompany.length === 0
+    ? new Set(ALL_PROCURE_TILES)
+    : new Set(picksForCompany.flatMap((s) => CLASSIFICATION_TILES[s.classification] || []));
+
   // Vendor Portal Dashboard UI
   return (
     <div className="supplier-portal-home">
@@ -218,13 +264,14 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
         {/* greeting */}
         <div className="hello">
           <div>
-            <h1>Good morning, {vendorName || currentUser?.firstName || 'Vendor'}</h1>
+            <h1>{vendorName || currentUser?.firstName || 'Vendor'}</h1>
           </div>
         </div>
 
         <div className="tile-grid">
 
           {/* Procure to pay: Products */}
+          {visibleTiles.has('products') && (
           <div className="tile" onClick={(e) => handleNavigation(e, 'pr')}>
             <div className="thead">
               <div className="ico i-blue">
@@ -246,8 +293,10 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
               <span className="node" onClick={(e) => handleNavigation(e, 'credit-note')}><i className="ni c-pink"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.2 3.4h8L18 7v4.4" /><path d="M14.2 3.4v3.6H18" /><path d="M6.2 3.4v17.2h5.6" /><path d="M20.4 13.4 14.8 19l-2.8.8.8-2.8 5.6-5.6z" /></svg></i><span className="nl">Credit Notes</span></span>
             </div>
           </div>
+          )}
 
           {/* Procure to pay: Services */}
+          {visibleTiles.has('services') && (
           <div className="tile" onClick={(e) => handleNavigation(e, 'pr')}>
             <div className="thead">
               <div className="ico i-pine">
@@ -266,8 +315,10 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
               <span className="node" onClick={(e) => handleNavigation(e, 'credit-note')}><i className="ni c-pink"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.2 3.4h8L18 7v4.4" /><path d="M14.2 3.4v3.6H18" /><path d="M6.2 3.4v17.2h5.6" /><path d="M20.4 13.4 14.8 19l-2.8.8.8-2.8 5.6-5.6z" /></svg></i><span className="nl">Credit Notes</span></span>
             </div>
           </div>
+          )}
 
           {/* Procure to pay: Subcontracting */}
+          {visibleTiles.has('subcontracting') && (
           <div className="tile" onClick={(e) => handleNavigation(e, 'po')}>
             <div className="thead">
               <div className="ico i-amber">
@@ -287,8 +338,10 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
               <span className="node" onClick={(e) => handleNavigation(e, 'credit-note')}><i className="ni c-pink"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.2 3.4h8L18 7v4.4" /><path d="M14.2 3.4v3.6H18" /><path d="M6.2 3.4v17.2h5.6" /><path d="M20.4 13.4 14.8 19l-2.8.8.8-2.8 5.6-5.6z" /></svg></i><span className="nl">Credit Notes</span></span>
             </div>
           </div>
+          )}
 
           {/* Procure to pay: Scheduling agreement */}
+          {visibleTiles.has('scheduling') && (
           <div className="tile" onClick={(e) => handleNavigation(e, 'po')}>
             <div className="thead">
               <div className="ico i-violet">
@@ -308,6 +361,7 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
               <span className="node" onClick={(e) => handleNavigation(e, 'credit-note')}><i className="ni c-pink"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.2 3.4h8L18 7v4.4" /><path d="M14.2 3.4v3.6H18" /><path d="M6.2 3.4v17.2h5.6" /><path d="M20.4 13.4 14.8 19l-2.8.8.8-2.8 5.6-5.6z" /></svg></i><span className="nl">Credit Notes</span></span>
             </div>
           </div>
+          )}
 
           {/* Reference and reconciliation */}
           <div className="tile small" onClick={(e) => handleNavigation(e, 'material-report')}>

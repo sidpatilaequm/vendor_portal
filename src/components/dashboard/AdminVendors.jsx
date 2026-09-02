@@ -3,12 +3,45 @@ import axios from 'axios';
 import Button from '../common/Button';
 import BackButton from '../common/BackButton';
 
+// Same simplification as the approver's Document Types picker (AdminWorkflows.jsx): Raw Material
+// and Capital Expenditure never surface as their own names, since neither has a dedicated tile on
+// the vendor dashboard — Raw Material folds into Product, Capital Expenditure into both Product
+// and Service.
+const VENDOR_TYPE_LABELS = {
+  PRODUCTS: 'Product',
+  SUBCONTRACTING: 'Subcontracting',
+  SCHEDULING_AGREEMENT: 'Scheduling Agreement',
+  SERVICE: 'Service',
+};
+const DISPLAY_GROUPS_FOR_CLASSIFICATION = {
+  PRODUCTS: ['PRODUCTS'],
+  SERVICE: ['SERVICE'],
+  SUBCONTRACTING: ['SUBCONTRACTING'],
+  SCHEDULING_AGREEMENT: ['SCHEDULING_AGREEMENT'],
+  RAW_MATERIAL: ['PRODUCTS'],
+  CAPITAL_EXPENDITURE: ['PRODUCTS', 'SERVICE'],
+};
+const displayGroupsFor = (classification) => DISPLAY_GROUPS_FOR_CLASSIFICATION[classification] || (classification ? [classification] : []);
+
 const AdminVendors = ({ onBack }) => {
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [companyNames, setCompanyNames] = useState({}); // companyCode -> companyName
+
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    axios.get('/api/mm/companies', { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => {
+        const names = {};
+        for (const c of (data?.companies || [])) names[c.companyCode] = c.companyName;
+        setCompanyNames(names);
+      })
+      .catch(() => {});
+  }, []);
+  const companyLabel = (cc) => companyNames[cc] || cc;
   
   // Modals state
   const [selectedVendor, setSelectedVendor] = useState(null);
@@ -255,7 +288,27 @@ const AdminVendors = ({ onBack }) => {
                         <div className="text-muted small font-monospace" style={{ fontSize: '11px' }}>PAN: {vendor.pan}</div>
                       </td>
                       <td>
-                        {vendor.vendorCategory ? (
+                        {vendor.documentTypeSelections && vendor.documentTypeSelections.length > 0 ? (
+                          <div className="d-flex flex-column gap-1">
+                            {Object.entries(
+                              vendor.documentTypeSelections.reduce((byCompany, s) => {
+                                (byCompany[s.companyCode] = byCompany[s.companyCode] || []).push(s);
+                                return byCompany;
+                              }, {})
+                            ).map(([cc, picks]) => (
+                              <div key={cc}>
+                                <div className="text-muted" style={{ fontSize: '10px' }}>{companyLabel(cc)}</div>
+                                <div className="d-flex flex-wrap gap-1">
+                                  {picks.flatMap((s) => displayGroupsFor(s.classification).map((g) => (
+                                    <span key={s.docTypeCode + '-' + g} className="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1 rounded-pill" style={{ fontSize: '10.5px' }}>
+                                      {VENDOR_TYPE_LABELS[g] || g} · {s.docTypeCode}
+                                    </span>
+                                  )))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : vendor.vendorCategory ? (
                           <div className="d-flex flex-wrap gap-1">
                             {vendor.vendorCategory.split(',').map((c) => (
                               <span key={c} className="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1 rounded-pill">

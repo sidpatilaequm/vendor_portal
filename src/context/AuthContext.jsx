@@ -25,16 +25,21 @@ export const AuthProvider = ({ children }) => {
     } else {
       setSelectedCompanyCode('1000');
     }
+  }, []);
 
-    // Fetch dynamic companies list
-    axios.get('/api/mm/companies')
+  // Separate from the mount-restore effect above: that one only ever runs once, before a fresh
+  // login (no page reload) has a token to work with — keying this on authToken instead means it
+  // fires both on session-restore AND right after login/SSO sets a new token.
+  useEffect(() => {
+    if (!authToken) return;
+    axios.get('/api/mm/companies', { headers: { Authorization: `Bearer ${authToken}` } })
       .then(res => {
         if (res.data && res.data.companies) {
           setCompaniesList(res.data.companies);
         }
       })
       .catch(err => console.error("Failed to load companies list:", err));
-  }, []);
+  }, [authToken]);
 
   const showAlert = (message, type = 'danger') => {
     setAlert({ type, message });

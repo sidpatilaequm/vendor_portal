@@ -63,9 +63,18 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
     && role !== 'EMPLOYEE' && role !== 'PURCHASE_DEPT' && role !== 'SUBMITTER' && role !== 'APPROVER';
   useEffect(() => {
     if (!isVendorTileGridRole) return;
-    axios.get('/api/supplier-registration/my-profile', { headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` } })
-      .then((res) => setMyDocTypeSelections(res.data?.data?.result?.documentTypeSelections || []))
-      .catch(() => setMyDocTypeSelections([])); // no supplier_registration row for this login (or load failed) — fall back to showing everything
+    const fetchDocTypeSelections = () => {
+      axios.get('/api/supplier-registration/my-profile', { headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` } })
+        .then((res) => setMyDocTypeSelections(res.data?.data?.result?.documentTypeSelections || []))
+        .catch(() => setMyDocTypeSelections([])); // no supplier_registration row for this login (or load failed) — fall back to showing everything
+    };
+    fetchDocTypeSelections();
+    // An approver can grant/change this vendor's document types at any time — this component
+    // fetches once on mount, so a tab left open from before that happened would otherwise show
+    // stale tiles until a manual reload. Re-check whenever the tab regains focus instead.
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchDocTypeSelections(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVendorTileGridRole]);
 

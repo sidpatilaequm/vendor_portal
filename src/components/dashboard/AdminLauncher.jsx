@@ -84,7 +84,7 @@ const MENU = {
       enterpriseStructure: { name: 'Enterprise Structure', icon: 'fa-industry', color: 'success', desc: 'Company, plant and purchasing organisation/group master data.',
         real: () => <AdminEnterpriseStructure /> },
       purchaseRoles: { name: 'Purchasing Roles', icon: 'fa-user-shield', color: 'warning', desc: 'Which document types a vendor or employee role can act on, per company code.',
-        real: () => <AdminPurchaseRoles /> },
+        real: (onBack) => <AdminPurchaseRoles onBack={onBack} /> },
     },
   },
   settings: {

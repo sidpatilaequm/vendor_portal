@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import BackButton from '../common/BackButton';
+import { useAuth } from '../../context/AuthContext';
 
 export default function PrApprovalReport({ onBack }) {
+  const { selectedCompanyCode } = useAuth();
   const [data, setData] = useState([]);
   const [summary, setSummary] = useState({});
   const [loading, setLoading] = useState(false);
@@ -45,7 +47,7 @@ export default function PrApprovalReport({ onBack }) {
     if (vendorId || realVendorCode) {
       fetchReport();
     }
-  }, [startDate, endDate, company, vendorId, realVendorCode]);
+  }, [startDate, endDate, company, vendorId, realVendorCode, selectedCompanyCode]);
 
   const fetchReport = async () => {
     setLoading(true);
@@ -56,7 +58,7 @@ export default function PrApprovalReport({ onBack }) {
       if (company && company !== 'ALL') {
         endpoint += `&company_code=${company}`;
       } else {
-        const cCode = localStorage.getItem('selected_company_code') || '1000';
+        const cCode = selectedCompanyCode || localStorage.getItem('selected_company_code') || '1000';
         endpoint += `&company_code=${cCode}`;
       }
       const token = localStorage.getItem('auth_token');

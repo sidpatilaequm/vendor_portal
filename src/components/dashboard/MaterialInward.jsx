@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Button from '../common/Button';
+import BackButton from '../common/BackButton';
 import MaterialInwardVerification from './MaterialInwardVerification';
 
 const MaterialInward = ({ onBack }) => {
@@ -59,23 +60,13 @@ const MaterialInward = ({ onBack }) => {
 
   return (
     <div className="fade-in-slide container-fluid py-4">
+      <BackButton onClick={onBack} />
+
       {/* Header Section */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div className="text-start">
           <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#293383' }}>Material Inward Queue</h4>
           <p className="text-muted mb-0" style={{ fontSize: '13px' }}>Verify and receive incoming material</p>
-        </div>
-        <div className="d-flex gap-2">
-          {onBack && (
-            <div
-              onClick={onBack}
-              className="d-inline-flex align-items-center justify-content-center text-muted cursor-pointer px-2"
-              style={{ cursor: 'pointer', transition: 'color 0.2s ease' }}
-            >
-              <i className="fas fa-arrow-left me-2"></i>
-              <span className="fw-medium">Back</span>
-            </div>
-          )}
         </div>
       </div>
 

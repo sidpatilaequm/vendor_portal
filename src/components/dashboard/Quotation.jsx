@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Button from '../common/Button';
+import BackButton from '../common/BackButton';
 import QuotationDetail from './QuotationDetail';
 import NewQuotationWizard from './NewQuotationWizard';
 import { useAuth } from '../../context/AuthContext';
@@ -331,6 +332,7 @@ const Quotation = ({ onBack, onNavigate }) => {
 
   return (
     <div className="fade-in-slide container-fluid py-4">
+      <BackButton onClick={onBack} />
       <div className="d-flex justify-content-between align-items-center mb-4 text-start">
         {isVendorUser ? (
           <>
@@ -356,16 +358,6 @@ const Quotation = ({ onBack, onNavigate }) => {
               >
                 <i className="fas fa-plus me-1"></i> New Quotation (Standalone)
               </Button> */}
-              {onBack && (
-                <div
-                  onClick={onBack}
-                  className="d-inline-flex align-items-center justify-content-center text-muted cursor-pointer px-4 py-2"
-                  style={{ cursor: 'pointer', transition: 'color 0.2s ease' }}
-                >
-                  <i className="fas fa-arrow-left me-2"></i>
-                  <span className="fw-medium">Back</span>
-                </div>
-              )}
             </div>
           </>
         ) : (
@@ -375,16 +367,6 @@ const Quotation = ({ onBack, onNavigate }) => {
               <p className="text-muted mb-0 small">Review, compare and award vendor quotations submitted against purchase requisitions</p>
             </div>
             <div className="d-flex gap-2">
-              {onBack && (
-                <div
-                  onClick={onBack}
-                  className="d-inline-flex align-items-center justify-content-center text-muted cursor-pointer px-2"
-                  style={{ cursor: 'pointer', transition: 'color 0.2s ease' }}
-                >
-                  <i className="fas fa-arrow-left me-2"></i>
-                  <span className="fw-medium">Back</span>
-                </div>
-              )}
               <Button
                 variant="outline-green"
                 className="fw-bold px-3 py-2"

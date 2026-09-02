@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
+import BackButton from "../common/BackButton";
 
 /* ================================================================
  * Self-contained report. Palette, formatters, data hook and table
@@ -226,6 +227,7 @@ export default function MaterialStockReport({ bpNo = "BP-MARK-01", onBack }) {
 
   return (
     <div className="fade-in-slide container-fluid py-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
+      <BackButton onClick={onBack} />
       <div className="d-flex flex-wrap justify-content-between align-items-end mb-4">
         <div>
           <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
@@ -237,16 +239,6 @@ export default function MaterialStockReport({ bpNo = "BP-MARK-01", onBack }) {
           )}
         </div>
         <div className="d-flex flex-wrap gap-3 align-items-end mt-3 mt-md-0">
-          {onBack && (
-            <div
-              onClick={onBack}
-              className="d-inline-flex align-items-center justify-content-center text-muted cursor-pointer px-2"
-              style={{ cursor: 'pointer', transition: 'color 0.2s ease', height: '31px' }}
-            >
-              <i className="fas fa-arrow-left me-2"></i>
-              <span className="fw-medium">Back</span>
-            </div>
-          )}
           <ExportButton onClick={exportCsv} />
         </div>
       </div>

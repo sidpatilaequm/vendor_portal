@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import BackButton from '../common/BackButton';
 
 export default function PrApprovalReport({ onBack }) {
   const [data, setData] = useState([]);
@@ -192,16 +193,11 @@ export default function PrApprovalReport({ onBack }) {
 
   return (
     <div className="p-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
+      <BackButton onClick={onBack} />
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h3 className="fw-bold text-dark mb-0">Purchase Requisition</h3>
         </div>
-        {onBack && (
-          <div onClick={onBack} className="d-inline-flex align-items-center text-muted cursor-pointer" style={{ cursor: 'pointer' }}>
-            <i className="fas fa-arrow-left me-2"></i>
-            <span className="fw-medium">Back</span>
-          </div>
-        )}
       </div>
 
       {error && (

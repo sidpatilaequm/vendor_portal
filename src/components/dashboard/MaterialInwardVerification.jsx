@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import BackButton from '../common/BackButton';
 import './material-inward-verification.css';
 
 // Utility functions
@@ -171,16 +172,7 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
   if (!C) {
     return (
       <div className="miv-pane p-4" style={{ backgroundColor: 'transparent' }}>
-        {onBack && (
-          <div
-            onClick={onBack}
-            className="d-inline-flex align-items-center justify-content-center text-muted cursor-pointer mb-3"
-            style={{ cursor: 'pointer', transition: 'color 0.2s ease' }}
-          >
-            <i className="fas fa-arrow-left me-2"></i>
-            <span className="fw-medium">Back</span>
-          </div>
-        )}
+        <BackButton onClick={onBack} />
         <div className="miv-pagebar">
           <button className="miv-pb" onClick={loadDemo}>Load Worked Example</button>
         </div>
@@ -371,17 +363,8 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
 
   return (
     <div className="miv-pane p-4" style={{ backgroundColor: 'transparent' }}>
-      {onBack && (
-        <div
-          onClick={onBack}
-          className="d-inline-flex align-items-center justify-content-center text-muted cursor-pointer mb-3"
-          style={{ cursor: 'pointer', transition: 'color 0.2s ease' }}
-        >
-          <i className="fas fa-arrow-left me-2"></i>
-          <span className="fw-medium">Back</span>
-        </div>
-      )}
-      
+      <BackButton onClick={onBack} />
+
       <div className="miv-pagebar">
         <div className="miv-stamp">Gate Entry</div><div className="miv-pb"><b>{C.gate_entry_no}</b></div>
         <div className="miv-stamp" style={{marginLeft:"8px"}}>Vehicle</div><div className="miv-pb">{C.vehicle_no} · {C.vehicle_type}</div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import BackButton from '../common/BackButton';
 
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}` });
 const errorMessage = (err, fallback) =>
@@ -211,6 +212,7 @@ const AdminPurchaseRoles = ({ onBack }) => {
 
   return (
     <div className="container-fluid py-4" style={{ backgroundColor: 'var(--background-light, #f4f7f6)', minHeight: '100vh' }}>
+      <BackButton onClick={onBack} />
       <div className="d-flex align-items-center justify-content-between mb-4">
         <div>
           <h4 className="fw-bold mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>Purchasing Roles</h4>
@@ -221,7 +223,6 @@ const AdminPurchaseRoles = ({ onBack }) => {
         </div>
         <div className="d-flex gap-2">
           <button className="btn btn-sm btn-outline-primary" onClick={startNew}>New role</button>
-          {onBack && <button className="btn btn-sm btn-outline-secondary" onClick={onBack}>Back</button>}
         </div>
       </div>
 

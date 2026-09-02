@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Button from '../common/Button';
+import BackButton from '../common/BackButton';
 import NewAsnWizard from './NewAsnWizard';
 import AsnDetail from './AsnDetail';
 import { useAuth } from '../../context/AuthContext';
@@ -174,6 +175,8 @@ const ASN = ({ onBack }) => {
 
   return (
     <div className="fade-in-slide container-fluid py-4">
+      <BackButton onClick={onBack} />
+
       {/* Header Section */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div className="text-start">
@@ -188,16 +191,6 @@ const ASN = ({ onBack }) => {
           {/* <Button variant="green" className="fw-bold shadow-sm" onClick={handleCreateStandalone}>
             <i className="fas fa-truck me-1"></i> + New ASN
           </Button> */}
-          {onBack && (
-            <div
-              onClick={onBack}
-              className="d-inline-flex align-items-center justify-content-center text-muted cursor-pointer px-2"
-              style={{ cursor: 'pointer', transition: 'color 0.2s ease' }}
-            >
-              <i className="fas fa-arrow-left me-2"></i>
-              <span className="fw-medium">Back</span>
-            </div>
-          )}
         </div>
       </div>
 

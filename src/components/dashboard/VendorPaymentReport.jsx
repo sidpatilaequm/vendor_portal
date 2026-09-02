@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
+import BackButton from "../common/BackButton";
 
 /* ================================================================
  * Self-contained report. Palette, formatters, data hook and table
@@ -251,6 +252,7 @@ export default function VendorPaymentReport({ bpNo = "BP-MARK-01", onBack }) {
 
   return (
     <div className="fade-in-slide container-fluid py-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
+      <BackButton onClick={onBack} />
       <div className="d-flex flex-wrap justify-content-between align-items-end mb-4">
         <div>
           <div className="text-muted text-uppercase fw-bold mb-1" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
@@ -259,15 +261,6 @@ export default function VendorPaymentReport({ bpNo = "BP-MARK-01", onBack }) {
           <h3 className="fw-bold text-dark mb-1">Paid invoices{vendorName ? " — " + vendorName : ""}</h3>
         </div>
         <div className="d-flex flex-wrap gap-2 align-items-end mt-3 mt-md-0">
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="btn btn-sm btn-light border shadow-sm px-3 fw-bold"
-              style={{ borderRadius: '6px', height: '31px' }}
-            >
-              Back
-            </button>
-          )}
           <PeriodSelect value={period} onChange={(v) => { setPeriod(v); setOpen(null); }} />
           <ExportButton onClick={exportCsv} />
         </div>

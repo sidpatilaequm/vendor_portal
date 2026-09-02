@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Button from '../common/Button';
+import BackButton from '../common/BackButton';
 
 const AdminVendors = ({ onBack }) => {
   const [vendors, setVendors] = useState([]);
@@ -153,16 +154,7 @@ const AdminVendors = ({ onBack }) => {
 
   return (
     <div className="fade-in-slide container-fluid py-4 bg-light bg-opacity-50" style={{ minHeight: '100%' }}>
-      {onBack && (
-        <div 
-          onClick={onBack} 
-          className="d-inline-flex align-items-center text-muted mb-3 cursor-pointer" 
-          style={{ cursor: 'pointer', transition: 'color 0.2s ease' }}
-        >
-          <i className="fas fa-arrow-left me-2"></i>
-          <span className="fw-medium">Back to Reports</span>
-        </div>
-      )}
+      <BackButton onClick={onBack} />
       {/* Header */}
       <div className="row align-items-center mb-4 text-start">
         <div className="col">

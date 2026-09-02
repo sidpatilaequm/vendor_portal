@@ -55,6 +55,9 @@ export default function PrApprovalReport({ onBack }) {
       let endpoint = `/api/vendor/purchase-requisitions?vendor_id=${vId}`;
       if (company && company !== 'ALL') {
         endpoint += `&company_code=${company}`;
+      } else {
+        const cCode = localStorage.getItem('selected_company_code') || '1000';
+        endpoint += `&company_code=${cCode}`;
       }
       const token = localStorage.getItem('auth_token');
       const response = await fetch(endpoint, {

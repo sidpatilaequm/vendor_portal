@@ -514,6 +514,9 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
 
     try {
       const isVendor = role === 'VENDOR' || role === 'VENDOR_ADMIN';
+      
+      console.log("Forcing HMR Update: fetching PRs. isVendor=", isVendor, "selectedCompanyCode=", selectedCompanyCode);
+      
       let endpoint = isVendor
         ? `/api/vendor/purchase-requisitions?vendor_id=${vendorId}`
         : '/api/purchase-requisitions';

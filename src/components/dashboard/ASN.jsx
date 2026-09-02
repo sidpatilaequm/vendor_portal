@@ -86,11 +86,13 @@ const ASN = ({ onBack }) => {
             status_slug: asn.status_slug || slug,
             status_badge: asn.status_badge || badge
           };
-        });
         setAsns(mappedAsns);
+      } else {
+        setAsns([]);
       }
     } catch (err) {
       console.warn('Failed to fetch ASNs, keeping defaults.', err);
+      setAsns([]);
     } finally {
       setLoading(false);
     }
@@ -115,10 +117,7 @@ const ASN = ({ onBack }) => {
       setAvailablePos(data);
     } catch (err) {
       console.warn('Failed to fetch POs for modal selection, loading default mocks.', err);
-      setAvailablePos([
-        { poNumber: 'PO-2026-04512', description: 'OPC 53 Grade Cement + Packing Bags', grandTotal: 20635000, createdAt: '2026-06-10', poStatus: 'Acknowledged' },
-        { poNumber: 'PO-2026-04588', description: 'Steel structural frames', grandTotal: 1397050, createdAt: '2026-06-18', poStatus: 'Acknowledged' }
-      ]);
+      setAvailablePos([]);
     } finally {
       setLoadingPos(false);
     }

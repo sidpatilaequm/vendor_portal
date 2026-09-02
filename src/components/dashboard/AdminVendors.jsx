@@ -82,12 +82,12 @@ const AdminVendors = ({ onBack }) => {
         }));
         setVendors(mapped);
       } else {
-        setVendors(mockVendors);
+        setVendors([]);
       }
     })
     .catch(err => {
       console.error('Failed to load vendors, loading fallback mock data.', err);
-      setVendors(mockVendors);
+      setVendors([]);
     })
     .finally(() => {
       setLoading(false);

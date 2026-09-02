@@ -54,16 +54,26 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   // Per-company document type picks, e.g. { '1000': ['ZNB', 'ZSC'], '2000': ['ZFNB'] } — replaces
   // the old flat vendorCategory (Product/Service/Scheduling agreement/Sub-contracting) pick.
   const VENDOR_COMPANY_CODES = ['1000', '2000'];
-  // Document type classification -> the "Vendor Type" label shown next to its code (e.g.
-  // "Product(NB)"). UNCLASSIFIED codes (no real-world label yet) just show the bare code.
+  // Document type classification -> the "Vendor Type" label shown for it. Raw Material and
+  // Capital Expenditure are never shown as their own names — there's no dedicated tile for either
+  // on the vendor dashboard (see DashboardHome's CLASSIFICATION_TILES fallback), so here a code
+  // classified as one of those is folded directly into Product / Service instead: Raw Material ->
+  // Product, Capital Expenditure -> both Product and Service (it has to satisfy both).
   const VENDOR_TYPE_LABELS = {
     PRODUCTS: 'Product',
-    CAPITAL_EXPENDITURE: 'Capital Expenditure',
     SUBCONTRACTING: 'Subcontracting',
-    RAW_MATERIAL: 'Raw Material',
     SCHEDULING_AGREEMENT: 'Scheduling Agreement',
     SERVICE: 'Service',
   };
+  const DISPLAY_GROUPS_FOR_CLASSIFICATION = {
+    PRODUCTS: ['PRODUCTS'],
+    SERVICE: ['SERVICE'],
+    SUBCONTRACTING: ['SUBCONTRACTING'],
+    SCHEDULING_AGREEMENT: ['SCHEDULING_AGREEMENT'],
+    RAW_MATERIAL: ['PRODUCTS'],
+    CAPITAL_EXPENDITURE: ['PRODUCTS', 'SERVICE'],
+  };
+  const displayGroupsFor = (classification) => DISPLAY_GROUPS_FOR_CLASSIFICATION[classification] || (classification ? [classification] : []);
   const vendorTypeLabel = (classification) => VENDOR_TYPE_LABELS[classification] || null;
   const [vendorDocTypeMenu, setVendorDocTypeMenu] = useState({}); // companyCode -> [{code, description, classification}]
   const [companyNames, setCompanyNames] = useState({}); // companyCode -> companyName
@@ -2185,7 +2195,6 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                       {VENDOR_COMPANY_CODES.map((cc) => {
                         const picks = reviewDetails.documentTypeSelections.filter((s) => s.companyCode === cc);
                         if (picks.length === 0) return null;
-                        const menuByCode = Object.fromEntries((vendorDocTypeMenu[cc] || []).map((dt) => [dt.code, dt]));
                         return (
                           <div key={cc} className="mb-3">
                             <div className="text-muted fw-bold mb-1" style={{ fontSize: '11px' }}>{companyLabel(cc)}</div>
@@ -2197,12 +2206,16 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {picks.map((s) => (
-                                  <tr key={s.docTypeCode}>
-                                    <td>{vendorTypeLabel(menuByCode[s.docTypeCode]?.classification) || '—'}</td>
-                                    <td>{s.docTypeCode}</td>
-                                  </tr>
-                                ))}
+                                {picks.flatMap((s) => {
+                                  const dgs = displayGroupsFor(s.classification);
+                                  const rows = dgs.length ? dgs : [null];
+                                  return rows.map((g) => (
+                                    <tr key={s.docTypeCode + '-' + g}>
+                                      <td>{vendorTypeLabel(g) || '—'}</td>
+                                      <td>{s.docTypeCode}</td>
+                                    </tr>
+                                  ));
+                                })}
                               </tbody>
                             </table>
                           </div>
@@ -2224,8 +2237,9 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                               // both, for company 1000) in one action.
                               const groups = {};
                               for (const dt of (vendorDocTypeMenu[cc] || [])) {
-                                const key = dt.classification || dt.code;
-                                (groups[key] = groups[key] || []).push(dt.code);
+                                for (const key of displayGroupsFor(dt.classification)) {
+                                  (groups[key] = groups[key] || []).push(dt.code);
+                                }
                               }
                               return Object.entries(groups).map(([classification, codes]) => {
                                 const cur = vendorDocTypeChoice[cc] || [];

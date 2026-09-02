@@ -109,7 +109,7 @@ export default function OnboardingComplianceDashboard({ onBack }) {
 
   return (
     <div className="container-fluid py-4 fade-in-slide" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
-      <BackButton onClick={onBack} label="Back to Reports" />
+      <BackButton onClick={onBack} />
       {/* Top Header */}
       <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
         <div>

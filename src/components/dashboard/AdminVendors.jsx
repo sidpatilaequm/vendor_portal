@@ -154,7 +154,7 @@ const AdminVendors = ({ onBack }) => {
 
   return (
     <div className="fade-in-slide container-fluid py-4 bg-light bg-opacity-50" style={{ minHeight: '100%' }}>
-      <BackButton onClick={onBack} label="Back to Reports" />
+      <BackButton onClick={onBack} />
       {/* Header */}
       <div className="row align-items-center mb-4 text-start">
         <div className="col">

@@ -28,6 +28,7 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
   const [vendorName, setVendorName] = useState('');
   const [workflowRequests, setWorkflowRequests] = useState([]);
   const [myDocTypeSelections, setMyDocTypeSelections] = useState(null); // null = not loaded yet
+  const [myDocTypeLoadError, setMyDocTypeLoadError] = useState(false);
 
   useEffect(() => {
     if (!resolvedIsAdmin) {
@@ -70,6 +71,7 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
     // with no way back except a full page reload. Retry first; only fall back once retries are
     // truly exhausted.
     const fetchDocTypeSelections = (attemptsLeft = 3) => {
+      setMyDocTypeLoadError(false);
       const token = localStorage.getItem('auth_token');
       if (!token) {
         // Called from visibilitychange before the token exists yet (shouldn't normally happen
@@ -87,7 +89,9 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
           if (attemptsLeft > 0) {
             setTimeout(() => fetchDocTypeSelections(attemptsLeft - 1), 600);
           } else {
-            setMyDocTypeSelections([]); // genuinely out of retries — fall back to showing everything
+            // Genuinely out of retries — this is NOT the same as "confirmed nothing recorded", so
+            // don't silently fall back to showing everything. Surface it and let the vendor retry.
+            setMyDocTypeLoadError(true);
           }
         });
     };
@@ -303,7 +307,14 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
 
         <div className="tile-grid">
 
-          {picksForCompany === null && (
+          {myDocTypeLoadError ? (
+            <div className="tile" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
+              <div className="d-flex flex-column align-items-center gap-2 text-muted text-center">
+                <span>Couldn't load what you're approved for. Nothing shown below reflects your real access yet.</span>
+                <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => window.location.reload()}>Retry</button>
+              </div>
+            </div>
+          ) : picksForCompany === null && (
             <div className="tile" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
               <div className="d-flex align-items-center gap-2 text-muted">
                 <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>

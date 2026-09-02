@@ -3,19 +3,13 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 
 const Header = ({ onNavigate }) => {
+  // companiesList (real SAP company codes, not the vendor's own profile) is fetched once by
+  // AuthContext on session restore and shared here, rather than each component fetching its own
+  // copy.
   const { currentUser, logout, selectedCompanyCode, updateSelectedCompanyCode, companiesList } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [vendorCode, setVendorCode] = useState('');
   const [vendorName, setVendorName] = useState('');
-  const [companies, setCompanies] = useState([]); // [{companyCode, companyName}] — real SAP company codes, not the vendor's own profile
-
-  useEffect(() => {
-    if (currentUser?.role?.toUpperCase() !== 'VENDOR') return;
-    const token = localStorage.getItem('auth_token');
-    axios.get('/api/mm/companies', { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => setCompanies(res.data?.companies || []))
-      .catch(() => {});
-  }, [currentUser]);
 
   useEffect(() => {
     try {
@@ -70,18 +64,9 @@ const Header = ({ onNavigate }) => {
                 onChange={(e) => updateSelectedCompanyCode(e.target.value)}
                 style={{ minWidth: '150px', fontSize: '13px' }}
               >
-                {companiesList && companiesList.length > 0 ? (
-                  companiesList.map(comp => (
-                    <option key={comp.companyCode} value={comp.companyCode}>
-                      {comp.companyCode} - {comp.companyName}
-                    </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="1000">1000 - Ankit Aerospace</option>
-                    <option value="1001">1001 - Ankit Fasteners</option>
-                  </>
-                )}
+                {(companiesList || []).map((comp) => (
+                  <option key={comp.companyCode} value={comp.companyCode}>{comp.companyName}</option>
+                ))}
               </select>
             </div>
           )}

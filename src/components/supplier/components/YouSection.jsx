@@ -10,7 +10,7 @@ import React from 'react';
 // that's the only piece every downstream consumer (draft-code delivery, reviewer questions,
 // orders, payment advice, the portal login) actually reads.
 const YouSection = ({ form }) => {
-  const { state, readiness, setField } = form;
+  const { state, readiness, setField, setDeclaration } = form;
 
   return (
     <section className="sec" id="sec-you">

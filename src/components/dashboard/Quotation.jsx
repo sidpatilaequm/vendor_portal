@@ -197,10 +197,11 @@ const Quotation = ({ onBack, onNavigate }) => {
     vId = vId || 1381;
 
     try {
-      let endpoint = `/api/vendor/purchase-requisitions/details?vendor_id=${vId}`;
-      const companyToUse = selectedCompanyCode || localStorage.getItem('selected_company_code') || '1000';
-      endpoint += `&company_code=${companyToUse}`;
-      const response = await axios.get(endpoint, {
+      let url = `/api/vendor/purchase-requisitions/details?vendor_id=${vId}`;
+      if (selectedCompanyCode) {
+        url += `&company_code=${selectedCompanyCode}`;
+      }
+      const response = await axios.get(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

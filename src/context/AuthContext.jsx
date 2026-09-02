@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
   const [selectedCompanyCode, setSelectedCompanyCode] = useState(null);
+  const [companiesList, setCompaniesList] = useState([]);
 
   useEffect(() => {
     // Restore session on mount
@@ -24,6 +25,15 @@ export const AuthProvider = ({ children }) => {
     } else {
       setSelectedCompanyCode('1000');
     }
+
+    // Fetch dynamic companies list
+    axios.get('/api/mm/companies')
+      .then(res => {
+        if (res.data && res.data.companies) {
+          setCompaniesList(res.data.companies);
+        }
+      })
+      .catch(err => console.error("Failed to load companies list:", err));
   }, []);
 
   const showAlert = (message, type = 'danger') => {
@@ -211,7 +221,8 @@ export const AuthProvider = ({ children }) => {
       registerRequest,
       logout,
       selectedCompanyCode,
-      updateSelectedCompanyCode
+      updateSelectedCompanyCode,
+      companiesList
     }}>
       {children}
     </AuthContext.Provider>

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 
 const Header = ({ onNavigate }) => {
-  const { currentUser, logout, selectedCompanyCode, updateSelectedCompanyCode } = useAuth();
+  const { currentUser, logout, selectedCompanyCode, updateSelectedCompanyCode, companiesList } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [vendorCode, setVendorCode] = useState('');
   const [vendorName, setVendorName] = useState('');
@@ -61,8 +61,18 @@ const Header = ({ onNavigate }) => {
                 onChange={(e) => updateSelectedCompanyCode(e.target.value)}
                 style={{ minWidth: '150px', fontSize: '13px' }}
               >
-                <option value="1000">1000 - Ankit Aerospace</option>
-                <option value="1001">1001 - Ankit Fasteners</option>
+                {companiesList && companiesList.length > 0 ? (
+                  companiesList.map(comp => (
+                    <option key={comp.companyCode} value={comp.companyCode}>
+                      {comp.companyCode} - {comp.companyName}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="1000">1000 - Ankit Aerospace</option>
+                    <option value="1001">1001 - Ankit Fasteners</option>
+                  </>
+                )}
               </select>
             </div>
           )}

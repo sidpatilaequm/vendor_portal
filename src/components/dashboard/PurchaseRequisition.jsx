@@ -13,7 +13,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
   const [filter, setFilter] = useState('all');
   const [selectedPrId, setSelectedPrId] = useState(null);
   const [showKpis, setShowKpis] = useState(false);
-  const { selectedCompanyCode } = useAuth();
+  const { selectedCompanyCode, companiesList } = useAuth();
 
   // Modal states
   const [showActionModal, setShowActionModal] = useState(false);
@@ -1097,8 +1097,18 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
                           required
                         >
                           <option value="">Select Company...</option>
-                          <option value="1000">1000 - Ankit Aerospace</option>
-                          <option value="1001">1001 - Ankit Fasteners</option>
+                          {companiesList && companiesList.length > 0 ? (
+                            companiesList.map(comp => (
+                              <option key={comp.companyCode} value={comp.companyCode}>
+                                {comp.companyCode} - {comp.companyName}
+                              </option>
+                            ))
+                          ) : (
+                            <>
+                              <option value="1000">1000 - Ankit Aerospace</option>
+                              <option value="1001">1001 - Ankit Fasteners</option>
+                            </>
+                          )}
                         </select>
                       </div>
                     </div>

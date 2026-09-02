@@ -140,8 +140,8 @@ const PurchaseOrder = ({ onBack }) => {
     if (needsItems || needsHistory) {
       try {
         const [itemsRes, historyRes] = await Promise.all([
-          needsItems ? axios.get(`/api/vendor/purchase-orders/${poId}`, { headers: { 'Authorization': `Bearer ${token}` } }) : Promise.resolve({ data: { items: data.orders[idx].items } }),
-          needsHistory ? axios.get(`/api/vendor/purchase-orders/${poNumber}/asns`, { headers: { 'Authorization': `Bearer ${token}` } }) : Promise.resolve({ data: data.orders[idx].asnHistory })
+          needsItems ? axios.get(isVendorUser ? `/api/vendor/purchase-orders/${poId}` : `/api/purchase-orders/${poId}`, { headers: { 'Authorization': `Bearer ${token}` } }) : Promise.resolve({ data: { items: data.orders[idx].items } }),
+          needsHistory ? axios.get(isVendorUser ? `/api/vendor/purchase-orders/${poNumber}/asns` : `/api/purchase-orders/${poNumber}/asns`, { headers: { 'Authorization': `Bearer ${token}` } }) : Promise.resolve({ data: data.orders[idx].asnHistory })
         ]);
 
         const updatedOrders = [...data.orders];
@@ -160,7 +160,10 @@ const PurchaseOrder = ({ onBack }) => {
   const handleAction = async (poId, action) => {
     try {
       const token = localStorage.getItem('auth_token');
-      await axios.post(`/api/vendor/purchase-orders/${poId}/${action}`, {}, {
+      const url = isVendorUser 
+        ? `/api/vendor/purchase-orders/${poId}/${action}` 
+        : `/api/purchase-orders/${poId}/${action}`;
+      await axios.post(url, {}, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       // Update local state

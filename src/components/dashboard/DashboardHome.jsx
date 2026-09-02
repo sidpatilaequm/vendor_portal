@@ -277,6 +277,15 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
 
         <div className="tile-grid">
 
+          {picksForCompany === null && (
+            <div className="tile" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
+              <div className="d-flex align-items-center gap-2 text-muted">
+                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                <span>Loading what you're approved for…</span>
+              </div>
+            </div>
+          )}
+
           {/* Procure to pay: Products */}
           {visibleTiles.has('products') && (
           <div className="tile" onClick={(e) => handleNavigation(e, 'pr')}>

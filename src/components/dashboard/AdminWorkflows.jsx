@@ -54,6 +54,9 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   // Per-company document type picks, e.g. { '1000': ['ZNB', 'ZSC'], '2000': ['ZFNB'] } — replaces
   // the old flat vendorCategory (Product/Service/Scheduling agreement/Sub-contracting) pick.
   const VENDOR_COMPANY_CODES = ['1000', '2000'];
+  // Fixed display order — same sequence for both companies regardless of which order the codes
+  // happen to come back from the API in, or which of the two companies has more/fewer types.
+  const VENDOR_TYPE_ORDER = ['PRODUCTS', 'SERVICE', 'SUBCONTRACTING', 'SCHEDULING_AGREEMENT'];
   // Document type classification -> the "Vendor Type" label shown for it. Raw Material and
   // Capital Expenditure are never shown as their own names — there's no dedicated tile for either
   // on the vendor dashboard (see DashboardHome's CLASSIFICATION_TILES fallback), so here a code
@@ -2241,33 +2244,36 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                                   (groups[key] = groups[key] || []).push(dt.code);
                                 }
                               }
-                              return Object.entries(groups).map(([classification, codes]) => {
-                                const cur = vendorDocTypeChoice[cc] || [];
-                                const active = codes.every((c) => cur.includes(c));
-                                return (
-                                  <button
-                                    key={classification}
-                                    type="button"
-                                    title={codes.join(', ')}
-                                    className={`btn btn-sm ${active ? 'btn-success' : 'btn-outline-secondary'}`}
-                                    onClick={() => {
-                                      setVendorDocTypeChoice((prev) => {
-                                        const prevCur = prev[cc] || [];
-                                        const allSelected = codes.every((c) => prevCur.includes(c));
-                                        return {
-                                          ...prev,
-                                          [cc]: allSelected
-                                            ? prevCur.filter((v) => !codes.includes(v))
-                                            : [...new Set([...prevCur, ...codes])],
-                                        };
-                                      });
-                                      setVendorCategoryError('');
-                                    }}
-                                  >
-                                    {vendorTypeLabel(classification) || classification}
-                                  </button>
-                                );
-                              });
+                              return VENDOR_TYPE_ORDER
+                                .filter((classification) => groups[classification])
+                                .map((classification) => {
+                                  const codes = groups[classification];
+                                  const cur = vendorDocTypeChoice[cc] || [];
+                                  const active = codes.every((c) => cur.includes(c));
+                                  return (
+                                    <button
+                                      key={classification}
+                                      type="button"
+                                      title={codes.join(', ')}
+                                      className={`btn btn-sm ${active ? 'btn-success' : 'btn-outline-secondary'}`}
+                                      onClick={() => {
+                                        setVendorDocTypeChoice((prev) => {
+                                          const prevCur = prev[cc] || [];
+                                          const allSelected = codes.every((c) => prevCur.includes(c));
+                                          return {
+                                            ...prev,
+                                            [cc]: allSelected
+                                              ? prevCur.filter((v) => !codes.includes(v))
+                                              : [...new Set([...prevCur, ...codes])],
+                                          };
+                                        });
+                                        setVendorCategoryError('');
+                                      }}
+                                    >
+                                      {vendorTypeLabel(classification) || classification}
+                                    </button>
+                                  );
+                                });
                             })()}
                             {(vendorDocTypeMenu[cc] || []).length === 0 && (
                               <span className="text-muted small">Loading…</span>

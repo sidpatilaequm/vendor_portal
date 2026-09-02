@@ -512,11 +512,12 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
     }
 
     try {
-      let endpoint = role === 'VENDOR'
+      const isVendor = role === 'VENDOR' || role === 'VENDOR_ADMIN';
+      let endpoint = isVendor
         ? `/api/vendor/purchase-requisitions?vendor_id=${vendorId}`
         : '/api/purchase-requisitions';
         
-      if (role === 'VENDOR' && selectedCompanyCode) {
+      if (isVendor && selectedCompanyCode) {
         endpoint += `&company_code=${selectedCompanyCode}`;
       }
 
@@ -600,7 +601,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
          }
       }
 
-      const isVendor = role === 'VENDOR' || role === 'VENDOR_ADMIN';
+      // (isVendor is already defined above)
       let filteredArray = formattedPRs;
 
       if (isVendor) {

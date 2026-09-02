@@ -55,7 +55,12 @@ export const AuthProvider = ({ children }) => {
   // in one place so a new sign-in path can't drift from RouteGuards'/the "*" fallback's own
   // categorization in App.jsx.
   const applySession = (data) => {
-    const vId = data.permissions?.vendorId || data.vendorId || data.vendor_id || data.companyId || data.company_id || data.userId || data.id;
+    // vendorMasterId is the real VendorMaster.vendor_id the backend now sends explicitly —
+    // permissions.vendorId looks like the same thing but is actually CompanyDetails.company_id
+    // (correct for permission-scoping, wrong for PR/RFQ/ASN/quotation assignment lookups, which
+    // all key off VendorMaster.vendor_id). Prefer the correctly-named one; the rest of the chain
+    // stays as a fallback for non-vendor logins, which never get a vendorMasterId.
+    const vId = data.vendorMasterId || data.permissions?.vendorId || data.vendorId || data.vendor_id || data.companyId || data.company_id || data.userId || data.id;
 
     const userData = {
       ...data,

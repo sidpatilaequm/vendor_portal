@@ -2218,29 +2218,43 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                         <div key={cc} className="mb-3">
                           <div className="text-muted fw-bold mb-1" style={{ fontSize: '11px' }}>{companyLabel(cc)}</div>
                           <div className="d-flex flex-wrap gap-2">
-                            {(vendorDocTypeMenu[cc] || []).map((dt) => {
-                              const active = (vendorDocTypeChoice[cc] || []).includes(dt.code);
-                              return (
-                                <button
-                                  key={dt.code}
-                                  type="button"
-                                  title={dt.description}
-                                  className={`btn btn-sm ${active ? 'btn-success' : 'btn-outline-secondary'}`}
-                                  onClick={() => {
-                                    setVendorDocTypeChoice((prev) => {
-                                      const cur = prev[cc] || [];
-                                      return {
-                                        ...prev,
-                                        [cc]: cur.includes(dt.code) ? cur.filter((v) => v !== dt.code) : [...cur, dt.code],
-                                      };
-                                    });
-                                    setVendorCategoryError('');
-                                  }}
-                                >
-                                  {vendorTypeLabel(dt.classification) ? `${vendorTypeLabel(dt.classification)}(${dt.code})` : dt.code}
-                                </button>
-                              );
-                            })}
+                            {(() => {
+                              // One button per vendor type, not per code — picking "Product" grants
+                              // every code classified as Product for this company (e.g. NB and ZNB
+                              // both, for company 1000) in one action.
+                              const groups = {};
+                              for (const dt of (vendorDocTypeMenu[cc] || [])) {
+                                const key = dt.classification || dt.code;
+                                (groups[key] = groups[key] || []).push(dt.code);
+                              }
+                              return Object.entries(groups).map(([classification, codes]) => {
+                                const cur = vendorDocTypeChoice[cc] || [];
+                                const active = codes.every((c) => cur.includes(c));
+                                return (
+                                  <button
+                                    key={classification}
+                                    type="button"
+                                    title={codes.join(', ')}
+                                    className={`btn btn-sm ${active ? 'btn-success' : 'btn-outline-secondary'}`}
+                                    onClick={() => {
+                                      setVendorDocTypeChoice((prev) => {
+                                        const prevCur = prev[cc] || [];
+                                        const allSelected = codes.every((c) => prevCur.includes(c));
+                                        return {
+                                          ...prev,
+                                          [cc]: allSelected
+                                            ? prevCur.filter((v) => !codes.includes(v))
+                                            : [...new Set([...prevCur, ...codes])],
+                                        };
+                                      });
+                                      setVendorCategoryError('');
+                                    }}
+                                  >
+                                    {vendorTypeLabel(classification) || classification}
+                                  </button>
+                                );
+                              });
+                            })()}
                             {(vendorDocTypeMenu[cc] || []).length === 0 && (
                               <span className="text-muted small">Loading…</span>
                             )}

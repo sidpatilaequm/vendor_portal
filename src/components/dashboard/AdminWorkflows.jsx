@@ -54,7 +54,18 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   // Per-company document type picks, e.g. { '1000': ['ZNB', 'ZSC'], '2000': ['ZFNB'] } — replaces
   // the old flat vendorCategory (Product/Service/Scheduling agreement/Sub-contracting) pick.
   const VENDOR_COMPANY_CODES = ['1000', '2000'];
-  const [vendorDocTypeMenu, setVendorDocTypeMenu] = useState({}); // companyCode -> [{code, description}]
+  // Document type classification -> the "Vendor Type" label shown next to its code (e.g.
+  // "Product(NB)"). UNCLASSIFIED codes (no real-world label yet) just show the bare code.
+  const VENDOR_TYPE_LABELS = {
+    PRODUCTS: 'Product',
+    CAPITAL_EXPENDITURE: 'Capital Expenditure',
+    SUBCONTRACTING: 'Subcontracting',
+    RAW_MATERIAL: 'Raw Material',
+    SCHEDULING_AGREEMENT: 'Scheduling Agreement',
+    SERVICE: 'Service',
+  };
+  const vendorTypeLabel = (classification) => VENDOR_TYPE_LABELS[classification] || null;
+  const [vendorDocTypeMenu, setVendorDocTypeMenu] = useState({}); // companyCode -> [{code, description, classification}]
   const [vendorDocTypeChoice, setVendorDocTypeChoice] = useState({});
   const [vendorCategoryError, setVendorCategoryError] = useState('');
   const [decidingCategory, setDecidingCategory] = useState(false);
@@ -381,7 +392,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
           for (const cc of VENDOR_COMPANY_CODES) menu[cc] = [];
           for (const dt of (data || [])) {
             for (const a of (dt.assignments || [])) {
-              if (menu[a.companyCode]) menu[a.companyCode].push({ code: dt.code, description: dt.description });
+              if (menu[a.companyCode]) menu[a.companyCode].push({ code: dt.code, description: dt.description, classification: dt.classification });
             }
           }
           setVendorDocTypeMenu(menu);
@@ -2162,16 +2173,26 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                       {VENDOR_COMPANY_CODES.map((cc) => {
                         const picks = reviewDetails.documentTypeSelections.filter((s) => s.companyCode === cc);
                         if (picks.length === 0) return null;
+                        const menuByCode = Object.fromEntries((vendorDocTypeMenu[cc] || []).map((dt) => [dt.code, dt]));
                         return (
-                          <div key={cc} className="mb-2">
-                            <div className="text-muted fw-bold" style={{ fontSize: '11px' }}>Company {cc}</div>
-                            <div className="d-flex flex-wrap gap-2 mt-1">
-                              {picks.map((s) => (
-                                <span key={s.docTypeCode} className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2">
-                                  {s.docTypeCode}
-                                </span>
-                              ))}
-                            </div>
+                          <div key={cc} className="mb-3">
+                            <div className="text-muted fw-bold mb-1" style={{ fontSize: '11px' }}>Company {cc}</div>
+                            <table className="table table-sm mb-0 bg-white">
+                              <thead>
+                                <tr>
+                                  <th className="text-muted" style={{ fontSize: '10.5px' }}>Vendor Type</th>
+                                  <th className="text-muted" style={{ fontSize: '10.5px' }}>Vendor Type Code</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {picks.map((s) => (
+                                  <tr key={s.docTypeCode}>
+                                    <td>{vendorTypeLabel(menuByCode[s.docTypeCode]?.classification) || '—'}</td>
+                                    <td>{s.docTypeCode}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         );
                       })}
@@ -2204,7 +2225,7 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                                     setVendorCategoryError('');
                                   }}
                                 >
-                                  {dt.code}
+                                  {vendorTypeLabel(dt.classification) ? `${vendorTypeLabel(dt.classification)}(${dt.code})` : dt.code}
                                 </button>
                               );
                             })}

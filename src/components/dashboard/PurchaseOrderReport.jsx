@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import BackButton from '../common/BackButton';
 
 export default function PurchaseOrderReport({ onBack }) {
   const [data, setData] = useState([]);
@@ -42,17 +43,7 @@ export default function PurchaseOrderReport({ onBack }) {
 
   return (
     <div className="p-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
-      {/* Header */}
-      {onBack && (
-        <div
-          onClick={onBack}
-          className="d-inline-flex align-items-center text-muted mb-3 cursor-pointer"
-          style={{ cursor: 'pointer', transition: 'color 0.2s ease' }}
-        >
-          <i className="fas fa-arrow-left me-2"></i>
-          <span className="fw-medium">Back</span>
-        </div>
-      )}
+      <BackButton onClick={onBack} />
       <div className="mb-4 d-flex justify-content-between align-items-center">
         <div>
           <h3 className="fw-bold text-dark mb-0">Purchase order register</h3>

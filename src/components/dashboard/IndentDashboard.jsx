@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import BackButton from '../common/BackButton';
 
 const InfoRow = ({ label, value }) => (
     <div className="row mb-1 align-items-start" style={{ fontSize: '12px' }}>
@@ -263,14 +264,7 @@ const IndentDashboard = ({ onBack }) => {
       {/* Header section */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          {onBack && (
-            <button 
-              className="btn btn-link text-muted text-decoration-none p-0 mb-2 d-flex align-items-center gap-2"
-              onClick={onBack}
-            >
-              <i className="fas fa-arrow-left"></i> Back
-            </button>
-          )}
+          <BackButton onClick={onBack} />
           <h3 className="fw-bold text-dark mb-1" style={{ letterSpacing: '-0.5px' }}>INDENTS</h3>
           <p className="text-muted mb-0" style={{ fontSize: '14px' }}>Manage and track your Indent Approvals</p>
         </div>

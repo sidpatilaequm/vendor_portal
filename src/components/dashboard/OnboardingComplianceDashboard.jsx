@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import BackButton from '../common/BackButton';
 
 export default function OnboardingComplianceDashboard({ onBack }) {
   const [data, setData] = useState({
@@ -108,16 +109,7 @@ export default function OnboardingComplianceDashboard({ onBack }) {
 
   return (
     <div className="container-fluid py-4 fade-in-slide" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
-      {onBack && (
-        <div 
-          onClick={onBack} 
-          className="d-inline-flex align-items-center text-muted mb-3 cursor-pointer" 
-          style={{ cursor: 'pointer', transition: 'color 0.2s ease' }}
-        >
-          <i className="fas fa-arrow-left me-2"></i>
-          <span className="fw-medium">Back to Reports</span>
-        </div>
-      )}
+      <BackButton onClick={onBack} label="Back to Reports" />
       {/* Top Header */}
       <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
         <div>

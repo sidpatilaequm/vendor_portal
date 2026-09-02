@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Button from '../common/Button';
 import SecureDocumentViewer from '../common/SecureDocumentViewer';
+import BackButton from '../common/BackButton';
 
 const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
   const currentUserInfo = JSON.parse(localStorage.getItem('user_data') || '{"userId": 1, "firstName": "Admin", "lastName": "User", "email": "admin@company.com", "role": "admin"}');
@@ -995,6 +996,9 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
 
   return (
     <div className="fade-in-slide container-fluid py-4 text-start" style={{ fontFamily: '"Poppins", sans-serif', minHeight: '100%' }}>
+      {isEmployee && (
+        <BackButton onClick={() => onNavigate ? onNavigate('dashboard') : window.history.back()} />
+      )}
       {/* Sub-Header Navigation Tabs */}
       <div className="row align-items-center mb-4">
         <div className="col">
@@ -1018,12 +1022,6 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
             <Button onClick={() => setShowGroupModal(true)} className="btn-success btn-sm">
               <i className="fas fa-plus me-1"></i> Create Group
             </Button>
-          )}
-          {isEmployee && (
-            <div onClick={() => onNavigate ? onNavigate('dashboard') : window.history.back()} className="d-inline-flex align-items-center text-muted cursor-pointer" style={{ cursor: 'pointer' }}>
-              <i className="fas fa-arrow-left me-2"></i>
-              <span className="fw-medium">Back</span>
-            </div>
           )}
         </div>
       </div>

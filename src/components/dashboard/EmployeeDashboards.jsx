@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import BackButton from '../common/BackButton';
 
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}` });
 
@@ -32,18 +33,10 @@ const EmployeeDashboards = ({ onBack }) => {
       .catch(() => {}); // best-effort audit log — never blocks viewing
   };
 
-  const backButtonStyle = {
-    fontFamily: "'Poppins', sans-serif",
-    color: 'var(--accent-color)',
-    borderColor: 'var(--accent-color)',
-  };
-
   if (openReport) {
     return (
       <div className="p-3">
-        <button className="btn btn-sm btn-outline-secondary mb-3" style={backButtonStyle} onClick={() => setOpenReport(null)}>
-          <i className="fas fa-arrow-left me-1"></i> Back to Dashboards
-        </button>
+        <BackButton onClick={() => setOpenReport(null)} label="Back to Dashboards" />
         <iframe
           title={openReport.name}
           src={openReport.url}
@@ -55,6 +48,7 @@ const EmployeeDashboards = ({ onBack }) => {
 
   return (
     <div className="container-fluid py-4 min-vh-100 fade-in-slide" style={{ backgroundColor: 'var(--background-light)' }}>
+      <BackButton onClick={onBack} />
       <div className="d-flex align-items-center justify-content-between mb-4">
         <div>
           <h4 className="fw-bold mb-1" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-dark)' }}>Dashboards</h4>
@@ -62,11 +56,6 @@ const EmployeeDashboards = ({ onBack }) => {
             Reports published for everyone in your team.
           </p>
         </div>
-        {onBack && (
-          <button className="btn btn-sm btn-outline-secondary" style={backButtonStyle} onClick={onBack}>
-            <i className="fas fa-arrow-left me-1"></i> Back
-          </button>
-        )}
       </div>
 
       {error && <p className="small" style={{ color: '#dc2626', fontFamily: "'Poppins', sans-serif" }}>{error}</p>}

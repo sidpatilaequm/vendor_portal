@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import BackButton from '../common/BackButton';
 import './VendorGateStatus.css';
 
 const VendorGateStatus = ({ onBack }) => {
@@ -68,20 +69,12 @@ const VendorGateStatus = ({ onBack }) => {
 
   return (
     <div className="vendor-gate-status">
+      <BackButton onClick={onBack} />
       <div className="vgs-header">
         <div>
           <h2>Gate Entry Status</h2>
           <p>Track your dispatched ASNs and view inspection results</p>
         </div>
-        {onBack && (
-          <button 
-            onClick={onBack}
-            className="btn btn-sm btn-light border-0 shadow-sm d-flex align-items-center gap-2 px-3 py-2"
-          >
-            <i className="fas fa-arrow-left text-muted"></i>
-            <span className="fw-medium text-dark">Back</span>
-          </button>
-        )}
       </div>
 
       {loading ? (

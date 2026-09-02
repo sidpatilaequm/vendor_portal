@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Button from '../common/Button';
 import Modal from '../common/Modal';
+import BackButton from '../common/BackButton';
 import PurchaseRequisitionDetail from './PurchaseRequisitionDetail';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../../context/AuthContext';
@@ -757,6 +758,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
           </div>
         </div>
       )}
+      <BackButton onClick={onBack} />
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h3 className="mb-1 fw-bold text-dark" style={{ letterSpacing: '-0.5px' }}>
@@ -767,16 +769,6 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
           </p>
         </div>
         <div className="d-flex align-items-stretch gap-3">
-          {onBack && (
-            <div
-              onClick={onBack}
-              className="d-inline-flex align-items-center justify-content-center text-muted cursor-pointer px-2"
-              style={{ cursor: 'pointer', transition: 'color 0.2s ease' }}
-            >
-              <i className="fas fa-arrow-left me-2"></i>
-              <span className="fw-medium">Back</span>
-            </div>
-          )}
           {userRole !== 'VENDOR' && mode !== 'rfq' && (
             <button
               className="btn btn-success px-4 fw-medium d-flex align-items-center justify-content-center gap-2 shadow-sm"

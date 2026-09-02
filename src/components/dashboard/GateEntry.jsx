@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import BackButton from '../common/BackButton';
 import './GateEntry.css';
 
 
@@ -315,7 +316,8 @@ const GateEntry = ({ onBack }) => {
   return (
     <div className="gate-entry-container">
       <div className="wrap">
-        <div className="d-flex justify-content-between align-items-center mb-4 mt-4">
+        <BackButton onClick={onBack} className="mt-4" />
+        <div className="d-flex justify-content-between align-items-center mb-4">
           <div>
             <h3 className="mb-1 fw-bold text-dark" style={{ letterSpacing: '-0.5px' }}>
               Gate Entry
@@ -325,16 +327,6 @@ const GateEntry = ({ onBack }) => {
             </p>
           </div>
           <div className="d-flex align-items-stretch gap-3">
-            {onBack && (
-              <div
-                onClick={onBack}
-                className="d-inline-flex align-items-center justify-content-center text-muted cursor-pointer px-2"
-                style={{ cursor: 'pointer', transition: 'color 0.2s ease' }}
-              >
-                <i className="fas fa-arrow-left me-2"></i>
-                <span className="fw-medium">Back</span>
-              </div>
-            )}
             <div className="d-flex align-items-center border px-3 rounded shadow-sm text-muted" style={{ backgroundColor: '#fff', fontSize: '14px' }}>
               Plant <b className="ms-1 me-1 text-dark">BLR-01</b> · Gate <b className="ms-1 text-dark">02</b>
             </div>

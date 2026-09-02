@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import BackButton from '../common/BackButton';
 
 const formatCurrency = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0);
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
@@ -210,6 +211,8 @@ const PurchaseOrder = ({ onBack }) => {
 
   return (
     <div className="fade-in-slide container-fluid py-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
+      <BackButton onClick={onBack} />
+
       {/* Header & Controls */}
       <div className="d-flex flex-wrap justify-content-between align-items-end mb-4">
         <div>
@@ -297,17 +300,6 @@ const PurchaseOrder = ({ onBack }) => {
               >
                 <i className="fas fa-sync-alt me-2"></i> Sync FolderIt
               </button>
-            </div>
-          )}
-
-          {onBack && (
-            <div
-              onClick={onBack}
-              className="d-inline-flex align-items-center justify-content-center text-muted cursor-pointer px-2"
-              style={{ cursor: 'pointer', transition: 'color 0.2s ease', height: '31px' }}
-            >
-              <i className="fas fa-arrow-left me-2"></i>
-              <span className="fw-medium">Back</span>
             </div>
           )}
         </div>

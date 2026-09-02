@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import NewQuotationWizard from './NewQuotationWizard';
+import BackButton from '../common/BackButton';
 
 export default function QuotationCycleReport({ onBack }) {
   const [data, setData] = useState([]);
@@ -183,22 +184,14 @@ export default function QuotationCycleReport({ onBack }) {
 
   return (
     <div className="p-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
+      <BackButton onClick={onBack} />
+
       {/* Header */}
       <div className="mb-4 d-flex justify-content-between align-items-center">
         <div>
           <h3 className="fw-bold text-dark mb-0">Quotation</h3>
           {/* <p className="text-muted small">Quote tracking, item details, and compliance comparison</p> */}
         </div>
-        {onBack && (
-          <div
-            onClick={onBack}
-            className="d-inline-flex align-items-center text-muted cursor-pointer"
-            style={{ cursor: 'pointer', transition: 'color 0.2s ease' }}
-          >
-            <i className="fas fa-arrow-left me-2"></i>
-            <span className="fw-medium">Back</span>
-          </div>
-        )}
       </div>
 
       {/* Filter Bar */}

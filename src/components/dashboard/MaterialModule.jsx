@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import BackButton from '../common/BackButton';
 
 const MaterialModule = ({ onBack }) => {
   const [data, setData] = useState([]);
@@ -39,16 +40,7 @@ const MaterialModule = ({ onBack }) => {
 
   return (
     <div className="p-4" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '"Poppins", sans-serif' }}>
-      {onBack && (
-        <div
-          onClick={onBack}
-          className="d-inline-flex align-items-center text-muted mb-3 cursor-pointer"
-          style={{ cursor: 'pointer', transition: 'color 0.2s ease' }}
-        >
-          <i className="fas fa-arrow-left me-2"></i>
-          <span className="fw-medium">Back</span>
-        </div>
-      )}
+      <BackButton onClick={onBack} />
 
       <div className="mb-4 d-flex justify-content-between align-items-center">
         <div>

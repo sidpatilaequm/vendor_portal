@@ -86,6 +86,7 @@ const ASN = ({ onBack }) => {
             status_slug: asn.status_slug || slug,
             status_badge: asn.status_badge || badge
           };
+        });
         setAsns(mappedAsns);
       } else {
         setAsns([]);

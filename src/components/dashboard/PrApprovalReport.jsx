@@ -52,7 +52,10 @@ export default function PrApprovalReport({ onBack }) {
     setError(null);
     try {
       const vId = vendorId || 1381; // fallback to 1381 if vendorId is somehow missing
-      const endpoint = `/api/vendor/purchase-requisitions?vendor_id=${vId}`;
+      let endpoint = `/api/vendor/purchase-requisitions?vendor_id=${vId}`;
+      if (company && company !== 'ALL') {
+        endpoint += `&company_code=${company}`;
+      }
       const token = localStorage.getItem('auth_token');
       const response = await fetch(endpoint, {
         headers: {

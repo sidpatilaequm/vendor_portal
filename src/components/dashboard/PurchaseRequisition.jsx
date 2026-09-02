@@ -518,8 +518,9 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
         ? `/api/vendor/purchase-requisitions?vendor_id=${vendorId}`
         : '/api/purchase-requisitions';
         
-      if (isVendor && selectedCompanyCode) {
-        endpoint += `&company_code=${selectedCompanyCode}`;
+      if (isVendor) {
+        const companyToUse = selectedCompanyCode || localStorage.getItem('selected_company_code') || '1000';
+        endpoint += `&company_code=${companyToUse}`;
       }
 
       const response = await axios.get(endpoint, {

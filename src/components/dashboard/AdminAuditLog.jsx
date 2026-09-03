@@ -353,6 +353,228 @@ const LoginActivityTab = () => {
 };
 
 /* ============================================================
+   PR Lifecycle — one PR's full journey: workflow approval, RFQ,
+   quotations, PO, ASN, Gate Entry, Material Inward
+   ============================================================ */
+
+// The 11 stages the user actually cares about, in order — several raw event "stage" codes from
+// the backend collapse into one of these (e.g. the workflow approval trail is 3 event types:
+// submitted / each approver's action / resolved).
+const STAGE_GROUPS = [
+  { label: 'PR Created', keys: ['PR_CREATED'] },
+  { label: 'Workflow Approval', keys: ['WORKFLOW_SUBMITTED', 'WORKFLOW_ACTION', 'WORKFLOW_RESOLVED'] },
+  { label: 'RFQ Sent', keys: ['RFQ_SENT'] },
+  { label: 'Quotation Acknowledged', keys: ['QUOTATION_ACK'] },
+  { label: 'Quotation Sent to Company', keys: ['QUOTATION_SUBMITTED'] },
+  { label: 'Quotation Awarded', keys: ['QUOTATION_AWARDED'] },
+  { label: 'PO Generated', keys: ['PO_GENERATED'] },
+  { label: 'PO Acknowledged', keys: ['PO_ACK'] },
+  { label: 'ASN Sent', keys: ['ASN_SENT'] },
+  { label: 'Gate Entry Created', keys: ['GATE_ENTRY'] },
+  { label: 'Material Inward', keys: ['MATERIAL_INWARD'] },
+];
+
+const stageDecisionMeta = (status) => {
+  const s = (status || '').toUpperCase();
+  if (['AWARDED', 'ACCEPTED', 'ACKNOWLEDGED', 'APPROVED', 'ALLOW', 'ACCEPT'].includes(s)) {
+    return { badge: 'bg-success-subtle text-success border-success-subtle', card: 'border-success-subtle bg-success bg-opacity-10' };
+  }
+  if (['REJECTED', 'REJECT', 'HOLD'].includes(s)) {
+    return { badge: 'bg-danger-subtle text-danger border-danger-subtle', card: 'border-light bg-light' };
+  }
+  return { badge: 'bg-secondary-subtle text-secondary border-secondary-subtle', card: 'border-light bg-white' };
+};
+
+const StageStep = ({ index, label, events, awardedVendor }) => {
+  const done = events.length > 0;
+  // Group same-stage events by branch (vendor / PO / etc.) so parallel activity (multiple RFQ
+  // recipients, multiple quotations) shows as separate chips within this one step.
+  const byBranch = useMemo(() => {
+    const map = new Map();
+    events.forEach((e) => {
+      const key = e.branchKey || '—';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(e);
+    });
+    return [...map.entries()];
+  }, [events]);
+
+  return (
+    <div className="d-flex gap-3" style={{ position: 'relative' }}>
+      <div className="d-flex flex-column align-items-center" style={{ flexShrink: 0 }}>
+        <div
+          className="d-flex align-items-center justify-content-center fw-bold"
+          style={{
+            width: 36, height: 36, borderRadius: '50%',
+            background: done ? 'var(--bs-success-bg-subtle, #d1e7dd)' : '#f1f2f6',
+            border: `2px solid ${done ? '#198754' : '#ced4da'}`,
+            color: done ? '#198754' : '#adb5bd',
+            fontSize: 13,
+          }}
+        >
+          {index + 1}
+        </div>
+        {index < STAGE_GROUPS.length - 1 && (
+          <div style={{ width: 2, flexGrow: 1, minHeight: 24, background: '#e2e5ea', marginTop: 4, marginBottom: 4 }} />
+        )}
+      </div>
+      <div className="pb-4" style={{ flexGrow: 1, minWidth: 0 }}>
+        <div className="fw-semibold" style={{ fontSize: 13.5, color: done ? '#212529' : '#adb5bd' }}>{label}</div>
+        {!done && <div className="text-muted" style={{ fontSize: 12 }}>Not reached yet</div>}
+        {done && (
+          <div className="d-flex flex-column gap-2 mt-2">
+            {byBranch.map(([branch, branchEvents]) => {
+              const isAwardedBranch = awardedVendor && branch === awardedVendor;
+              return (
+                <div
+                  key={branch}
+                  className={`border rounded p-2 ${isAwardedBranch ? 'border-success-subtle bg-success bg-opacity-10' : 'border-light bg-light'}`}
+                >
+                  {branch !== '—' && <div className="fw-semibold" style={{ fontSize: 12 }}>{branch}</div>}
+                  {branchEvents.map((e, i) => {
+                    const meta = stageDecisionMeta(e.status);
+                    return (
+                      <div key={i} className="d-flex flex-wrap align-items-center gap-2 mt-1" style={{ fontSize: 11.5 }}>
+                        <span className="text-muted">{e.timestamp ? new Date(e.timestamp).toLocaleString() : '—'}</span>
+                        {e.status && <Pill text={e.status} className={meta.badge} />}
+                        {e.actorName && <span className="text-muted">by {e.actorName}</span>}
+                        {e.detail && <span className="text-muted">· {e.detail}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const PrLifecycleTab = () => {
+  const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [prNumber, setPrNumber] = useState('');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!query.trim() || query === prNumber) { setSuggestions([]); return; }
+    const t = setTimeout(() => {
+      axios.get('/api/admin/audit-log/pr-lifecycle/search', { headers: authHeaders(), params: { q: query } })
+        .then((res) => setSuggestions(res.data.prNumbers || []))
+        .catch(() => setSuggestions([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [query, prNumber]);
+
+  const load = (pr) => {
+    setPrNumber(pr);
+    setQuery(pr);
+    setSuggestions([]);
+    setLoading(true);
+    setError('');
+    setData(null);
+    axios.get('/api/admin/audit-log/pr-lifecycle', { headers: authHeaders(), params: { prNumber: pr } })
+      .then((res) => setData(res.data))
+      .catch((err) => setError(errorMessage(err, 'Could not load this PR.')))
+      .finally(() => setLoading(false));
+  };
+
+  const awardedVendor = useMemo(() => {
+    const awarded = (data?.events || []).find((e) => e.stage === 'QUOTATION_AWARDED');
+    return awarded ? awarded.branchKey : null;
+  }, [data]);
+
+  return (
+    <>
+      <div className="d-flex justify-content-end mb-3">
+        <div style={{ position: 'relative', width: 280 }}>
+          <input
+            type="text"
+            className="form-control form-control-sm"
+            placeholder="Search PR number…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && query.trim()) load(query.trim()); }}
+          />
+          {suggestions.length > 0 && (
+            <div className="border rounded shadow-sm bg-white position-absolute w-100 mt-1" style={{ zIndex: 10 }}>
+              {suggestions.map((s) => (
+                <div key={s} className="px-2 py-1" style={{ fontSize: 13, cursor: 'pointer' }}
+                  onClick={() => load(s)}
+                  onMouseDown={(e) => e.preventDefault()}>
+                  {s}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {error && <p style={{ color: 'var(--iron)', fontSize: 13.5 }}>{error}</p>}
+      {loading && <p className="text-muted text-center mt-3" style={{ fontSize: 13 }}>Loading…</p>}
+
+      {!loading && !data && !error && (
+        <p className="text-muted text-center py-4" style={{ fontSize: 13 }}>Search for a PR number to see its full journey.</p>
+      )}
+
+      {data && (
+        <>
+          <div className="mb-4">
+            <div className="fw-bold" style={{ fontSize: 15 }}>{data.prNumber}</div>
+            <div className="text-muted" style={{ fontSize: 12.5 }}>
+              {data.requestedBy && <>Created by {data.requestedBy} · </>}
+              Current status: {data.prStatus}
+            </div>
+          </div>
+
+          <div className="mb-4">
+            {STAGE_GROUPS.map((g, i) => (
+              <StageStep
+                key={g.label}
+                index={i}
+                label={g.label}
+                events={(data.events || []).filter((e) => g.keys.includes(e.stage))}
+                awardedVendor={awardedVendor}
+              />
+            ))}
+          </div>
+
+          <div className="table-responsive">
+            <table className="table table-hover align-middle mb-0">
+              <thead className="table-light text-muted fw-bold" style={{ fontSize: '11px' }}>
+                <tr><th>Time</th><th>Stage</th><th>Branch</th><th>Actor</th><th>Status</th><th>Detail</th></tr>
+              </thead>
+              <tbody style={{ fontSize: 13 }}>
+                {(data.events || []).map((e, i) => {
+                  const meta = stageDecisionMeta(e.status);
+                  return (
+                    <tr key={i}>
+                      <td className="text-muted" style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{e.timestamp ? new Date(e.timestamp).toLocaleString() : '—'}</td>
+                      <td>{e.stageLabel}</td>
+                      <td>{e.branchKey || <span className="text-muted">—</span>}</td>
+                      <td>{e.actorName || <span className="text-muted">—</span>}</td>
+                      <td>{e.status ? <Pill text={e.status} className={meta.badge} /> : <span className="text-muted">—</span>}</td>
+                      <td style={{ fontSize: 12.5 }}>{e.detail || <span className="text-muted">—</span>}</td>
+                    </tr>
+                  );
+                })}
+                {(data.events || []).length === 0 && (
+                  <tr><td colSpan={6} className="text-center text-muted py-4">No events recorded for this PR yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </>
+  );
+};
+
+/* ============================================================
    Main component — tabbed shell
    ============================================================ */
 
@@ -360,6 +582,7 @@ const TABS = [
   { key: 'accounts', label: 'Account Changes', render: () => <AccountChangesTab /> },
   { key: 'approvals', label: 'Approvals', render: () => <ApprovalsTab /> },
   { key: 'logins', label: 'Login Activity', render: () => <LoginActivityTab /> },
+  { key: 'pr-lifecycle', label: 'PR Lifecycle', render: () => <PrLifecycleTab /> },
 ];
 
 const AdminAuditLog = () => {

@@ -385,7 +385,81 @@ const stageDecisionMeta = (status) => {
   return { badge: 'bg-secondary-subtle text-secondary border-secondary-subtle', card: 'border-light bg-white' };
 };
 
-const StageStep = ({ index, label, events, awardedVendor }) => {
+// Renders one field of an event's "details" map. Line-item lists (arrays of objects) become a
+// small table; everything else is a plain label/value row.
+const formatScalar = (v) => {
+  if (v === null || v === undefined || v === '') return <span className="text-muted">—</span>;
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)) return new Date(v).toLocaleString();
+  return String(v);
+};
+
+const DetailRow = ({ label, value }) => {
+  if (Array.isArray(value)) {
+    if (value.length === 0) return null;
+    const cols = Object.keys(value[0]);
+    return (
+      <div className="mb-3">
+        <div className="fw-semibold text-muted text-uppercase" style={{ fontSize: 10.5, letterSpacing: 0.4 }}>{label}</div>
+        <div className="table-responsive mt-1">
+          <table className="table table-sm table-bordered mb-0" style={{ fontSize: 12 }}>
+            <thead className="table-light">
+              <tr>{cols.map((c) => <th key={c}>{c}</th>)}</tr>
+            </thead>
+            <tbody>
+              {value.map((row, i) => (
+                <tr key={i}>{cols.map((c) => <td key={c}>{formatScalar(row[c])}</td>)}</tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="d-flex justify-content-between gap-3 border-bottom py-1" style={{ fontSize: 12.5 }}>
+      <span className="text-muted">{label}</span>
+      <span className="text-end">{formatScalar(value)}</span>
+    </div>
+  );
+};
+
+// Full-detail popup for one event/chip — shows every field its underlying record carries
+// (backend-assembled "details" map), not just the 6 summary fields shown inline.
+const EventDetailModal = ({ event, onClose }) => {
+  if (!event) return null;
+  const details = event.details || {};
+  const entries = Object.entries(details).filter(([, v]) => !(Array.isArray(v) && v.length === 0));
+  const meta = stageDecisionMeta(event.status);
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(15, 20, 30, 0.5)', zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white rounded shadow-lg" style={{ width: '100%', maxWidth: 640, maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="d-flex justify-content-between align-items-start p-3 border-bottom">
+          <div>
+            <div className="fw-bold" style={{ fontSize: 15 }}>{event.stageLabel}</div>
+            {event.branchKey && event.branchKey !== '—' && <div className="text-muted" style={{ fontSize: 12.5 }}>{event.branchKey}</div>}
+          </div>
+          <button type="button" className="btn-close" aria-label="Close" onClick={onClose} />
+        </div>
+        <div className="p-3" style={{ overflowY: 'auto' }}>
+          <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <span className="text-muted" style={{ fontSize: 12.5 }}>{event.timestamp ? new Date(event.timestamp).toLocaleString() : '—'}</span>
+            {event.status && <Pill text={event.status} className={meta.badge} />}
+            {event.actorName && <span className="text-muted" style={{ fontSize: 12.5 }}>by {event.actorName}</span>}
+          </div>
+          {entries.length === 0 && <p className="text-muted mb-0" style={{ fontSize: 13 }}>No further details recorded for this event.</p>}
+          {entries.map(([label, value]) => <DetailRow key={label} label={label} value={value} />)}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const StageStep = ({ index, label, events, awardedVendor, onSelectEvent }) => {
   const done = events.length > 0;
   // Group same-stage events by branch (vendor / PO / etc.) so parallel activity (multiple RFQ
   // recipients, multiple quotations) shows as separate chips within this one step.
@@ -434,11 +508,18 @@ const StageStep = ({ index, label, events, awardedVendor }) => {
                   {branchEvents.map((e, i) => {
                     const meta = stageDecisionMeta(e.status);
                     return (
-                      <div key={i} className="d-flex flex-wrap align-items-center gap-2 mt-1" style={{ fontSize: 11.5 }}>
+                      <div
+                        key={i}
+                        className="d-flex flex-wrap align-items-center gap-2 mt-1"
+                        style={{ fontSize: 11.5, cursor: 'pointer' }}
+                        onClick={() => onSelectEvent(e)}
+                        title="Click for full details"
+                      >
                         <span className="text-muted">{e.timestamp ? new Date(e.timestamp).toLocaleString() : '—'}</span>
                         {e.status && <Pill text={e.status} className={meta.badge} />}
                         {e.actorName && <span className="text-muted">by {e.actorName}</span>}
                         {e.detail && <span className="text-muted">· {e.detail}</span>}
+                        <span className="text-primary" style={{ fontSize: 11 }}>Details →</span>
                       </div>
                     );
                   })}
@@ -461,6 +542,7 @@ const PrLifecycleFeed = ({ onPickPr }) => {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   const load = (pageToLoad, replace) => {
     setLoading(true);
@@ -490,10 +572,10 @@ const PrLifecycleFeed = ({ onPickPr }) => {
             {entries.map((e, i) => {
               const meta = stageDecisionMeta(e.status);
               return (
-                <tr key={i}>
+                <tr key={i} style={{ cursor: 'pointer' }} onClick={() => setSelectedEvent(e)} title="Click for full details">
                   <td className="text-muted" style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{e.timestamp ? new Date(e.timestamp).toLocaleString() : '—'}</td>
                   <td>
-                    <button type="button" className="btn btn-link btn-sm p-0" style={{ fontSize: 13 }} onClick={() => onPickPr(e.prNumber)}>
+                    <button type="button" className="btn btn-link btn-sm p-0" style={{ fontSize: 13 }} onClick={(ev) => { ev.stopPropagation(); onPickPr(e.prNumber); }}>
                       {e.prNumber}
                     </button>
                   </td>
@@ -518,6 +600,8 @@ const PrLifecycleFeed = ({ onPickPr }) => {
           <button className="btn btn-sm btn-outline-secondary" onClick={() => load(page + 1, false)}>Load more</button>
         </div>
       )}
+
+      <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
     </>
   );
 };
@@ -529,6 +613,7 @@ const PrLifecycleTab = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
     if (!query.trim() || query === prNumber) { setSuggestions([]); return; }
@@ -617,6 +702,7 @@ const PrLifecycleTab = () => {
                 label={g.label}
                 events={(data.events || []).filter((e) => g.keys.includes(e.stage))}
                 awardedVendor={awardedVendor}
+                onSelectEvent={setSelectedEvent}
               />
             ))}
           </div>
@@ -630,7 +716,7 @@ const PrLifecycleTab = () => {
                 {(data.events || []).map((e, i) => {
                   const meta = stageDecisionMeta(e.status);
                   return (
-                    <tr key={i}>
+                    <tr key={i} style={{ cursor: 'pointer' }} onClick={() => setSelectedEvent(e)} title="Click for full details">
                       <td className="text-muted" style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{e.timestamp ? new Date(e.timestamp).toLocaleString() : '—'}</td>
                       <td>{e.stageLabel}</td>
                       <td>{e.branchKey || <span className="text-muted">—</span>}</td>
@@ -648,6 +734,8 @@ const PrLifecycleTab = () => {
           </div>
         </>
       )}
+
+      <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
     </>
   );
 };

@@ -3,20 +3,6 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import './DashboardHome.css';
 
-// A picked document type's classification -> which "Procure to pay" tile(s) it grants. There's no
-// dedicated tile for Raw Material or Capital Expenditure, so those fall back onto the closest
-// existing ones instead of being silently dropped (confirmed: Raw Material -> Products,
-// Capital Expenditure -> both Products and Services).
-const CLASSIFICATION_TILES = {
-  PRODUCTS: ['products'],
-  SERVICE: ['services'],
-  SUBCONTRACTING: ['subcontracting'],
-  SCHEDULING_AGREEMENT: ['scheduling'],
-  RAW_MATERIAL: ['products'],
-  CAPITAL_EXPENDITURE: ['products', 'services'],
-};
-const ALL_PROCURE_TILES = ['products', 'services', 'subcontracting', 'scheduling'];
-
 const DashboardHome = ({ isAdmin, onNavigate }) => {
   const { currentUser, logout, selectedCompanyCode } = useAuth();
   const role = String(currentUser?.role || '').toUpperCase();
@@ -27,8 +13,8 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
   const [vendorCode, setVendorCode] = useState('');
   const [vendorName, setVendorName] = useState('');
   const [workflowRequests, setWorkflowRequests] = useState([]);
-  const [myDocTypeSelections, setMyDocTypeSelections] = useState(null); // null = not loaded yet
-  const [myDocTypeLoadError, setMyDocTypeLoadError] = useState(false);
+  const [dashboardTiles, setDashboardTiles] = useState(null); // null = not loaded yet
+  const [dashboardTilesLoadError, setDashboardTilesLoadError] = useState(false);
 
   useEffect(() => {
     if (!resolvedIsAdmin) {
@@ -57,9 +43,12 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
     }
   }, [resolvedIsAdmin]);
 
-  // Which "Procure to pay" tiles this vendor is allowed to see, driven by the approver's
-  // per-company document type picks (see AdminWorkflows' Document Types picker). Only the actual
-  // vendor tile-grid view below needs this — the employee "cards" branch never renders it.
+  // Which "Procure to pay" tiles this vendor is allowed to see — resolved entirely server-side
+  // (see SupplierRegistrationService.getMyDashboardTiles) from the approver's per-company document
+  // type picks, so this is a small, purpose-built fetch instead of pulling the whole my-profile
+  // payload (documents, attachments, questionnaire, change requests) just to derive 4 booleans.
+  // Only the actual vendor tile-grid view below needs this — the employee "cards" branch never
+  // renders it.
   const isVendorTileGridRole = !resolvedIsAdmin
     && role !== 'EMPLOYEE' && role !== 'PURCHASE_DEPT' && role !== 'SUBMITTER' && role !== 'APPROVER';
   useEffect(() => {
@@ -70,43 +59,46 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
     // sign-in (token not propagated yet, a network blip) landed on the "show everything" fallback
     // with no way back except a full page reload. Retry first; only fall back once retries are
     // truly exhausted.
-    const fetchDocTypeSelections = (attemptsLeft = 3) => {
-      setMyDocTypeLoadError(false);
+    const fetchDashboardTiles = (attemptsLeft = 3) => {
+      setDashboardTilesLoadError(false);
       const token = localStorage.getItem('auth_token');
       if (!token) {
         // Called from visibilitychange before the token exists yet (shouldn't normally happen
         // for this role, but don't let it silently claim "nothing recorded").
-        if (attemptsLeft > 0) setTimeout(() => fetchDocTypeSelections(attemptsLeft - 1), 500);
+        if (attemptsLeft > 0) setTimeout(() => fetchDashboardTiles(attemptsLeft - 1), 500);
         return;
       }
-      axios.get('/api/supplier-registration/my-profile', { headers: { Authorization: `Bearer ${token}` } })
+      axios.get('/api/supplier-registration/my-dashboard-tiles', {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { companyCode: selectedCompanyCode },
+      })
         .then((res) => {
           if (cancelled) return;
-          setMyDocTypeSelections(res.data?.data?.result?.documentTypeSelections || []);
+          setDashboardTiles(new Set(res.data?.tiles || []));
         })
         .catch(() => {
           if (cancelled) return;
           if (attemptsLeft > 0) {
-            setTimeout(() => fetchDocTypeSelections(attemptsLeft - 1), 600);
+            setTimeout(() => fetchDashboardTiles(attemptsLeft - 1), 600);
           } else {
             // Genuinely out of retries — this is NOT the same as "confirmed nothing recorded", so
             // don't silently fall back to showing everything. Surface it and let the vendor retry.
-            setMyDocTypeLoadError(true);
+            setDashboardTilesLoadError(true);
           }
         });
     };
-    fetchDocTypeSelections();
+    fetchDashboardTiles();
     // An approver can grant/change this vendor's document types at any time — this component
     // fetches once on mount, so a tab left open from before that happened would otherwise show
     // stale tiles until a manual reload. Re-check whenever the tab regains focus instead.
-    const onVisible = () => { if (document.visibilityState === 'visible') fetchDocTypeSelections(); };
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchDashboardTiles(); };
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       cancelled = true;
       document.removeEventListener('visibilitychange', onVisible);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isVendorTileGridRole]);
+  }, [isVendorTileGridRole, selectedCompanyCode]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -276,21 +268,11 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
     );
   }
 
-  // Which of the 4 "Procure to pay" tiles show for the currently selected company code.
-  // myDocTypeSelections is null until the fetch resolves — showing "all 4" during that brief
-  // window (as if nothing were ever recorded) is exactly as wrong as showing none, it's just a
-  // different flash of incorrect content before the real answer arrives a moment later. Show
-  // nothing while genuinely still loading; only fall back to "all 4" once the fetch has actually
-  // come back and confirmed there's nothing recorded for this vendor/company (predates this
-  // feature, or truly not yet decided).
-  const picksForCompany = myDocTypeSelections === null
-    ? null
-    : myDocTypeSelections.filter((s) => s.companyCode === selectedCompanyCode);
-  const visibleTiles = picksForCompany === null
-    ? new Set()
-    : picksForCompany.length === 0
-      ? new Set(ALL_PROCURE_TILES)
-      : new Set(picksForCompany.flatMap((s) => CLASSIFICATION_TILES[s.classification] || []));
+  // dashboardTiles is null until /api/supplier-registration/my-dashboard-tiles resolves — showing
+  // "all 4" during that brief window (as if nothing were ever recorded) is exactly as wrong as
+  // showing none, it's just a different flash of incorrect content before the real answer arrives
+  // a moment later. Render the skeleton below instead while this is null.
+  const visibleTiles = dashboardTiles || new Set();
 
   // Vendor Portal Dashboard UI
   return (
@@ -307,20 +289,30 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
 
         <div className="tile-grid">
 
-          {myDocTypeLoadError ? (
+          {dashboardTilesLoadError ? (
             <div className="tile" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
               <div className="d-flex flex-column align-items-center gap-2 text-muted text-center">
                 <span>Couldn't load what you're approved for. Nothing shown below reflects your real access yet.</span>
                 <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => window.location.reload()}>Retry</button>
               </div>
             </div>
-          ) : picksForCompany === null && (
-            <div className="tile" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120 }}>
-              <div className="d-flex align-items-center gap-2 text-muted">
-                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                <span>Loading what you're approved for…</span>
-              </div>
-            </div>
+          ) : dashboardTiles === null && (
+            <>
+              {[0, 1].map((i) => (
+                <div className="tile tile-skeleton" key={i} aria-hidden="true">
+                  <div className="thead">
+                    <div className="skel skel-ico" />
+                    <div style={{ flex: 1 }}>
+                      <div className="skel skel-line" style={{ width: '55%', marginBottom: 8 }} />
+                      <div className="skel skel-line" style={{ width: '35%', height: 9 }} />
+                    </div>
+                  </div>
+                  <div className="chain">
+                    {[0, 1, 2, 3, 4, 5].map((n) => <div className="skel skel-node" key={n} />)}
+                  </div>
+                </div>
+              ))}
+            </>
           )}
 
           {/* Procure to pay: Products */}

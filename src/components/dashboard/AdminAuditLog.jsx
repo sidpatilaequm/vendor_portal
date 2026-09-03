@@ -452,6 +452,76 @@ const StageStep = ({ index, label, events, awardedVendor }) => {
   );
 };
 
+// Default (no PR picked) view — a live, paginated feed across every PR, same Load More pattern as
+// the other three tabs, so this tab shows something the moment you open it instead of requiring a
+// search first.
+const PrLifecycleFeed = ({ onPickPr }) => {
+  const [entries, setEntries] = useState([]);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = (pageToLoad, replace) => {
+    setLoading(true);
+    setError('');
+    axios.get('/api/admin/audit-log/pr-lifecycle/feed', { headers: authHeaders(), params: { page: pageToLoad, size: PAGE_SIZE } })
+      .then((res) => {
+        setEntries((prev) => (replace ? res.data.events : [...prev, ...res.data.events]));
+        setPage(res.data.page);
+        setTotalPages(res.data.totalPages);
+      })
+      .catch((err) => setError(errorMessage(err, 'Could not load the PR lifecycle feed.')))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(0, true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <>
+      {error && <p style={{ color: 'var(--iron)', fontSize: 13.5 }}>{error}</p>}
+
+      <div className="table-responsive">
+        <table className="table table-hover align-middle mb-0">
+          <thead className="table-light text-muted fw-bold" style={{ fontSize: '11px' }}>
+            <tr><th>Time</th><th>PR Number</th><th>Stage</th><th>Branch</th><th>Actor</th><th>Status</th><th>Detail</th></tr>
+          </thead>
+          <tbody style={{ fontSize: 13 }}>
+            {entries.map((e, i) => {
+              const meta = stageDecisionMeta(e.status);
+              return (
+                <tr key={i}>
+                  <td className="text-muted" style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{e.timestamp ? new Date(e.timestamp).toLocaleString() : '—'}</td>
+                  <td>
+                    <button type="button" className="btn btn-link btn-sm p-0" style={{ fontSize: 13 }} onClick={() => onPickPr(e.prNumber)}>
+                      {e.prNumber}
+                    </button>
+                  </td>
+                  <td>{e.stageLabel}</td>
+                  <td>{e.branchKey || <span className="text-muted">—</span>}</td>
+                  <td>{e.actorName || <span className="text-muted">—</span>}</td>
+                  <td>{e.status ? <Pill text={e.status} className={meta.badge} /> : <span className="text-muted">—</span>}</td>
+                  <td style={{ fontSize: 12.5 }}>{e.detail || <span className="text-muted">—</span>}</td>
+                </tr>
+              );
+            })}
+            {!loading && entries.length === 0 && (
+              <tr><td colSpan={7} className="text-center text-muted py-4">No PR activity recorded yet.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {loading && <p className="text-muted text-center mt-3" style={{ fontSize: 13 }}>Loading…</p>}
+      {!loading && page + 1 < totalPages && (
+        <div className="text-center mt-3">
+          <button className="btn btn-sm btn-outline-secondary" onClick={() => load(page + 1, false)}>Load more</button>
+        </div>
+      )}
+    </>
+  );
+};
+
 const PrLifecycleTab = () => {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -483,6 +553,13 @@ const PrLifecycleTab = () => {
       .finally(() => setLoading(false));
   };
 
+  const clear = () => {
+    setPrNumber('');
+    setQuery('');
+    setData(null);
+    setError('');
+  };
+
   const awardedVendor = useMemo(() => {
     const awarded = (data?.events || []).find((e) => e.stage === 'QUOTATION_AWARDED');
     return awarded ? awarded.branchKey : null;
@@ -490,7 +567,10 @@ const PrLifecycleTab = () => {
 
   return (
     <>
-      <div className="d-flex justify-content-end mb-3">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        {prNumber ? (
+          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={clear}>← All PR activity</button>
+        ) : <div />}
         <div style={{ position: 'relative', width: 280 }}>
           <input
             type="text"
@@ -517,9 +597,7 @@ const PrLifecycleTab = () => {
       {error && <p style={{ color: 'var(--iron)', fontSize: 13.5 }}>{error}</p>}
       {loading && <p className="text-muted text-center mt-3" style={{ fontSize: 13 }}>Loading…</p>}
 
-      {!loading && !data && !error && (
-        <p className="text-muted text-center py-4" style={{ fontSize: 13 }}>Search for a PR number to see its full journey.</p>
-      )}
+      {!prNumber && !loading && <PrLifecycleFeed onPickPr={load} />}
 
       {data && (
         <>

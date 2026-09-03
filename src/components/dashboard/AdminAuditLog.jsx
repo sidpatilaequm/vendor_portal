@@ -27,6 +27,11 @@ const ACTIONS = [
   { value: 'VENDOR_TERMS_CREATED', label: 'Vendor terms created', badge: 'bg-success-subtle text-success' },
   { value: 'VENDOR_TERMS_UPDATED', label: 'Vendor terms updated', badge: 'bg-primary-subtle text-primary' },
   { value: 'BUDGET_UPLOADED', label: 'Budget uploaded', badge: 'bg-success-subtle text-success' },
+  { value: 'DOCUMENT_VIEWED', label: 'Document viewed', badge: 'bg-secondary-subtle text-secondary' },
+  { value: 'DATA_EXPORTED', label: 'Data exported', badge: 'bg-secondary-subtle text-secondary' },
+  { value: 'PURCHASE_ROLE_CREATED', label: 'Purchase role created', badge: 'bg-success-subtle text-success' },
+  { value: 'PURCHASE_ROLE_UPDATED', label: 'Purchase role updated', badge: 'bg-primary-subtle text-primary' },
+  { value: 'PURCHASE_ROLE_DELETED', label: 'Purchase role deleted', badge: 'bg-danger-subtle text-danger' },
 ];
 
 const actionMeta = (value) => ACTIONS.find((a) => a.value === value) || { label: value, badge: 'bg-secondary-subtle text-secondary' };
@@ -110,6 +115,9 @@ const AccountChangesTab = () => {
                   <td>
                     <div className="fw-semibold">{e.targetName || '—'}</div>
                     <div className="text-muted" style={{ fontSize: 11.5 }}>{e.targetEmail}</div>
+                    {e.actorEmail && e.targetEmail && e.actorEmail.toLowerCase() === e.targetEmail.toLowerCase() && (
+                      <Pill text="Own account" className="bg-info-subtle text-info" />
+                    )}
                   </td>
                   <td>
                     {changes.map((c, i) => (

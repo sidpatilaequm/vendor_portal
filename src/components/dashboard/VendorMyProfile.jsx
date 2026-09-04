@@ -139,11 +139,32 @@ function AnswerEditor({ question, initialAnswer, value, onChange }) {
 }
 
 const answerDisplay = (a) => {
-  if (a.questionType === 'table') {
-    return (a.rows || []).length ? `${a.rows.length} row${a.rows.length === 1 ? '' : 's'}` : null;
-  }
+  if (a.questionType === 'table') return null; // rendered as an actual table below, not text
   if (a.selectedLabels && a.selectedLabels.length) return a.selectedLabels.join(', ');
   return a.textValue || null;
+};
+
+// A table-type answer's real content (e.g. "list your bank accounts") — was collapsed to a bare
+// "N row(s)" count; the backend already sends columnLabels + rows (each row keyed by column
+// label, see QuestionnaireService.getAnswersForReview), so render the actual table.
+const AnswerTable = ({ answer }) => {
+  const cols = answer.columnLabels || [];
+  const rows = answer.rows || [];
+  if (!rows.length) return <p className="tile-preview qs-muted">(not answered)</p>;
+  return (
+    <div className="table-scroll">
+      <table className="data-grid">
+        <thead>
+          <tr>{cols.map((c) => <th key={c}>{c}</th>)}</tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i}>{cols.map((c) => <td key={c}>{row[c] || '—'}</td>)}</tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 };
 
 /**
@@ -369,7 +390,9 @@ export default function VendorMyProfile({ onBack }) {
                         <span className="type-tag">{a.questionType?.replace('_', ' ')}</span>
                       </div>
                       <p className="tile-prompt">{a.prompt}</p>
-                      {display ? <p className="tile-preview">{display}</p> : <p className="tile-preview qs-muted">(not answered)</p>}
+                      {a.questionType === 'table'
+                        ? <AnswerTable answer={a} />
+                        : (display ? <p className="tile-preview">{display}</p> : <p className="tile-preview qs-muted">(not answered)</p>)}
                       {pending && <StatusChip status="PENDING" />}
                       <div className="tile-actions">
                         <button

@@ -493,6 +493,29 @@ const Field = ({ label, value, mono }) => (
   </div>
 );
 
+// A table-type questionnaire answer (e.g. "list your bank accounts") — was collapsed to a bare
+// "N row(s)" count; the backend already sends columnLabels + rows (each row keyed by column
+// label, see QuestionnaireService.getAnswersForReview), so render the actual table instead.
+const AnswerTable = ({ answer }) => {
+  const cols = answer.columnLabels || [];
+  const rows = answer.rows || [];
+  if (!rows.length) return <span className="text-muted">—</span>;
+  return (
+    <div className="table-responsive">
+      <table className="table table-sm table-bordered mb-0" style={{ fontSize: 12 }}>
+        <thead className="table-light">
+          <tr>{cols.map((c) => <th key={c}>{c}</th>)}</tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i}>{cols.map((c) => <td key={c}>{row[c] || '—'}</td>)}</tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 const Section = ({ title, children }) => (
   <div className="mb-4">
     <div className="fw-bold text-success text-uppercase mb-2" style={{ fontSize: '11px', letterSpacing: '0.04em' }}>{title}</div>
@@ -509,7 +532,6 @@ function VendorFullProfile({ detail }) {
   const hasSecondContact = reg.contact2Name || reg.contact2Email || reg.contact2Phone;
 
   const answerText = (a) => {
-    if (a.questionType === 'table') return `${(a.rows || []).length} row(s)`;
     if (a.selectedLabels && a.selectedLabels.length) return a.selectedLabels.join(', ');
     return a.textValue || '—';
   };
@@ -637,7 +659,7 @@ function VendorFullProfile({ detail }) {
             {dynamicAnswers.map((a) => (
               <div key={a.questionId} className="mb-2">
                 <label className="text-muted text-uppercase fw-bold d-block" style={{ fontSize: '10px' }}>{a.prompt}</label>
-                <div className="small fw-semibold">{answerText(a)}</div>
+                {a.questionType === 'table' ? <AnswerTable answer={a} /> : <div className="small fw-semibold">{answerText(a)}</div>}
               </div>
             ))}
           </div>

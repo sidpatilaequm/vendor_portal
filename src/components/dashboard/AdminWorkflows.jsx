@@ -2157,9 +2157,30 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                             {reviewDetails.dynamicAnswers.map((a) => (
                               <div key={a.questionId} className="bg-light p-2 rounded">
                                 <div className="small fw-bold text-dark">{a.prompt}</div>
-                                <div className="small text-muted">
-                                  {a.questionType === 'short_text' ? (a.textValue || '—') : (a.selectedLabels || []).join(', ') || '—'}
-                                </div>
+                                {a.questionType === 'table' ? (
+                                  <div className="mt-1">
+                                    {(a.rows || []).length ? (
+                                      <div className="table-responsive">
+                                        <table className="table table-sm table-bordered mb-0 bg-white" style={{ fontSize: 12 }}>
+                                          <thead className="table-light">
+                                            <tr>{(a.columnLabels || []).map((c) => <th key={c}>{c}</th>)}</tr>
+                                          </thead>
+                                          <tbody>
+                                            {a.rows.map((row, i) => (
+                                              <tr key={i}>{(a.columnLabels || []).map((c) => <td key={c}>{row[c] || '—'}</td>)}</tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    ) : <span className="small text-muted">—</span>}
+                                  </div>
+                                ) : (
+                                  <div className="small text-muted">
+                                    {a.selectedLabels && a.selectedLabels.length
+                                      ? a.selectedLabels.join(', ')
+                                      : (a.textValue || (a.previewUrl ? 'File attached' : '—'))}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>

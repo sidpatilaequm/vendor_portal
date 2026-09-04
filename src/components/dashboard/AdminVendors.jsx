@@ -684,7 +684,19 @@ function VendorFullProfile({ detail }) {
             {dynamicAnswers.map((a) => (
               <div key={a.questionId} className="mb-2">
                 <label className="text-muted text-uppercase fw-bold d-block" style={{ fontSize: '10px' }}>{a.prompt}</label>
-                {a.questionType === 'table' ? <AnswerTable answer={a} /> : <div className="small fw-semibold">{answerText(a)}</div>}
+                {a.questionType === 'table' ? (
+                  <AnswerTable answer={a} />
+                ) : a.previewUrl ? (
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="small fw-semibold">{answerText(a)}</span>
+                    <button type="button" className="btn btn-light btn-sm border text-success fw-bold" style={{ fontSize: '11px' }}
+                      onClick={() => setViewerDoc({ previewUrl: a.previewUrl, docName: a.prompt })}>
+                      View
+                    </button>
+                  </div>
+                ) : (
+                  <div className="small fw-semibold">{answerText(a)}</div>
+                )}
               </div>
             ))}
           </div>

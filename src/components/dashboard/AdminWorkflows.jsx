@@ -2174,12 +2174,22 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                                       </div>
                                     ) : <span className="small text-muted">—</span>}
                                   </div>
-                                ) : (
-                                  <div className="small text-muted">
-                                    {a.selectedLabels && a.selectedLabels.length
-                                      ? a.selectedLabels.join(', ')
-                                      : (a.textValue || (a.previewUrl ? 'File attached' : '—'))}
+                                ) : a.selectedLabels && a.selectedLabels.length ? (
+                                  <div className="small text-muted">{a.selectedLabels.join(', ')}</div>
+                                ) : a.previewUrl ? (
+                                  <div className="d-flex align-items-center gap-2 mt-1">
+                                    <span className="small text-muted">{a.textValue || 'File attached'}</span>
+                                    <button
+                                      type="button"
+                                      className="btn btn-light btn-sm border text-success fw-bold"
+                                      style={{ fontSize: '11px' }}
+                                      onClick={() => handleViewDocument({ previewUrl: a.previewUrl, docName: a.prompt })}
+                                    >
+                                      View
+                                    </button>
                                   </div>
+                                ) : (
+                                  <div className="small text-muted">{a.textValue || '—'}</div>
                                 )}
                               </div>
                             ))}

@@ -49,16 +49,6 @@ const emptyForm = {
   whNo: '', whDescription: '', whPlantCode: '', whSlocId: '',
 };
 
-const emptyBinForm = {
-  mode: 'range',
-  // range mode
-  prefix: '', fromNo: '', toNo: '', width: '5',
-  // single/paste mode
-  codes: '',
-  // shared
-  storageType: '001', storageSection: '001', binType: '',
-};
-
 const AdminEnterpriseStructure = () => {
   const [activeTab, setActiveTab] = useState('companies');
   const [rows, setRows] = useState({
@@ -79,13 +69,9 @@ const AdminEnterpriseStructure = () => {
   const [binLimit] = useState(50);
   const [binSearch, setBinSearch] = useState('');
   const [binLoading, setBinLoading] = useState(false);
-  const [binForm, setBinForm] = useState(emptyBinForm);
-  const [binPreview, setBinPreview] = useState(null);
-  const [binSaving, setBinSaving] = useState(false);
   const [binAlert, setBinAlert] = useState(null);
 
   const setField = (key, value) => setForm((f) => ({ ...f, [key]: value }));
-  const setBinField = (key, value) => { setBinPreview(null); setBinForm((f) => ({ ...f, [key]: value })); };
 
   const fetchTab = useCallback((tabKey) => {
     setLoading(true);
@@ -181,8 +167,6 @@ const AdminEnterpriseStructure = () => {
   const openBinManager = (wh) => {
     setBinWarehouse(wh);
     setBinSearch('');
-    setBinForm(emptyBinForm);
-    setBinPreview(null);
     setBinAlert(null);
     loadBins(wh, 0, '');
   };
@@ -190,57 +174,6 @@ const AdminEnterpriseStructure = () => {
   const closeBinManager = () => {
     setBinWarehouse(null);
     fetchTab('warehouses'); // bin counts on the list may have changed
-  };
-
-  const rangeIsValid = () => binForm.prefix.trim() && binForm.fromNo !== '' && binForm.toNo !== ''
-    && Number(binForm.fromNo) <= Number(binForm.toNo);
-
-  const previewRange = () => {
-    if (!rangeIsValid()) return;
-    setBinSaving(true);
-    setBinAlert(null);
-    axios.post(`/api/mm/warehouses/${binWarehouse.warehouseNo}/bins/range/preview`, {
-      prefix: binForm.prefix.trim(), fromNo: Number(binForm.fromNo), toNo: Number(binForm.toNo),
-      width: Number(binForm.width) || 5, storageType: binForm.storageType, storageSection: binForm.storageSection,
-      binType: binForm.binType.trim() || null,
-    }, { headers: authHeaders() })
-      .then(({ data }) => setBinPreview(data))
-      .catch((err) => setBinAlert({ type: 'danger', message: err.response?.data?.message || 'Could not preview this range.' }))
-      .finally(() => setBinSaving(false));
-  };
-
-  const createRange = () => {
-    setBinSaving(true);
-    setBinAlert(null);
-    axios.post(`/api/mm/warehouses/${binWarehouse.warehouseNo}/bins/range`, {
-      prefix: binForm.prefix.trim(), fromNo: Number(binForm.fromNo), toNo: Number(binForm.toNo),
-      width: Number(binForm.width) || 5, storageType: binForm.storageType, storageSection: binForm.storageSection,
-      binType: binForm.binType.trim() || null,
-    }, { headers: authHeaders() })
-      .then(({ data }) => {
-        setBinAlert({ type: 'success', message: `Created ${data.created}, skipped ${data.skippedExisting} already existing. ${data.totalNow} bins total.` });
-        setBinPreview(null);
-        loadBins(binWarehouse, 0, binSearch);
-      })
-      .catch((err) => setBinAlert({ type: 'danger', message: err.response?.data?.message || 'Could not create this range.' }))
-      .finally(() => setBinSaving(false));
-  };
-
-  const addPastedBins = () => {
-    const codes = binForm.codes.split(/[\s,]+/).map((c) => c.trim()).filter(Boolean);
-    if (codes.length === 0) return;
-    setBinSaving(true);
-    setBinAlert(null);
-    axios.post(`/api/mm/warehouses/${binWarehouse.warehouseNo}/bins`, {
-      bins: codes.map((binCode) => ({ binCode, storageType: binForm.storageType, storageSection: binForm.storageSection, binType: binForm.binType.trim() || null })),
-    }, { headers: authHeaders() })
-      .then(({ data }) => {
-        setBinAlert({ type: 'success', message: `Created ${data.created}, skipped ${data.skippedExisting} already existing. ${data.totalNow} bins total.` });
-        setBinForm((f) => ({ ...f, codes: '' }));
-        loadBins(binWarehouse, 0, binSearch);
-      })
-      .catch((err) => setBinAlert({ type: 'danger', message: err.response?.data?.message || 'Could not add these bins.' }))
-      .finally(() => setBinSaving(false));
   };
 
   const deleteBin = (binCode) => {
@@ -600,87 +533,6 @@ const AdminEnterpriseStructure = () => {
             </div>
             <div className="custom-modal-body p-4 text-start" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
               {binAlert && <div className={`alert alert-${binAlert.type} py-1.5 mb-3 small`} role="alert">{binAlert.message}</div>}
-
-              <div className="card border-0 bg-light mb-3">
-                <div className="card-body p-3">
-                  <div className="d-flex gap-2 mb-3">
-                    <button type="button" className={`btn btn-sm ${binForm.mode === 'range' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setBinField('mode', 'range')}>Create by range</button>
-                    <button type="button" className={`btn btn-sm ${binForm.mode === 'paste' ? 'btn-primary' : 'btn-outline-secondary'}`} onClick={() => setBinField('mode', 'paste')}>Add / paste a list</button>
-                  </div>
-
-                  {binForm.mode === 'range' ? (
-                    <>
-                      <div className="row g-2 mb-2">
-                        <div className="col-4">
-                          <label className="form-label small fw-bold text-muted mb-1">Prefix</label>
-                          <input className="form-control form-control-sm font-monospace" maxLength={6} value={binForm.prefix} onChange={(e) => setBinField('prefix', e.target.value.toUpperCase())} placeholder="e.g. ARM" />
-                        </div>
-                        <div className="col-2">
-                          <label className="form-label small fw-bold text-muted mb-1">Width</label>
-                          <input type="number" min={1} max={8} className="form-control form-control-sm" value={binForm.width} onChange={(e) => setBinField('width', e.target.value)} />
-                        </div>
-                        <div className="col-3">
-                          <label className="form-label small fw-bold text-muted mb-1">From</label>
-                          <input type="number" min={0} className="form-control form-control-sm" value={binForm.fromNo} onChange={(e) => setBinField('fromNo', e.target.value)} placeholder="1" />
-                        </div>
-                        <div className="col-3">
-                          <label className="form-label small fw-bold text-muted mb-1">To</label>
-                          <input type="number" min={0} className="form-control form-control-sm" value={binForm.toNo} onChange={(e) => setBinField('toNo', e.target.value)} placeholder="1500" />
-                        </div>
-                      </div>
-                      {binForm.prefix && binForm.fromNo !== '' && (
-                        <div className="text-muted small mb-2">
-                          Example: <code>{binForm.prefix}{String(binForm.fromNo).padStart(Number(binForm.width) || 5, '0')}</code>
-                          {' '}to <code>{binForm.prefix}{String(binForm.toNo || binForm.fromNo).padStart(Number(binForm.width) || 5, '0')}</code>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="mb-2">
-                      <label className="form-label small fw-bold text-muted mb-1">Bin codes (comma, space or newline separated)</label>
-                      <textarea className="form-control form-control-sm font-monospace" rows={3} value={binForm.codes} onChange={(e) => setBinField('codes', e.target.value)} placeholder={'ARM00001, ARM00002\nARM00003'} />
-                    </div>
-                  )}
-
-                  <div className="row g-2 mb-3">
-                    <div className="col-4">
-                      <label className="form-label small fw-bold text-muted mb-1">Storage Type</label>
-                      <input className="form-control form-control-sm font-monospace" maxLength={3} value={binForm.storageType} onChange={(e) => setBinField('storageType', e.target.value.toUpperCase())} />
-                    </div>
-                    <div className="col-4">
-                      <label className="form-label small fw-bold text-muted mb-1">Storage Section</label>
-                      <input className="form-control form-control-sm font-monospace" maxLength={3} value={binForm.storageSection} onChange={(e) => setBinField('storageSection', e.target.value.toUpperCase())} />
-                    </div>
-                    <div className="col-4">
-                      <label className="form-label small fw-bold text-muted mb-1">Bin Type (optional)</label>
-                      <input className="form-control form-control-sm font-monospace" maxLength={3} value={binForm.binType} onChange={(e) => setBinField('binType', e.target.value.toUpperCase())} />
-                    </div>
-                  </div>
-
-                  {binPreview && (
-                    <div className="alert alert-info py-2 small mb-3">
-                      Requested <b>{binPreview.requested}</b> — would create <b>{binPreview.created}</b>, skip <b>{binPreview.skippedExisting}</b> already existing. {binPreview.totalNow} bins in this warehouse today.
-                    </div>
-                  )}
-
-                  <div className="d-flex gap-2">
-                    {binForm.mode === 'range' ? (
-                      <>
-                        <button type="button" className="btn btn-sm btn-outline-primary" disabled={!rangeIsValid() || binSaving} onClick={previewRange}>
-                          <i className="fas fa-eye me-1"></i> Preview
-                        </button>
-                        <button type="button" className="btn btn-sm btn-primary" disabled={!rangeIsValid() || binSaving} onClick={createRange}>
-                          <i className="fas fa-plus me-1"></i> Create range
-                        </button>
-                      </>
-                    ) : (
-                      <button type="button" className="btn btn-sm btn-primary" disabled={!binForm.codes.trim() || binSaving} onClick={addPastedBins}>
-                        <i className="fas fa-plus me-1"></i> Add bins
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
 
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <input className="form-control form-control-sm font-monospace" style={{ maxWidth: 220 }} placeholder="Search bin code…"

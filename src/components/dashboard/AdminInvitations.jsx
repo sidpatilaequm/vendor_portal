@@ -123,7 +123,6 @@ const AdminInvitations = () => {
       <div className="row align-items-center mb-4 text-start">
         <div className="col">
           <h4 className="fw-bold mb-1 text-dark">Supplier Invitations</h4>
-          <p className="text-muted mb-0 small">Send secure registration tokens to onboard trusted partners.</p>
         </div>
         <div className="col-auto">
           <div className="btn-group border bg-white p-1" style={{ borderRadius: '8px' }}>

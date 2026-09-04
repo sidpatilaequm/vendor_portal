@@ -190,7 +190,6 @@ export default function QuotationCycleReport({ onBack }) {
       <div className="mb-4 d-flex justify-content-between align-items-center">
         <div>
           <h3 className="fw-bold text-dark mb-0">Quotation</h3>
-          {/* <p className="text-muted small">Quote tracking, item details, and compliance comparison</p> */}
         </div>
       </div>
 

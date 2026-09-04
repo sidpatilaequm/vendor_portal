@@ -322,9 +322,6 @@ const GateEntry = ({ onBack }) => {
             <h3 className="mb-1 fw-bold text-dark" style={{ letterSpacing: '-0.5px' }}>
               Gate Entry
             </h3>
-            <p className="text-muted mb-0 fs-14">
-              Inbound Security Check
-            </p>
           </div>
           <div className="d-flex align-items-stretch gap-3">
             <div className="d-flex align-items-center border px-3 rounded shadow-sm text-muted" style={{ backgroundColor: '#fff', fontSize: '14px' }}>

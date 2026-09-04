@@ -224,7 +224,6 @@ function StubPage({ node, path }) {
     <div className="cfg">
       <div className="hero" style={{ marginBottom: 18 }}>
         <h1 style={{ fontSize: 21 }}>{node.name}</h1>
-        <p>{node.desc}</p>
       </div>
       <section className="card">
         <h2 className="card-head">Not defined yet</h2>
@@ -434,7 +433,6 @@ export default function AdminLauncher() {
       <>
         <div className="mb-4">
           <h1 className="fw-bold text-dark mb-1" style={{ fontSize: 26 }}>Admin portal</h1>
-          <p className="text-muted mb-0">Four areas run the portal. Pick one to go in.</p>
         </div>
         <div className="row g-4">
           {NAV.map(([key]) => {
@@ -456,7 +454,6 @@ export default function AdminLauncher() {
         <Crumbs trail={trail} onOpen={goTo} />
         <div className="mb-3">
           <h1 className="fw-bold text-dark mb-1" style={{ fontSize: 21 }}>{node.name}</h1>
-          <p className="text-muted mb-0">{node.desc}</p>
         </div>
         <div className="real-screen">{node.real(onBack, wfSubTab, setWfSubTab)}</div>
       </>
@@ -483,7 +480,6 @@ export default function AdminLauncher() {
         <Crumbs trail={trail} onOpen={goTo} />
         <div className="mb-4">
           <h1 className="fw-bold text-dark mb-1" style={{ fontSize: 24 }}>{node.name}</h1>
-          <p className="text-muted mb-0">{node.desc}</p>
         </div>
         <div className="row g-4">
           {kids.map(([key, c]) => (

@@ -101,7 +101,6 @@ const AdminProspects = () => {
       <div className="row align-items-center mb-4 text-start">
         <div className="col">
           <h4 className="fw-bold mb-1 text-dark">Vendor Prospects</h4>
-          <p className="text-muted mb-0 small">Review and approve self-registered prospective suppliers.</p>
         </div>
         <div className="col-auto">
           <Button onClick={fetchProspects} className="btn-light border btn-sm">

@@ -430,7 +430,6 @@ export default function BudgetApp() {
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
           <h4 className="fw-bold text-uppercase mb-1" style={{ color: "#293383" }}>Budget Management</h4>
-          <p className="text-muted mb-0 small">Governed capital & operating expenditure WBS control panel</p>
         </div>
         <div className="d-flex gap-2">
           <span className="badge px-3 py-2 text-uppercase d-flex align-items-center" style={{ backgroundColor: "rgba(41, 51, 131, 0.1)", color: "#293383", border: "1px solid rgba(41, 51, 131, 0.2)" }}>

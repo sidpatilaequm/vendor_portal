@@ -181,7 +181,6 @@ const ASN = ({ onBack }) => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div className="text-start">
           <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#293383' }}>Advance Shipment Notices</h4>
-          <p className="text-muted mb-0" style={{ fontSize: '13px' }}>Create and track all despatches against Purchase Orders</p>
         </div>
         <div className="d-flex gap-2">
 

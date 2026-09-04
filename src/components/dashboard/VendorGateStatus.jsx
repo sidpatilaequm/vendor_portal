@@ -73,7 +73,6 @@ const VendorGateStatus = ({ onBack }) => {
       <div className="vgs-header">
         <div>
           <h2>Gate Entry Status</h2>
-          <p>Track your dispatched ASNs and view inspection results</p>
         </div>
       </div>
 

@@ -216,10 +216,6 @@ const AdminPurchaseRoles = ({ onBack }) => {
       <div className="d-flex align-items-center justify-content-between mb-4">
         <div>
           <h4 className="fw-bold mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>Purchasing Roles</h4>
-          <p className="text-muted mb-0 small">
-            Name the role, decide whether it belongs to a vendor or an employee, then grant the
-            document types available in the company codes it covers.
-          </p>
         </div>
         <div className="d-flex gap-2">
           <button className="btn btn-sm btn-outline-primary" onClick={startNew}>New role</button>

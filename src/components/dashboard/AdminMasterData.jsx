@@ -542,7 +542,6 @@ const AdminMasterData = () => {
       <div className="row align-items-center mb-4 text-start">
         <div className="col">
           <h4 className="fw-bold mb-1 text-dark">Master Data Configuration</h4>
-          <p className="text-muted mb-0 small">Administer global settings, plant locations, currencies, and organizational hierarchies.</p>
         </div>
         <div className="col-auto">
           <Button onClick={() => { setAlert(null); setShowAddModal(true); }} className="btn-success btn-sm">

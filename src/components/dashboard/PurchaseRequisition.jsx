@@ -779,9 +779,6 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
           <h3 className="mb-1 fw-bold text-dark" style={{ letterSpacing: '-0.5px' }}>
             {mode === 'rfq' ? 'RFQ Management' : 'Purchase Requisitions'}
           </h3>
-          <p className="text-muted mb-0 fs-14">
-            {mode === 'rfq' ? 'View active RFQs and invite bids' : 'View and track purchase requisition requests'}
-          </p>
         </div>
         <div className="d-flex align-items-stretch gap-3">
           {userRole !== 'VENDOR' && mode !== 'rfq' && (

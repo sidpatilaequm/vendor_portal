@@ -266,7 +266,6 @@ const IndentDashboard = ({ onBack }) => {
         <div>
           <BackButton onClick={onBack} />
           <h3 className="fw-bold text-dark mb-1" style={{ letterSpacing: '-0.5px' }}>INDENTS</h3>
-          <p className="text-muted mb-0" style={{ fontSize: '14px' }}>Manage and track your Indent Approvals</p>
         </div>
         
         <div className="d-flex gap-3 align-items-center">

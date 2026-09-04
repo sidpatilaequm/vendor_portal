@@ -58,7 +58,6 @@ const AdminApprovedSuppliers = ({ onBack }) => {
       <div className="row align-items-center mb-4 text-start">
         <div className="col">
           <h4 className="fw-bold mb-1 text-dark">Approved Suppliers</h4>
-          <p className="text-muted mb-0 small">Every Become-a-Supplier application that reached ACTIVE, with the type an approver assigned it.</p>
         </div>
         <div className="col-auto">
           <Button onClick={fetchSuppliers} className="btn-light border btn-sm">

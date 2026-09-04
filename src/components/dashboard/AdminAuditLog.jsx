@@ -768,9 +768,6 @@ const AdminAuditLog = () => {
         <div className="card-body">
           <div className="mb-3">
             <h2 className="card-head mb-1">Audit Log</h2>
-            <p className="text-muted mb-0" style={{ fontSize: 12.5 }}>
-              Who did what — account changes, approvals, and sign-in activity.
-            </p>
           </div>
 
           <ul className="nav nav-tabs mb-3">

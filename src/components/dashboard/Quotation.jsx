@@ -342,7 +342,6 @@ const Quotation = ({ onBack, onNavigate }) => {
           <>
             <div className="text-start">
               <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#293383' }}>My Quotations</h4>
-              {/* <p className="text-muted mb-0 small">Create, edit and track all your quotations — with or without a PR reference</p> */}
             </div>
             <div className="d-flex gap-2">
 
@@ -368,7 +367,6 @@ const Quotation = ({ onBack, onNavigate }) => {
           <>
             <div className="text-start">
               <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#293383' }}>Manage Quotations</h4>
-              <p className="text-muted mb-0 small">Review, compare and award vendor quotations submitted against purchase requisitions</p>
             </div>
             <div className="d-flex gap-2">
               <Button

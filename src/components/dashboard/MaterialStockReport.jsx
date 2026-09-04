@@ -204,7 +204,6 @@ export default function MaterialStockReport({ bpNo = "BP-MARK-01", onBack }) {
 
   const rows = data?.rows ?? [];
   const t = data?.totals ?? {};
-  const asOn = data?.asOn;
 
   const kpis = [
     { label: "Line items", value: String(t.lineItems ?? 0), sub: "materials tracked", color: "#111827" },
@@ -234,9 +233,6 @@ export default function MaterialStockReport({ bpNo = "BP-MARK-01", onBack }) {
             Vendor portal · Inventory
           </div>
           <h3 className="fw-bold text-dark mb-1">Material stock</h3>
-          {asOn && (
-            <p className="text-muted mb-0 small">Stock position as on {fmtDate(asOn)}</p>
-          )}
         </div>
         <div className="d-flex flex-wrap gap-3 align-items-end mt-3 mt-md-0">
           <ExportButton onClick={exportCsv} />

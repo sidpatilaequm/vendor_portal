@@ -98,7 +98,6 @@ export default function MaterialReport({ onBack }) {
       <div className="mb-4 d-flex justify-content-between align-items-center">
         <div>
           <h3 className="fw-bold text-dark mb-0">Material List</h3>
-          {/* <p className="text-muted small">Material catalog · prices from catalog or latest vendor quote</p> */}
         </div>
       </div>
 

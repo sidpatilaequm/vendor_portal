@@ -1066,7 +1066,6 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
           <h4 className="fw-bold mb-1 text-dark">
             <i className="fas fa-project-diagram me-2 text-success"></i>Workflow Automation Center
           </h4>
-          <p className="text-muted mb-0 small">Design approval paths, configure user delegation, process actions, and review SLA metrics.</p>
         </div>
         <div className="col-auto d-flex gap-2">
           {currentTab === 'wf_list' && (

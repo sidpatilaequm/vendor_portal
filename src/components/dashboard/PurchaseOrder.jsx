@@ -220,7 +220,6 @@ const PurchaseOrder = ({ onBack }) => {
       <div className="d-flex flex-wrap justify-content-between align-items-end mb-4">
         <div>
           <h3 className="fw-bold text-dark mb-1">Purchase Orders</h3>
-          {/* <p className="text-muted mb-0 small">PO tracking, item details, and delivery status</p> */}
         </div>
         <div className="d-flex flex-wrap gap-3 align-items-end mt-3 mt-md-0">
           {/* <div>

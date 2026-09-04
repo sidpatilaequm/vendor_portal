@@ -105,7 +105,6 @@ export default function QuoteComparison({ onBack, initialPrNumber }) {
           </button>
           <div>
             <h3 className="mb-1 fw-bold text-dark" style={{ letterSpacing: '-0.5px', fontSize: '24px' }}>Quote Comparison — PR Level</h3>
-            <p className="text-muted mb-0 fs-14" style={{ fontSize: '13px' }}>Five-axis weighted scorecard with award recommendation</p>
           </div>
         </div>
         {cmp && (

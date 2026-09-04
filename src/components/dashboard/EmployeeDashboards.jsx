@@ -52,9 +52,6 @@ const EmployeeDashboards = ({ onBack }) => {
       <div className="d-flex align-items-center justify-content-between mb-4">
         <div>
           <h4 className="fw-bold mb-1" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-dark)' }}>Dashboards</h4>
-          <p className="mb-0 small" style={{ fontFamily: "'Poppins', sans-serif", color: 'var(--text-muted)' }}>
-            Reports published for everyone in your team.
-          </p>
         </div>
       </div>
 

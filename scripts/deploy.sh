@@ -8,7 +8,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-npm install
+# --no-audit/--no-fund skip a network round-trip npm otherwise makes on every install even when
+# nothing changed — that alone was ~64s of an otherwise <1s no-op install.
+npm install --no-audit --no-fund
 npm run build
 
 SHA=$(git rev-parse --short HEAD)

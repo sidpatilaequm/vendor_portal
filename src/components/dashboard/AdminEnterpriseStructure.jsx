@@ -8,9 +8,8 @@ import axios from 'axios';
  * (/api/organization/companies, vendor profile data).
  *
  * View-only: this screen only lists company/plant/purchasing org+group/plant location/storage
- * location/warehouse — no create/edit/delete UI for any of them. Storage bins are the one
- * exception with any write action at all — a warehouse's bin list can still be searched and
- * individual bins deleted (opened per warehouse), but bin creation is removed too.
+ * location/warehouse/storage bin — no create/edit/delete UI for any of them. A warehouse's bin
+ * list can be opened and searched (per warehouse) but not modified from here.
  */
 
 const TABS = [
@@ -97,23 +96,6 @@ const AdminEnterpriseStructure = () => {
   const closeBinManager = () => {
     setBinWarehouse(null);
     fetchTab('warehouses'); // bin counts on the list may have changed
-  };
-
-  const deleteBin = (binCode) => {
-    axios.delete(`/api/mm/warehouses/${binWarehouse.warehouseNo}/bins/${encodeURIComponent(binCode)}`, { headers: authHeaders() })
-      .then(() => loadBins(binWarehouse, binOffset, binSearch))
-      .catch((err) => setBinAlert({ type: 'danger', message: err.response?.data?.message || 'Could not delete this bin.' }));
-  };
-
-  const deleteAllBins = () => {
-    if (!window.confirm(`Remove all ${binTotal} bins in warehouse ${binWarehouse.warehouseNo}? This cannot be undone.`)) return;
-    axios.delete(`/api/mm/warehouses/${binWarehouse.warehouseNo}/bins`, { headers: authHeaders(), params: { confirm: true } })
-      .then(({ data }) => {
-        setBinAlert({ type: 'success', message: `Deleted ${data.deleted} bins.` });
-        loadBins(binWarehouse, 0, '');
-        setBinSearch('');
-      })
-      .catch((err) => setBinAlert({ type: 'danger', message: err.response?.data?.message || 'Could not delete these bins.' }));
   };
 
   // ── Table rendering ──────────────────────────────────────────────────
@@ -273,39 +255,27 @@ const AdminEnterpriseStructure = () => {
                 <input className="form-control form-control-sm font-monospace" style={{ maxWidth: 220 }} placeholder="Search bin code…"
                   value={binSearch} onChange={(e) => setBinSearch(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') loadBins(binWarehouse, 0, binSearch); }} />
-                <div className="d-flex gap-2">
-                  <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => loadBins(binWarehouse, 0, binSearch)}>
-                    <i className="fas fa-search me-1"></i> Search
-                  </button>
-                  {binTotal > 0 && (
-                    <button type="button" className="btn btn-sm btn-outline-danger" onClick={deleteAllBins}>
-                      <i className="fas fa-trash me-1"></i> Delete all
-                    </button>
-                  )}
-                </div>
+                <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => loadBins(binWarehouse, 0, binSearch)}>
+                  <i className="fas fa-search me-1"></i> Search
+                </button>
               </div>
 
               <div className="table-responsive" style={{ maxHeight: 260 }}>
                 <table className="table table-sm table-hover align-middle mb-0">
                   <thead className="table-light text-muted fw-bold" style={{ fontSize: 11 }}>
-                    <tr><th>Bin</th><th>Type</th><th>Section</th><th>Bin Type</th><th></th></tr>
+                    <tr><th>Bin</th><th>Type</th><th>Section</th><th>Bin Type</th></tr>
                   </thead>
                   <tbody>
                     {binLoading ? (
-                      <tr><td colSpan="5" className="text-center py-4 text-muted"><div className="spinner-border spinner-border-sm text-success me-2" role="status"></div>Loading…</td></tr>
+                      <tr><td colSpan="4" className="text-center py-4 text-muted"><div className="spinner-border spinner-border-sm text-success me-2" role="status"></div>Loading…</td></tr>
                     ) : binEntries.length === 0 ? (
-                      <tr><td colSpan="5" className="text-center py-4 text-muted">No bins yet.</td></tr>
+                      <tr><td colSpan="4" className="text-center py-4 text-muted">No bins yet.</td></tr>
                     ) : binEntries.map((b) => (
                       <tr key={b.binCode}>
                         <td><code className="font-monospace" style={{ fontSize: 12 }}>{b.binCode}</code></td>
                         <td className="text-muted small">{b.storageType}</td>
                         <td className="text-muted small">{b.storageSection}</td>
                         <td className="text-muted small">{b.binType || '—'}</td>
-                        <td className="text-end">
-                          <button type="button" className="btn btn-sm btn-link text-danger p-0" onClick={() => deleteBin(b.binCode)}>
-                            <i className="fas fa-times"></i>
-                          </button>
-                        </td>
                       </tr>
                     ))}
                   </tbody>

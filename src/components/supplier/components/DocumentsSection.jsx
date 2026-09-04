@@ -16,7 +16,7 @@ const DocumentsSection = ({ form }) => {
         Upload a document and its details appear underneath it, read automatically. Check each one against the
         paper in front of you — where we can, we also verify it against the official record.
       </p>
-      <div>
+      <div className="docs-grid">
         {DOCS.map((doc) => (
           <DocCard
             key={doc.id}

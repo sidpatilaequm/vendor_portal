@@ -337,11 +337,25 @@
 }
 
 /* document cards */
+.supplier-page .docs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .supplier-page .docs-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .supplier-page .doc {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 15px 16px;
   margin-bottom: 12px;
+}
+.supplier-page .docs-grid .doc {
+  margin-bottom: 0;
 }
 .supplier-page .doc.read {
   border-color: #a3dde1;

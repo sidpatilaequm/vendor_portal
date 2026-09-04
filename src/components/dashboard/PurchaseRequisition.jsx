@@ -60,7 +60,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [itemsCurrentPage, setItemsCurrentPage] = useState(1);
   const [createLoading, setCreateLoading] = useState(false);
-  const [locations, setLocations] = useState([]);
+  const [storageLocations, setStorageLocations] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
 
@@ -74,7 +74,8 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
   };
 
   const [newPr, setNewPr] = useState({
-    locationId: '',
+    plantCode: '',
+    slocId: '',
     requiredDate: '',
     remarks: '',
     companyCode: '',
@@ -102,7 +103,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
     try {
       const res = await axios.get('/api/purchase-requisitions/create-pr-options', { headers });
       const data = res.data;
-      setLocations(data.locations || []);
+      setStorageLocations(data.storageLocations || []);
       setMaterials(data.materials || []);
     } catch (err) {
       console.error('Failed to fetch options for creating PR:', err);
@@ -180,8 +181,8 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
-    if (!newPr.locationId) {
-      alert('Please select a Delivery Location.');
+    if (!newPr.plantCode || !newPr.slocId) {
+      alert('Please select a Plant / Storage Location.');
       return;
     }
     if (!newPr.requiredDate) {
@@ -214,7 +215,8 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
 
     const token = localStorage.getItem('auth_token');
     const payload = {
-      locationId: Number(newPr.locationId),
+      plantCode: newPr.plantCode,
+      slocId: newPr.slocId,
       companyCode: newPr.companyCode,
       requiredDate: newPr.requiredDate,
       remarks: newPr.remarks,
@@ -261,7 +263,8 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
         showToast('Purchase Requisition successfully submitted and sent for approval.');
         setShowCreateModal(false);
         setNewPr({
-          locationId: '',
+          plantCode: '',
+          slocId: '',
           requiredDate: '',
           remarks: '',
           requestDate: getTodayDateStr(),
@@ -1119,13 +1122,18 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
                         <select
                           className="form-select border-light-subtle"
                           style={{ borderRadius: '6px' }}
-                          value={newPr.locationId}
-                          onChange={(e) => setNewPr({ ...newPr, locationId: e.target.value })}
+                          value={newPr.plantCode ? `${newPr.plantCode}|${newPr.slocId}` : ''}
+                          onChange={(e) => {
+                            const [plantCode, slocId] = e.target.value.split('|');
+                            setNewPr({ ...newPr, plantCode: plantCode || '', slocId: slocId || '' });
+                          }}
                           required
                         >
                           <option value="">Select Plant...</option>
-                          {locations.map(loc => (
-                            <option key={loc.locationId || loc.id} value={loc.locationId || loc.id}>{loc.locationName || loc.name} ({loc.city || ''})</option>
+                          {storageLocations.map(sl => (
+                            <option key={`${sl.plantCode}-${sl.slocId}`} value={`${sl.plantCode}|${sl.slocId}`}>
+                              {sl.plantName} — {sl.description} ({sl.plantCode}/{sl.slocId})
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -1178,8 +1186,8 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
                     <tbody>
                       {newPr.items.map((item, index) => {
                         const isSelected = selectedRowIndex === index;
-                        const selectedLocation = locations.find(l => String(l.locationId || l.id) === String(newPr.locationId));
-                        const locationCodeText = selectedLocation ? (selectedLocation.locationName || selectedLocation.name) : '';
+                        const selectedLocation = storageLocations.find(sl => sl.plantCode === newPr.plantCode && sl.slocId === newPr.slocId);
+                        const locationCodeText = selectedLocation ? selectedLocation.plantName : '';
 
                         return (
                           <tr

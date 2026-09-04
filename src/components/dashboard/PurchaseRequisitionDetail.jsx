@@ -106,7 +106,7 @@ const PurchaseRequisitionDetail = ({ prId, onBack, onAcknowledgeSuccess }) => {
         createdAt: '2026-06-16T08:30:00.000Z',
         updatedAt: '2026-06-16T09:32:00.000Z',
         remarks: 'Standard Purchase Requisition for MGCTShirt001 manufacturing units.',
-        locationName: 'JP Nagar Hub',
+        storageLocationLabel: 'AAPL Manufacturing Unit — Main Store (1100/1100)',
         requiredDate: '2026-06-17T00:00:00.000Z',
         items: [
           {
@@ -386,7 +386,7 @@ const PurchaseRequisitionDetail = ({ prId, onBack, onAcknowledgeSuccess }) => {
                       {item.quantity} <span className="text-muted small">{item.uom || 'None'}</span>
                     </td>
                     <td>
-                      <div className="fw-bold text-dark">{prData.locationName || 'N/A'}</div>
+                      <div className="fw-bold text-dark">{prData.storageLocationLabel || 'N/A'}</div>
                       <div className="text-muted small">{formatDate(prData.requiredDate)}</div>
                     </td>
                     <td>

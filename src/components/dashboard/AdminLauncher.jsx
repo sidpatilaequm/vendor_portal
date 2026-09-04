@@ -71,7 +71,7 @@ const MENU = {
     name: 'Master Data', eyebrow: '02', icon: 'fa-database', color: 'success',
     desc: 'The records everything else refers to — suppliers, parts and assemblies.',
     children: {
-      vendors: { name: 'Vendors', icon: 'fa-users', color: 'success', desc: 'Suppliers, payment terms and contacts.', real: (onBack) => <AdminVendors onBack={onBack} /> },
+      vendors: { name: 'Vendors', icon: 'fa-users', color: 'success', desc: 'Suppliers, payment terms and contacts.', ownChrome: true, real: (onBack) => <AdminVendors onBack={onBack} /> },
       // approvedSuppliers: { name: 'Approved Suppliers', icon: 'fa-user-check', color: 'success', desc: 'Vendors approved through Become-a-Supplier, with their Product/Service/Scheduling agreement/Sub-contracting type.', real: (onBack) => <AdminApprovedSuppliers onBack={onBack} /> },
       prospects: { name: 'Vendor Prospects', icon: 'fa-user-clock', color: 'warning', desc: 'Applicants still in onboarding review.', real: () => <AdminProspects /> },
       invitations: { name: 'Invitations', icon: 'fa-envelope-open-text', color: 'primary', desc: 'Invite a new supplier to register.', real: () => <AdminInvitations /> },
@@ -82,7 +82,7 @@ const MENU = {
       enterpriseStructure: { name: 'Enterprise Structure', icon: 'fa-industry', color: 'success', desc: 'Company, plant and purchasing organisation/group master data.',
         real: () => <AdminEnterpriseStructure /> },
       purchaseRoles: { name: 'Purchasing Roles', icon: 'fa-user-shield', color: 'warning', desc: 'Which document types a vendor or employee role can act on, per company code.',
-        real: (onBack) => <AdminPurchaseRoles onBack={onBack} /> },
+        ownChrome: true, real: (onBack) => <AdminPurchaseRoles onBack={onBack} /> },
     },
   },
   settings: {
@@ -132,19 +132,19 @@ const MENU = {
     name: 'Analytics', eyebrow: '04', icon: 'fa-chart-line', color: 'info',
     desc: 'Registers across the procure-to-pay chain, from requisition through to reconciliation.',
     children: {
-      'vendor-list': { name: 'Vendor List', icon: 'fa-users', color: 'success', desc: 'Every registered supplier with terms, category and compliance state.', real: (onBack) => <AdminVendors onBack={onBack} /> },
-      'material-list': { name: 'Material List', icon: 'fa-box', color: 'primary', desc: 'Materials with standard cost and usage.', real: (onBack) => <MaterialReport onBack={onBack} /> },
-      'purchase-requisition': { name: 'Purchase Requisitions', icon: 'fa-file-alt', color: 'primary', desc: 'Requisitions raised and how long they waited.', real: (onBack) => <PurchaseRequisition mode="pr" onBack={onBack} /> },
-      quotation: { name: 'Quotations', icon: 'fa-comments-dollar', color: 'warning', desc: 'Quotes received and which was accepted.', real: (onBack) => <Quotation onBack={onBack} onNavigate={() => {}} /> },
-      'purchase-orders': { name: 'Purchase Orders', icon: 'fa-shopping-cart', color: 'success', desc: 'Released orders and delivery position.', real: (onBack) => <PurchaseOrder onBack={onBack} /> },
-      asn: { name: 'Advance Shipping Notices', icon: 'fa-truck', color: 'warning', desc: 'ASNs and how they reconciled.', real: (onBack) => <ASN onBack={onBack} /> },
-      'gate-entry': { name: 'Gate Entry', icon: 'fa-door-open', color: 'info', desc: 'Vehicles logged at the plant gate against inbound shipments.', real: (onBack) => <GateEntry onBack={onBack} /> },
-      'material-inward': { name: 'Material Inward', icon: 'fa-box-open', color: 'success', desc: 'Verify and receive incoming material against gate entries.', real: (onBack) => <MaterialInward onBack={onBack} /> },
+      'vendor-list': { name: 'Vendor List', icon: 'fa-users', color: 'success', desc: 'Every registered supplier with terms, category and compliance state.', ownChrome: true, real: (onBack) => <AdminVendors onBack={onBack} /> },
+      'material-list': { name: 'Material List', icon: 'fa-box', color: 'primary', desc: 'Materials with standard cost and usage.', ownChrome: true, real: (onBack) => <MaterialReport onBack={onBack} /> },
+      'purchase-requisition': { name: 'Purchase Requisitions', icon: 'fa-file-alt', color: 'primary', desc: 'Requisitions raised and how long they waited.', ownChrome: true, real: (onBack) => <PurchaseRequisition mode="pr" onBack={onBack} /> },
+      quotation: { name: 'Quotations', icon: 'fa-comments-dollar', color: 'warning', desc: 'Quotes received and which was accepted.', ownChrome: true, real: (onBack) => <Quotation onBack={onBack} onNavigate={() => {}} /> },
+      'purchase-orders': { name: 'Purchase Orders', icon: 'fa-shopping-cart', color: 'success', desc: 'Released orders and delivery position.', ownChrome: true, real: (onBack) => <PurchaseOrder onBack={onBack} /> },
+      asn: { name: 'Advance Shipping Notices', icon: 'fa-truck', color: 'warning', desc: 'ASNs and how they reconciled.', ownChrome: true, real: (onBack) => <ASN onBack={onBack} /> },
+      'gate-entry': { name: 'Gate Entry', icon: 'fa-door-open', color: 'info', desc: 'Vehicles logged at the plant gate against inbound shipments.', ownChrome: true, real: (onBack) => <GateEntry onBack={onBack} /> },
+      'material-inward': { name: 'Material Inward', icon: 'fa-box-open', color: 'success', desc: 'Verify and receive incoming material against gate entries.', ownChrome: true, real: (onBack) => <MaterialInward onBack={onBack} /> },
       'goods-receipt': { name: 'Goods Receipt', icon: 'fa-dolly', color: 'info', desc: 'What was received against what was ordered.', stub: true, table: 'goods_receipt_notes', endpoint: '/api/reports/goods-receipt' },
       invoice: { name: 'Invoices', icon: 'fa-file-invoice-dollar', color: 'success', desc: 'Invoices and their position in approval.', stub: true, table: 'invoices', endpoint: '/api/reports/invoices' },
-      'vendor-payments': { name: 'Vendor Payments', icon: 'fa-wallet', color: 'secondary', desc: 'Payments released to suppliers.', real: (onBack) => <VendorPaymentReport onBack={onBack} /> },
-      'vendor-returns': { name: 'Vendor Returns', icon: 'fa-undo', color: 'danger', desc: 'Material sent back to suppliers.', real: (onBack) => <VendorReturnsReport onBack={onBack} /> },
-      'credit-note': { name: 'Credit Notes', icon: 'fa-file-invoice', color: 'danger', desc: 'Credits raised against returns, rate differences and short supply.', real: (onBack) => <CreditNotesReport onBack={onBack} /> },
+      'vendor-payments': { name: 'Vendor Payments', icon: 'fa-wallet', color: 'secondary', desc: 'Payments released to suppliers.', ownChrome: true, real: (onBack) => <VendorPaymentReport onBack={onBack} /> },
+      'vendor-returns': { name: 'Vendor Returns', icon: 'fa-undo', color: 'danger', desc: 'Material sent back to suppliers.', ownChrome: true, real: (onBack) => <VendorReturnsReport onBack={onBack} /> },
+      'credit-note': { name: 'Credit Notes', icon: 'fa-file-invoice', color: 'danger', desc: 'Credits raised against returns, rate differences and short supply.', ownChrome: true, real: (onBack) => <CreditNotesReport onBack={onBack} /> },
       'service-entry': { name: 'Service Entry', icon: 'fa-tools', color: 'info', desc: 'Service sheets confirming work done against service orders.', stub: true, table: 'service_entry_sheets', endpoint: '/api/reports/service-entry' },
       subcontracting: { name: 'Sub-contracting Reconciliation', icon: 'fa-people-carry', color: 'warning', desc: 'Material issued to job workers against what came back.', stub: true, table: 'subcontracting_jobs', endpoint: '/api/reports/subcontracting' },
     },
@@ -452,9 +452,11 @@ export default function AdminLauncher() {
     content = (
       <>
         <Crumbs trail={trail} onOpen={goTo} />
-        <div className="mb-3">
-          <h1 className="fw-bold text-dark mb-1" style={{ fontSize: 21 }}>{node.name}</h1>
-        </div>
+        {!node.ownChrome && (
+          <div className="mb-3">
+            <h1 className="fw-bold text-dark mb-1" style={{ fontSize: 21 }}>{node.name}</h1>
+          </div>
+        )}
         <div className="real-screen">{node.real(onBack, wfSubTab, setWfSubTab)}</div>
       </>
     );
@@ -524,7 +526,7 @@ export default function AdminLauncher() {
         </div>
       </nav>
       <main className="container-fluid py-4" style={{ maxWidth: 1400 }}>
-        {path && (
+        {path && !(node && node.ownChrome) && (
           <button type="button" className="btn btn-outline-secondary btn-sm mb-3" onClick={() => goTo(parts.slice(0, -1).join(':'))}>
             <i className="fas fa-arrow-left me-1"></i> Back
           </button>

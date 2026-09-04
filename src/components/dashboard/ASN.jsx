@@ -27,6 +27,13 @@ const ASN = ({ onBack }) => {
   const { selectedCompanyCode } = useAuth();
   const [asns, setAsns] = useState([]);
 
+  const userStr = localStorage.getItem('user_data');
+  let role = 'VENDOR';
+  if (userStr) {
+    try { role = JSON.parse(userStr).role?.toUpperCase() || 'VENDOR'; } catch(e) {}
+  }
+  const isEmployeeOrAdmin = role === 'EMPLOYEE' || role === 'ADMIN' || role === 'PROC_MGR' || role === 'PURCHASE_DEPT' || role === 'SUBMITTER' || role === 'APPROVER';
+
   const fetchASNs = async () => {
     setLoading(true);
     const token = localStorage.getItem('auth_token');
@@ -185,12 +192,11 @@ const ASN = ({ onBack }) => {
         </div>
         <div className="d-flex gap-2">
 
-          <Button variant="outline-green" className="fw-bold shadow-sm" onClick={openPoSelectionModal}>
-            <i className="fas fa-plus me-1"></i> Create ASN from PO
-          </Button>
-          {/* <Button variant="green" className="fw-bold shadow-sm" onClick={handleCreateStandalone}>
-            <i className="fas fa-truck me-1"></i> + New ASN
-          </Button> */}
+          {!isEmployeeOrAdmin && (
+            <Button variant="outline-green" className="fw-bold shadow-sm" onClick={openPoSelectionModal}>
+              <i className="fas fa-plus me-1"></i> Create ASN from PO
+            </Button>
+          )}
         </div>
       </div>
 

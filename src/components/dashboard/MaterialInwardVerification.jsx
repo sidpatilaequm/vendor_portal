@@ -14,12 +14,62 @@ const STAGES = [
   {id:"outcome", title:"Inward / Return", sub:"Warehouse or vendor"},
 ];
 
+// Putaway bin entry, per line/batch — a controlled input (so what's typed is actually captured
+// into state, unlike the old defaultValue-only field) with live autocomplete against the chosen
+// warehouse's real bins (GET /api/mm/warehouses/{wh}/bins?search=...). Typing is still accepted
+// even without picking a suggestion, so a bin that isn't in the master data yet doesn't block
+// putaway — this only helps get the common case right, it doesn't hard-validate.
+const BinField = ({ warehouseNo, value, onChange }) => {
+  const [suggestions, setSuggestions] = useState([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!warehouseNo || !(value || '').trim()) { setSuggestions([]); return; }
+    const token = localStorage.getItem('auth_token');
+    const t = setTimeout(() => {
+      fetch(`/api/mm/warehouses/${warehouseNo}/bins?search=${encodeURIComponent(value.trim())}&limit=8`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(res => res.json())
+        .then(data => setSuggestions(data.bins || []))
+        .catch(() => setSuggestions([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [value, warehouseNo]);
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <input
+        className="miv-cnt"
+        style={{ width: '110px', textAlign: 'left' }}
+        placeholder={warehouseNo ? 'bin' : 'select warehouse'}
+        disabled={!warehouseNo}
+        value={value || ''}
+        onChange={(e) => { onChange(e.target.value.toUpperCase()); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+      />
+      {open && suggestions.length > 0 && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 20, background: '#fff', border: '1px solid #ccc', borderRadius: 4, minWidth: 120, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+          {suggestions.map((b) => (
+            <div key={b.binCode} style={{ padding: '4px 8px', fontSize: 12, cursor: 'pointer' }}
+              onMouseDown={() => { onChange(b.binCode); setOpen(false); }}>
+              {b.binCode}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function MaterialInwardVerification({ gateEntryId, onBack }) {
   const [C, setC] = useState(null);
   const [selBox, setSelBox] = useState(null);
   const [echo, setEcho] = useState({kind:"idle", text:"Ready.", sub:""});
   const [dialogContent, setDialogContent] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+  const [warehouses, setWarehouses] = useState([]);
 
   useEffect(() => {
     if (toastMessage) {
@@ -27,6 +77,17 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
       return () => clearTimeout(timer);
     }
   }, [toastMessage]);
+
+  // Real warehouses/bins from Enterprise Structure master data, for the putaway step's
+  // warehouse picker and bin autocomplete (BinField below) — replaces the old hardcoded
+  // "RCV-STAGE"/"WH1" placeholder strings that were never tied to real data.
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    fetch('/api/mm/warehouses', { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(data => setWarehouses(data.warehouses || []))
+      .catch(() => setWarehouses([]));
+  }, []);
 
   const toast = (msg) => setToastMessage(msg);
   const closeDialog = () => setDialogContent(null);
@@ -47,7 +108,7 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
     const c = Object.assign({
       gate_entry_no:"", gate_in:"", vehicle_no:"", vehicle_type:"", driver:"",
       po_no:"", vendor_inv_no:"", vendor_no:"", vendor_name:"", order_date:"",
-      packing_slip_no:"", packing_slip_date:"", location:"", default_bin:"", boxes:[],
+      packing_slip_no:"", packing_slip_date:"", location:"", receiving_warehouse:"", boxes:[],
     }, raw || {});
     
     c.boxes = (c.boxes || []).map((b, bi) => Object.assign({
@@ -79,7 +140,7 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
 
   useEffect(() => {
     if (gateEntryId) {
-      fetch(`http://localhost:8080/api/employee/material-inward/${gateEntryId}`)
+      fetch(`/api/employee/material-inward/${gateEntryId}`)
         .then(res => res.json())
         .then(data => {
           const raw = {
@@ -96,7 +157,6 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
             packing_slip_no: data.packingSlipNo,
             packing_slip_date: data.packingSlipDate,
             location: data.destination || "WH1",
-            default_bin: "RCV-STAGE",
             boxes: data.boxes ? data.boxes.map(b => ({
               box_no: b.boxNo,
               seal_no: b.manifestSeal,
@@ -134,7 +194,7 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
       vendor_no:"V-10248", vendor_name:"Sundaram Precision Components Pvt Ltd",
       order_date:"04 Aug 2026",
       packing_slip_no:"PS-0912/26", packing_slip_date:"21 Aug 2026",
-      location:"WH1 — Main Warehouse, Inward Bay 2", default_bin:"RCV-STAGE",
+      location:"WH1 — Main Warehouse, Inward Bay 2",
       boxes:[
         {box_no:"BOX-001", seal_no:"SL-88231", gross_kg:42, net_kg:38, lines:[
           {item_no:"MS-4410", description:"Flange, mild steel, 4 in, drilled", uom:"NOS",
@@ -710,7 +770,18 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
               {C.decision.automatic ? <b>AUTO APPROVED. Every box reconciled.</b> : <b>Approved by {C.decision.by} — {C.decision.reason}.</b>}
             </div>
             {C.inward && <div className="miv-good" style={{marginTop:"14px"}}><b>Inward raised.</b> {C.inward.grn_no} into {C.location}. {nf(C.inward.units)} units putaway.</div>}
-            
+
+            <div style={{marginTop:"14px", maxWidth:320}}>
+              <label style={{fontSize:11, fontWeight:700, color:"var(--ink-soft, #6b7a78)", display:"block", marginBottom:4}}>Receiving warehouse</label>
+              <select className="miv-cnt" style={{width:"100%", textAlign:"left"}} value={C.receiving_warehouse || ""}
+                disabled={!!C.inward}
+                onChange={(e) => updateC(c => { c.receiving_warehouse = e.target.value; })}>
+                <option value="">— Select warehouse —</option>
+                {warehouses.map(w => <option key={w.warehouseNo} value={w.warehouseNo}>{w.description} ({w.warehouseNo})</option>)}
+              </select>
+              {!C.receiving_warehouse && <div className="miv-desc" style={{marginTop:4}}>Pick a warehouse to enable bin lookup below.</div>}
+            </div>
+
             <table className="miv-g" style={{marginTop:"14px"}}>
               <thead><tr><th>Box</th><th>Material</th><th>Batch</th><th className="num">UOM</th><th className="num">Counted</th><th className="num">Damaged</th><th className="num">To putaway</th><th>Bin</th></tr></thead>
               <tbody>
@@ -727,7 +798,14 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
                         <td className="num">{nf(bt.counted_qty)}</td>
                         <td className="num">{bt.damaged > 0 ? <span style={{color:"var(--iron)"}}>{nf(bt.damaged)}</span> : "—"}</td>
                         <td className="num" style={{fontWeight:600}}>{nf(acc)}</td>
-                        <td><input className="miv-cnt" style={{width:"110px",textAlign:"left"}} placeholder="bin" defaultValue={bt.bin || C.default_bin} /></td>
+                        <td>
+                          <BinField warehouseNo={C.receiving_warehouse} value={bt.bin} onChange={(v) => updateC(c => {
+                            const bx = c.boxes.find(x => x.box_no === box.box_no);
+                            const ln = bx.lines.find(x => x.id === line.id);
+                            const batch = ln.batches.find(x => x.batch_no === bt.batch_no);
+                            batch.bin = v;
+                          })} />
+                        </td>
                       </tr>;
                     });
                   } else {
@@ -741,7 +819,13 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
                       <td className="num">{nf(st.counted)}</td>
                       <td className="num">{st.damaged > 0 ? <span style={{color:"var(--iron)"}}>{nf(st.damaged)}</span> : "—"}</td>
                       <td className="num" style={{fontWeight:600}}>{nf(st.accepted)}</td>
-                      <td><input className="miv-cnt" style={{width:"110px",textAlign:"left"}} placeholder="bin" defaultValue={line.bin || C.default_bin} /></td>
+                      <td>
+                        <BinField warehouseNo={C.receiving_warehouse} value={line.bin} onChange={(v) => updateC(c => {
+                          const bx = c.boxes.find(x => x.box_no === box.box_no);
+                          const ln = bx.lines.find(x => x.id === line.id);
+                          ln.bin = v;
+                        })} />
+                      </td>
                     </tr>;
                   }
                 })}
@@ -757,7 +841,7 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
                   inwardDetailsJson: JSON.stringify(C)
                 };
                 
-                fetch(`http://localhost:8080/api/employee/material-inward/${gateEntryId}/verify`, {
+                fetch(`/api/employee/material-inward/${gateEntryId}/verify`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(payload)
@@ -770,9 +854,7 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
                 })
                 .catch(err => {
                   console.error("Failed to submit verification", err);
-                  toast("Failed to connect to backend, simulating success.");
-                  const units = allLines().reduce((a, {line}) => a + lineState(line).accepted, 0);
-                  updateC(c => { c.inward = {grn_no:"GRN-" + c.gate_entry_no.replace(/^GE-/,""), at:now(), units }; });
+                  toast("Could not reach the server — nothing was recorded. Try again.");
                 });
               }}>
                 {C.inward ? "Inward raised" : `Start inward`}
@@ -797,7 +879,7 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
                   inwardDetailsJson: JSON.stringify(C)
                 };
 
-                fetch(`http://localhost:8080/api/employee/material-inward/${gateEntryId}/verify`, {
+                fetch(`/api/employee/material-inward/${gateEntryId}/verify`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(payload)
@@ -809,8 +891,7 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
                 })
                 .catch(err => {
                   console.error("Failed to submit rejection", err);
-                  toast("Failed to connect to backend, simulating success.");
-                  updateC(c => { c.rtv = {rtv_no:"RTV-" + c.gate_entry_no.replace(/^GE-/,""), at:now(), boxes:c.boxes.length, vehicle:c.vehicle_no}; });
+                  toast("Could not reach the server — nothing was recorded. Try again.");
                 });
               }}>
                 {C.rtv ? "Return raised" : `Raise return — ${C.boxes.length} boxes`}

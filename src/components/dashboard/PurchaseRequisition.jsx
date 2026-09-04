@@ -60,7 +60,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [itemsCurrentPage, setItemsCurrentPage] = useState(1);
   const [createLoading, setCreateLoading] = useState(false);
-  const [storageLocations, setStorageLocations] = useState([]);
+  const [prPlants, setPrPlants] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
 
@@ -75,7 +75,6 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
 
   const [newPr, setNewPr] = useState({
     plantCode: '',
-    slocId: '',
     requiredDate: '',
     remarks: '',
     companyCode: '',
@@ -103,7 +102,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
     try {
       const res = await axios.get('/api/purchase-requisitions/create-pr-options', { headers });
       const data = res.data;
-      setStorageLocations(data.storageLocations || []);
+      setPrPlants(data.plants || []);
       setMaterials(data.materials || []);
     } catch (err) {
       console.error('Failed to fetch options for creating PR:', err);
@@ -181,8 +180,8 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
-    if (!newPr.plantCode || !newPr.slocId) {
-      alert('Please select a Plant / Storage Location.');
+    if (!newPr.plantCode) {
+      alert('Please select a Plant.');
       return;
     }
     if (!newPr.requiredDate) {
@@ -216,7 +215,6 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
     const token = localStorage.getItem('auth_token');
     const payload = {
       plantCode: newPr.plantCode,
-      slocId: newPr.slocId,
       companyCode: newPr.companyCode,
       requiredDate: newPr.requiredDate,
       remarks: newPr.remarks,
@@ -264,7 +262,6 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
         setShowCreateModal(false);
         setNewPr({
           plantCode: '',
-          slocId: '',
           requiredDate: '',
           remarks: '',
           requestDate: getTodayDateStr(),
@@ -1096,7 +1093,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
                           className="form-select border-light-subtle"
                           style={{ borderRadius: '6px' }}
                           value={newPr.companyCode}
-                          onChange={(e) => setNewPr({ ...newPr, companyCode: e.target.value })}
+                          onChange={(e) => setNewPr({ ...newPr, companyCode: e.target.value, plantCode: '' })}
                           required
                         >
                           <option value="">Select Company...</option>
@@ -1122,17 +1119,15 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
                         <select
                           className="form-select border-light-subtle"
                           style={{ borderRadius: '6px' }}
-                          value={newPr.plantCode ? `${newPr.plantCode}|${newPr.slocId}` : ''}
-                          onChange={(e) => {
-                            const [plantCode, slocId] = e.target.value.split('|');
-                            setNewPr({ ...newPr, plantCode: plantCode || '', slocId: slocId || '' });
-                          }}
+                          value={newPr.plantCode}
+                          onChange={(e) => setNewPr({ ...newPr, plantCode: e.target.value })}
+                          disabled={!newPr.companyCode}
                           required
                         >
-                          <option value="">Select Plant...</option>
-                          {storageLocations.map(sl => (
-                            <option key={`${sl.plantCode}-${sl.slocId}`} value={`${sl.plantCode}|${sl.slocId}`}>
-                              {sl.plantName} — {sl.description} ({sl.plantCode}/{sl.slocId})
+                          <option value="">{newPr.companyCode ? 'Select Plant...' : 'Select a company first'}</option>
+                          {prPlants.filter(p => p.companyCode === newPr.companyCode).map(p => (
+                            <option key={p.plantCode} value={p.plantCode}>
+                              {p.plantName} ({p.plantCode})
                             </option>
                           ))}
                         </select>
@@ -1186,8 +1181,8 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
                     <tbody>
                       {newPr.items.map((item, index) => {
                         const isSelected = selectedRowIndex === index;
-                        const selectedLocation = storageLocations.find(sl => sl.plantCode === newPr.plantCode && sl.slocId === newPr.slocId);
-                        const locationCodeText = selectedLocation ? selectedLocation.plantName : '';
+                        const selectedPlant = prPlants.find(p => p.plantCode === newPr.plantCode);
+                        const locationCodeText = selectedPlant ? selectedPlant.plantName : '';
 
                         return (
                           <tr

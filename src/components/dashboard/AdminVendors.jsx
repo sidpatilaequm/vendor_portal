@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Button from '../common/Button';
 import BackButton from '../common/BackButton';
+import SecureDocumentViewer from '../common/SecureDocumentViewer';
 
 // Same simplification as the approver's Document Types picker (AdminWorkflows.jsx): Raw Material
 // and Capital Expenditure never surface as their own names, since neither has a dedicated tile on
@@ -528,6 +529,7 @@ function VendorFullProfile({ detail }) {
   const documents = detail.documents || [];
   const attachments = detail.attachments || [];
   const dynamicAnswers = detail.dynamicAnswers || [];
+  const [viewerDoc, setViewerDoc] = useState(null);
 
   const hasSecondContact = reg.contact2Name || reg.contact2Email || reg.contact2Phone;
 
@@ -628,13 +630,21 @@ function VendorFullProfile({ detail }) {
         <Section title="Documents on File">
           <div className="col-12">
             <table className="table table-sm">
-              <thead><tr><th>Document</th><th>File</th><th>Status</th></tr></thead>
+              <thead><tr><th>Document</th><th>File</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 {documents.map((d) => (
                   <tr key={d.id}>
                     <td className="small">{d.docName}</td>
                     <td className="small">{d.fileName || '—'}</td>
                     <td className="small text-capitalize">{d.verifyStatus || 'read'}</td>
+                    <td className="text-end">
+                      {d.previewUrl && (
+                        <button type="button" className="btn btn-light btn-sm border text-success fw-bold" style={{ fontSize: '11px' }}
+                          onClick={() => setViewerDoc(d)}>
+                          View
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -645,13 +655,28 @@ function VendorFullProfile({ detail }) {
 
       {attachments.length > 0 && (
         <Section title="Additional Attachments">
-          <div className="col-12">
+          <div className="col-12 d-flex flex-column gap-2">
             {attachments.map((a) => (
-              <div key={a.id} className="small">{a.fileName}</div>
+              <div key={a.id} className="d-flex justify-content-between align-items-center">
+                <span className="small">{a.fileName}</span>
+                {a.previewUrl && (
+                  <button type="button" className="btn btn-light btn-sm border text-success fw-bold" style={{ fontSize: '11px' }}
+                    onClick={() => setViewerDoc(a)}>
+                    View
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </Section>
       )}
+
+      <SecureDocumentViewer
+        show={!!viewerDoc}
+        fetchUrl={viewerDoc?.previewUrl}
+        title={viewerDoc?.docName || viewerDoc?.fileName}
+        onClose={() => setViewerDoc(null)}
+      />
 
       {dynamicAnswers.length > 0 && (
         <Section title="Additional Questions">

@@ -61,6 +61,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
   const [itemsCurrentPage, setItemsCurrentPage] = useState(1);
   const [createLoading, setCreateLoading] = useState(false);
   const [prPlants, setPrPlants] = useState([]);
+  const [documentTypes, setDocumentTypes] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
 
@@ -75,6 +76,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
 
   const [newPr, setNewPr] = useState({
     plantCode: '',
+    docTypeCode: '',
     requiredDate: '',
     remarks: '',
     companyCode: '',
@@ -103,6 +105,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
       const res = await axios.get('/api/purchase-requisitions/create-pr-options', { headers });
       const data = res.data;
       setPrPlants(data.plants || []);
+      setDocumentTypes(data.documentTypes || []);
       setMaterials(data.materials || []);
     } catch (err) {
       console.error('Failed to fetch options for creating PR:', err);
@@ -184,6 +187,10 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
       alert('Please select a Plant.');
       return;
     }
+    if (!newPr.docTypeCode) {
+      alert('Please select a Document Type.');
+      return;
+    }
     if (!newPr.requiredDate) {
       alert('Please select a Requested Receipt Date.');
       return;
@@ -215,6 +222,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
     const token = localStorage.getItem('auth_token');
     const payload = {
       plantCode: newPr.plantCode,
+      docTypeCode: newPr.docTypeCode,
       companyCode: newPr.companyCode,
       requiredDate: newPr.requiredDate,
       remarks: newPr.remarks,
@@ -262,6 +270,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
         setShowCreateModal(false);
         setNewPr({
           plantCode: '',
+          docTypeCode: '',
           requiredDate: '',
           remarks: '',
           requestDate: getTodayDateStr(),
@@ -1093,7 +1102,7 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
                           className="form-select border-light-subtle"
                           style={{ borderRadius: '6px' }}
                           value={newPr.companyCode}
-                          onChange={(e) => setNewPr({ ...newPr, companyCode: e.target.value, plantCode: '' })}
+                          onChange={(e) => setNewPr({ ...newPr, companyCode: e.target.value, plantCode: '', docTypeCode: '' })}
                           required
                         >
                           <option value="">Select Company...</option>
@@ -1134,6 +1143,27 @@ const PurchaseRequisition = ({ onBack, mode = 'pr' }) => {
                       </div>
                     </div>
 
+                    <div className="row align-items-center mb-3">
+                      <label className="col-sm-4 col-form-label text-muted small fw-bold text-uppercase">Document Type <span className="text-danger">*</span></label>
+                      <div className="col-sm-8">
+                        <select
+                          className="form-select border-light-subtle"
+                          style={{ borderRadius: '6px' }}
+                          value={newPr.docTypeCode}
+                          onChange={(e) => setNewPr({ ...newPr, docTypeCode: e.target.value })}
+                          disabled={!newPr.companyCode}
+                          required
+                        >
+                          <option value="">{newPr.companyCode ? 'Select Document Type...' : 'Select a company first'}</option>
+                          {documentTypes.filter(dt => dt.companyCode === newPr.companyCode).map(dt => (
+                            <option key={dt.docTypeCode} value={dt.docTypeCode}>
+                              {dt.docTypeCode} — {dt.description}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="form-text">Raw material document types (e.g. ZFRM) route goods receipt to a warehouse bin; every other type is location-only.</div>
+                      </div>
+                    </div>
 
                   </div>
                 </div>

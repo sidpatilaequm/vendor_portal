@@ -108,7 +108,8 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
     const c = Object.assign({
       gate_entry_no:"", gate_in:"", vehicle_no:"", vehicle_type:"", driver:"",
       po_no:"", vendor_inv_no:"", vendor_no:"", vendor_name:"", order_date:"",
-      packing_slip_no:"", packing_slip_date:"", location:"", receiving_warehouse:"", boxes:[],
+      packing_slip_no:"", packing_slip_date:"", location:"", receiving_warehouse:"",
+      doc_type_code:"", doc_type_description:"", raw_material:false, boxes:[],
     }, raw || {});
     
     c.boxes = (c.boxes || []).map((b, bi) => Object.assign({
@@ -157,6 +158,9 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
             packing_slip_no: data.packingSlipNo,
             packing_slip_date: data.packingSlipDate,
             location: data.destination || "WH1",
+            doc_type_code: data.docTypeCode || "",
+            doc_type_description: data.docTypeDescription || "",
+            raw_material: !!data.rawMaterial,
             boxes: data.boxes ? data.boxes.map(b => ({
               box_no: b.boxNo,
               seal_no: b.manifestSeal,
@@ -195,6 +199,7 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
       order_date:"04 Aug 2026",
       packing_slip_no:"PS-0912/26", packing_slip_date:"21 Aug 2026",
       location:"WH1 — Main Warehouse, Inward Bay 2",
+      doc_type_code:"ZFRM", doc_type_description:"Raw material buying", raw_material:true,
       boxes:[
         {box_no:"BOX-001", seal_no:"SL-88231", gross_kg:42, net_kg:38, lines:[
           {item_no:"MS-4410", description:"Flange, mild steel, 4 in, drilled", uom:"NOS",
@@ -771,19 +776,30 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
             </div>
             {C.inward && <div className="miv-good" style={{marginTop:"14px"}}><b>Inward raised.</b> {C.inward.grn_no} into {C.location}. {nf(C.inward.units)} units putaway.</div>}
 
-            <div style={{marginTop:"14px", maxWidth:320}}>
-              <label style={{fontSize:11, fontWeight:700, color:"var(--ink-soft, #6b7a78)", display:"block", marginBottom:4}}>Receiving warehouse</label>
-              <select className="miv-cnt" style={{width:"100%", textAlign:"left"}} value={C.receiving_warehouse || ""}
-                disabled={!!C.inward}
-                onChange={(e) => updateC(c => { c.receiving_warehouse = e.target.value; })}>
-                <option value="">— Select warehouse —</option>
-                {warehouses.map(w => <option key={w.warehouseNo} value={w.warehouseNo}>{w.description} ({w.warehouseNo})</option>)}
-              </select>
-              {!C.receiving_warehouse && <div className="miv-desc" style={{marginTop:4}}>Pick a warehouse to enable bin lookup below.</div>}
-            </div>
+            {C.doc_type_code && (
+              <div className="miv-desc" style={{marginTop:"10px"}}>
+                Document type: <b>{C.doc_type_code}</b>{C.doc_type_description ? ` — ${C.doc_type_description}` : ''}
+                {C.raw_material
+                  ? ' · raw material — goods must be put away to a warehouse bin.'
+                  : ' · not raw material — location-only putaway, no bin required.'}
+              </div>
+            )}
+
+            {C.raw_material && (
+              <div style={{marginTop:"14px", maxWidth:320}}>
+                <label style={{fontSize:11, fontWeight:700, color:"var(--ink-soft, #6b7a78)", display:"block", marginBottom:4}}>Receiving warehouse</label>
+                <select className="miv-cnt" style={{width:"100%", textAlign:"left"}} value={C.receiving_warehouse || ""}
+                  disabled={!!C.inward}
+                  onChange={(e) => updateC(c => { c.receiving_warehouse = e.target.value; })}>
+                  <option value="">— Select warehouse —</option>
+                  {warehouses.map(w => <option key={w.warehouseNo} value={w.warehouseNo}>{w.description} ({w.warehouseNo})</option>)}
+                </select>
+                {!C.receiving_warehouse && <div className="miv-desc" style={{marginTop:4}}>Pick a warehouse to enable bin lookup below.</div>}
+              </div>
+            )}
 
             <table className="miv-g" style={{marginTop:"14px"}}>
-              <thead><tr><th>Box</th><th>Material</th><th>Batch</th><th className="num">UOM</th><th className="num">Counted</th><th className="num">Damaged</th><th className="num">To putaway</th><th>Bin</th></tr></thead>
+              <thead><tr><th>Box</th><th>Material</th><th>Batch</th><th className="num">UOM</th><th className="num">Counted</th><th className="num">Damaged</th><th className="num">To putaway</th>{C.raw_material && <th>Bin</th>}</tr></thead>
               <tbody>
                 {allLines().map(({box, line}) => {
                   if (isBatched(line)) {
@@ -798,14 +814,16 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
                         <td className="num">{nf(bt.counted_qty)}</td>
                         <td className="num">{bt.damaged > 0 ? <span style={{color:"var(--iron)"}}>{nf(bt.damaged)}</span> : "—"}</td>
                         <td className="num" style={{fontWeight:600}}>{nf(acc)}</td>
-                        <td>
-                          <BinField warehouseNo={C.receiving_warehouse} value={bt.bin} onChange={(v) => updateC(c => {
-                            const bx = c.boxes.find(x => x.box_no === box.box_no);
-                            const ln = bx.lines.find(x => x.id === line.id);
-                            const batch = ln.batches.find(x => x.batch_no === bt.batch_no);
-                            batch.bin = v;
-                          })} />
-                        </td>
+                        {C.raw_material && (
+                          <td>
+                            <BinField warehouseNo={C.receiving_warehouse} value={bt.bin} onChange={(v) => updateC(c => {
+                              const bx = c.boxes.find(x => x.box_no === box.box_no);
+                              const ln = bx.lines.find(x => x.id === line.id);
+                              const batch = ln.batches.find(x => x.batch_no === bt.batch_no);
+                              batch.bin = v;
+                            })} />
+                          </td>
+                        )}
                       </tr>;
                     });
                   } else {
@@ -819,13 +837,15 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
                       <td className="num">{nf(st.counted)}</td>
                       <td className="num">{st.damaged > 0 ? <span style={{color:"var(--iron)"}}>{nf(st.damaged)}</span> : "—"}</td>
                       <td className="num" style={{fontWeight:600}}>{nf(st.accepted)}</td>
-                      <td>
-                        <BinField warehouseNo={C.receiving_warehouse} value={line.bin} onChange={(v) => updateC(c => {
-                          const bx = c.boxes.find(x => x.box_no === box.box_no);
-                          const ln = bx.lines.find(x => x.id === line.id);
-                          ln.bin = v;
-                        })} />
-                      </td>
+                      {C.raw_material && (
+                        <td>
+                          <BinField warehouseNo={C.receiving_warehouse} value={line.bin} onChange={(v) => updateC(c => {
+                            const bx = c.boxes.find(x => x.box_no === box.box_no);
+                            const ln = bx.lines.find(x => x.id === line.id);
+                            ln.bin = v;
+                          })} />
+                        </td>
+                      )}
                     </tr>;
                   }
                 })}

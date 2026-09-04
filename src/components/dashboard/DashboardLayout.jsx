@@ -26,6 +26,7 @@ import GateEntry from './GateEntry';
 import VendorGateStatus from './VendorGateStatus';
 import MaterialInward from './MaterialInward';
 import EmployeeDashboards from './EmployeeDashboards';
+import AdminAutomation from './AdminAutomation';
 
 const DashboardLayout = () => {
   const getInitialTab = () => {
@@ -83,6 +84,8 @@ const DashboardLayout = () => {
       }
       case 'admin-workflows':
         return <AdminWorkflows subTab="wf_dashboard" onNavigate={setActiveTab} />;
+      case 'admin-automation':
+        return <AdminAutomation onBack={() => setActiveTab('dashboard')} />;
       case 'pr-approval-report':
         return <PrApprovalReport onBack={() => setActiveTab('dashboard')} />;
       case 'quotation-cycle-report':

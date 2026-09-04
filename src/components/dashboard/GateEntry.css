@@ -797,4 +797,21 @@
   .gate-entry-container .noprint {
     display: none;
   }
+  
+  .gate-entry-container .pass-h {
+    background: transparent !important;
+    color: #000 !important;
+  }
+  .gate-entry-container .pass-h span {
+    color: #444 !important;
+  }
+  .gate-entry-container .pass-logo {
+    filter: none;
+  }
+}
+
+.gate-entry-container .pass-logo {
+  height: 40px;
+  width: auto;
+  filter: brightness(0) invert(1);
 }

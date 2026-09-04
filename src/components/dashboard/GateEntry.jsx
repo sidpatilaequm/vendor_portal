@@ -595,8 +595,13 @@ const GateEntry = ({ onBack }) => {
         <div className="modal on" onClick={(e) => e.target.className.includes("modal") && setPassGe(null)}>
           <div className="pass">
             <div className="pass-h">
-              <b>Inward Gate Pass</b>
-              <span>Aequm India Private Limited · Plant BLR-01 · Gate 02</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <b>Inward Gate Pass</b>
+                  <span>Aequm India Private Limited · Plant BLR-01 · Gate 02</span>
+                </div>
+                <img src="/ankit-logo.png" alt="Ankit Group" className="pass-logo" />
+              </div>
             </div>
             <div className="pass-b">
               <div className="kv" style={{ marginBottom: 18 }}>

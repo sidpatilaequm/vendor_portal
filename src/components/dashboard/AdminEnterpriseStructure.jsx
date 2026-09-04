@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import Button from '../common/Button';
 
 /*
  * Enterprise structure master data: company -> plant, company -> purchasing_org ->
@@ -8,13 +7,10 @@ import Button from '../common/Button';
  * Backed by backend_java's /api/mm/* controllers — a separate table family from CompanyDetails
  * (/api/organization/companies, vendor profile data).
  *
- * View-only by design: list + create only for company/plant/purchasing org+group/plant
- * location/storage location/warehouse, matching the backend (GET + POST only, no PUT/DELETE).
- * POST will be removed once this master data has been populated for real.
- *
- * Storage bins are the one exception — a warehouse can hold thousands, so bins get their own
- * add-by-range/preview/search/delete manager (opened per warehouse) instead of the flat
- * list+create pattern everything else here uses.
+ * View-only: this screen only lists company/plant/purchasing org+group/plant location/storage
+ * location/warehouse — no create/edit/delete UI for any of them. Storage bins are the one
+ * exception with any write action at all — a warehouse's bin list can still be searched and
+ * individual bins deleted (opened per warehouse), but bin creation is removed too.
  */
 
 const TABS = [
@@ -39,16 +35,6 @@ const ENDPOINTS = {
 
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('auth_token')}` });
 
-const emptyForm = {
-  companyCode: '', companyName: '', gstNumber: '',
-  plantCode: '', plantName: '', plantGstNumber: '', plantCompanyCode: '',
-  purchOrgCode: '', purchOrgName: '', purchOrgCompanyCode: '',
-  purchGroupCode: '', purchGroupName: '', purchGroupOrgCode: '',
-  plocPlantCode: '', plocLocationId: '', plocName: '',
-  slocPlantCode: '', slocId: '', slocDescription: '', slocIsWarehouseManaged: false,
-  whNo: '', whDescription: '', whPlantCode: '', whSlocId: '',
-};
-
 const AdminEnterpriseStructure = () => {
   const [activeTab, setActiveTab] = useState('companies');
   const [rows, setRows] = useState({
@@ -56,10 +42,6 @@ const AdminEnterpriseStructure = () => {
     plantLocations: [], storageLocations: [], warehouses: [],
   });
   const [loading, setLoading] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [alert, setAlert] = useState(null);
-  const [form, setForm] = useState(emptyForm);
 
   // Bin manager — opened per warehouse from the Warehouse tab's row action.
   const [binWarehouse, setBinWarehouse] = useState(null);
@@ -70,8 +52,6 @@ const AdminEnterpriseStructure = () => {
   const [binSearch, setBinSearch] = useState('');
   const [binLoading, setBinLoading] = useState(false);
   const [binAlert, setBinAlert] = useState(null);
-
-  const setField = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
   const fetchTab = useCallback((tabKey) => {
     setLoading(true);
@@ -87,64 +67,7 @@ const AdminEnterpriseStructure = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  // Companies, plants and purchasing orgs are needed as parent-select lookups regardless of
-  // which tab is active, so the "Add" form always has fresh options.
-  useEffect(() => {
-    fetchTab('companies');
-    fetchTab('plants');
-    fetchTab('purchasingOrgs');
-  }, [fetchTab]);
-
   useEffect(() => { fetchTab(activeTab); }, [activeTab, fetchTab]);
-
-  const openAdd = () => {
-    setForm(emptyForm);
-    setAlert(null);
-    setShowAddModal(true);
-  };
-
-  const submit = (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setAlert(null);
-
-    let url = ENDPOINTS[activeTab];
-    let payload = {};
-    if (activeTab === 'companies') {
-      payload = { companyCode: form.companyCode.trim(), companyName: form.companyName.trim(), gstNumber: form.gstNumber.trim() || null };
-    } else if (activeTab === 'plants') {
-      payload = { plantCode: form.plantCode.trim(), plantName: form.plantName.trim(), gstNumber: form.plantGstNumber.trim() || null, companyCode: form.plantCompanyCode };
-    } else if (activeTab === 'purchasingOrgs') {
-      payload = { purchOrgCode: form.purchOrgCode.trim(), purchOrgName: form.purchOrgName.trim(), companyCode: form.purchOrgCompanyCode };
-    } else if (activeTab === 'purchasingGroups') {
-      payload = { purchGroupCode: form.purchGroupCode.trim(), purchGroupName: form.purchGroupName.trim(), purchOrgCode: form.purchGroupOrgCode };
-    } else if (activeTab === 'plantLocations') {
-      payload = { plantCode: form.plocPlantCode, locationId: form.plocLocationId.trim(), name: form.plocName.trim() };
-    } else if (activeTab === 'storageLocations') {
-      payload = { plantCode: form.slocPlantCode, slocId: form.slocId.trim(), description: form.slocDescription.trim(), isWarehouseManaged: form.slocIsWarehouseManaged };
-    } else if (activeTab === 'warehouses') {
-      payload = { warehouseNo: form.whNo.trim(), description: form.whDescription.trim(), plantCode: form.whPlantCode, slocId: form.whSlocId };
-    }
-
-    axios.post(url, payload, { headers: authHeaders() })
-      .then(() => {
-        setAlert({ type: 'success', message: 'Saved.' });
-        fetchTab(activeTab);
-        if (activeTab === 'companies') fetchTab('purchasingOrgs'); // dependent lookups may need it too
-        if (activeTab === 'purchasingOrgs') fetchTab('purchasingGroups');
-        if (activeTab === 'storageLocations') fetchTab('storageLocations'); // warehouse form's dropdown depends on this
-        setTimeout(() => setShowAddModal(false), 700);
-      })
-      .catch((err) => {
-        setAlert({ type: 'danger', message: err.response?.data?.message || 'Could not save this record.' });
-      })
-      .finally(() => setSaving(false));
-  };
-
-  const companyOptions = rows.companies;
-  const plantOptions = rows.plants;
-  const purchOrgOptions = rows.purchasingOrgs;
-  const warehouseManagedSlocOptions = (rows.storageLocations || []).filter((s) => s.isWarehouseManaged);
 
   // ── Bin manager ──────────────────────────────────────────────────────
 
@@ -298,18 +221,11 @@ const AdminEnterpriseStructure = () => {
     }
   };
 
-  const tabLabel = TABS.find((t) => t.key === activeTab)?.label || activeTab;
-
   return (
     <div className="fade-in-slide container-fluid py-4 bg-light bg-opacity-50" style={{ minHeight: '100%' }}>
       <div className="row align-items-center mb-4 text-start">
         <div className="col">
           <h4 className="fw-bold mb-1 text-dark">Enterprise Structure</h4>
-        </div>
-        <div className="col-auto">
-          <Button onClick={openAdd} className="btn-success btn-sm">
-            <i className="fas fa-plus me-1"></i> Add {tabLabel}
-          </Button>
         </div>
       </div>
 
@@ -340,187 +256,6 @@ const AdminEnterpriseStructure = () => {
           </div>
         </div>
       </div>
-
-      {showAddModal && (
-        <div className="custom-modal-overlay">
-          <div className="custom-modal-content" style={{ maxWidth: 450 }}>
-            <div className="custom-modal-header bg-white border-bottom-0 pb-0 pt-4 px-4">
-              <h5 className="custom-modal-title fw-bold text-dark fs-5">Add {tabLabel}</h5>
-              <button className="btn-close shadow-none" onClick={() => setShowAddModal(false)}></button>
-            </div>
-            <form onSubmit={submit}>
-              <div className="custom-modal-body p-4 text-start">
-                {alert && <div className={`alert alert-${alert.type} py-1.5 mb-3 small`} role="alert">{alert.message}</div>}
-
-                {activeTab === 'companies' && (
-                  <>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Company Code * (max 4 chars)</label>
-                      <input className="form-control font-monospace" required maxLength={4} value={form.companyCode} onChange={(e) => setField('companyCode', e.target.value.toUpperCase())} placeholder="e.g. 1000" />
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Company Name *</label>
-                      <input className="form-control" required value={form.companyName} onChange={(e) => setField('companyName', e.target.value)} placeholder="e.g. Acme Industries" />
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">GSTIN (optional)</label>
-                      <input className="form-control font-monospace" maxLength={15} value={form.gstNumber} onChange={(e) => setField('gstNumber', e.target.value.toUpperCase())} placeholder="15-character GSTIN" />
-                    </div>
-                  </>
-                )}
-
-                {activeTab === 'plants' && (
-                  <>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Parent Company *</label>
-                      <select className="form-select" required value={form.plantCompanyCode} onChange={(e) => setField('plantCompanyCode', e.target.value)}>
-                        <option value="">— Select Company —</option>
-                        {companyOptions.map((c) => <option key={c.companyCode} value={c.companyCode}>{c.companyName} ({c.companyCode})</option>)}
-                      </select>
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Plant Code * (max 4 chars)</label>
-                      <input className="form-control font-monospace" required maxLength={4} value={form.plantCode} onChange={(e) => setField('plantCode', e.target.value.toUpperCase())} placeholder="e.g. 1010" />
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Plant Name *</label>
-                      <input className="form-control" required value={form.plantName} onChange={(e) => setField('plantName', e.target.value)} placeholder="e.g. Bengaluru Works" />
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">GSTIN (optional — plants can hold their own)</label>
-                      <input className="form-control font-monospace" maxLength={15} value={form.plantGstNumber} onChange={(e) => setField('plantGstNumber', e.target.value.toUpperCase())} placeholder="15-character GSTIN" />
-                    </div>
-                  </>
-                )}
-
-                {activeTab === 'purchasingOrgs' && (
-                  <>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Parent Company *</label>
-                      <select className="form-select" required value={form.purchOrgCompanyCode} onChange={(e) => setField('purchOrgCompanyCode', e.target.value)}>
-                        <option value="">— Select Company —</option>
-                        {companyOptions.map((c) => <option key={c.companyCode} value={c.companyCode}>{c.companyName} ({c.companyCode})</option>)}
-                      </select>
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Purchasing Org Code * (max 4 chars)</label>
-                      <input className="form-control font-monospace" required maxLength={4} value={form.purchOrgCode} onChange={(e) => setField('purchOrgCode', e.target.value.toUpperCase())} placeholder="e.g. 1000" />
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Purchasing Org Name *</label>
-                      <input className="form-control" required value={form.purchOrgName} onChange={(e) => setField('purchOrgName', e.target.value)} placeholder="e.g. Central Purchasing" />
-                    </div>
-                  </>
-                )}
-
-                {activeTab === 'purchasingGroups' && (
-                  <>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Parent Purchasing Org *</label>
-                      <select className="form-select" required value={form.purchGroupOrgCode} onChange={(e) => setField('purchGroupOrgCode', e.target.value)}>
-                        <option value="">— Select Purchasing Org —</option>
-                        {purchOrgOptions.map((o) => <option key={o.purchOrgCode} value={o.purchOrgCode}>{o.purchOrgName} ({o.purchOrgCode})</option>)}
-                      </select>
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Purchasing Group Code * (max 3 chars)</label>
-                      <input className="form-control font-monospace" required maxLength={3} value={form.purchGroupCode} onChange={(e) => setField('purchGroupCode', e.target.value.toUpperCase())} placeholder="e.g. 101" />
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Purchasing Group Name *</label>
-                      <input className="form-control" required value={form.purchGroupName} onChange={(e) => setField('purchGroupName', e.target.value)} placeholder="e.g. Raw Materials" />
-                    </div>
-                  </>
-                )}
-
-                {activeTab === 'plantLocations' && (
-                  <>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Parent Plant *</label>
-                      <select className="form-select" required value={form.plocPlantCode} onChange={(e) => setField('plocPlantCode', e.target.value)}>
-                        <option value="">— Select Plant —</option>
-                        {plantOptions.map((p) => <option key={p.plantCode} value={p.plantCode}>{p.plantName} ({p.plantCode})</option>)}
-                      </select>
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Location ID * (max 10 chars — e.g. AAPL_PM01)</label>
-                      <input className="form-control font-monospace" required maxLength={10} value={form.plocLocationId} onChange={(e) => setField('plocLocationId', e.target.value.toUpperCase())} placeholder="e.g. AAPL_PM01" />
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Name *</label>
-                      <input className="form-control" required value={form.plocName} onChange={(e) => setField('plocName', e.target.value)} placeholder="e.g. Shop Floor" />
-                    </div>
-                    <div className="form-text">Maintenance object (T499S) — where equipment lives. Not the same as a storage location.</div>
-                  </>
-                )}
-
-                {activeTab === 'storageLocations' && (
-                  <>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Parent Plant *</label>
-                      <select className="form-select" required value={form.slocPlantCode} onChange={(e) => setField('slocPlantCode', e.target.value)}>
-                        <option value="">— Select Plant —</option>
-                        {plantOptions.map((p) => <option key={p.plantCode} value={p.plantCode}>{p.plantName} ({p.plantCode})</option>)}
-                      </select>
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Storage Location Code * (exactly 4 chars)</label>
-                      <input className="form-control font-monospace" required maxLength={4} value={form.slocId} onChange={(e) => setField('slocId', e.target.value.toUpperCase())} placeholder="e.g. 1100" />
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Description *</label>
-                      <input className="form-control" required value={form.slocDescription} onChange={(e) => setField('slocDescription', e.target.value)} placeholder="e.g. Main Store" />
-                    </div>
-                    <div className="form-check mb-2">
-                      <input className="form-check-input" type="checkbox" id="slocWhManaged" checked={form.slocIsWarehouseManaged} onChange={(e) => setField('slocIsWarehouseManaged', e.target.checked)} />
-                      <label className="form-check-label small fw-semibold" htmlFor="slocWhManaged">Warehouse managed</label>
-                    </div>
-                    <div className="form-text">Only a warehouse-managed storage location can carry a warehouse (and its bins).</div>
-                  </>
-                )}
-
-                {activeTab === 'warehouses' && (
-                  <>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Warehouse-Managed Storage Location *</label>
-                      <select className="form-select" required value={form.whSlocId ? `${form.whPlantCode}|${form.whSlocId}` : ''}
-                        onChange={(e) => {
-                          const [plantCode, slocId] = e.target.value.split('|');
-                          setField('whPlantCode', plantCode || '');
-                          setField('whSlocId', slocId || '');
-                        }}>
-                        <option value="">— Select Storage Location —</option>
-                        {warehouseManagedSlocOptions.map((s) => (
-                          <option key={`${s.plantCode}-${s.slocId}`} value={`${s.plantCode}|${s.slocId}`}>
-                            {s.description} ({s.plantCode} / {s.slocId})
-                          </option>
-                        ))}
-                      </select>
-                      {warehouseManagedSlocOptions.length === 0 && (
-                        <div className="form-text text-warning">No warehouse-managed storage locations yet — add one on the Storage Location tab first.</div>
-                      )}
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Warehouse No. * (max 3 chars)</label>
-                      <input className="form-control font-monospace" required maxLength={3} value={form.whNo} onChange={(e) => setField('whNo', e.target.value.toUpperCase())} placeholder="e.g. 100" />
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Description *</label>
-                      <input className="form-control" required value={form.whDescription} onChange={(e) => setField('whDescription', e.target.value)} placeholder="e.g. Main Warehouse" />
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className="custom-modal-footer gap-2">
-                <button type="button" className="btn btn-outline-secondary px-3 py-1 fw-semibold" onClick={() => setShowAddModal(false)} style={{ borderRadius: 8, fontSize: 12 }}>Cancel</button>
-                <Button type="submit" loading={saving} className="btn-success px-4" style={{ backgroundColor: '#293383', borderColor: '#293383', fontSize: 12 }}>
-                  Save
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {binWarehouse && (
         <div className="custom-modal-overlay">

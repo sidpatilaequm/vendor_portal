@@ -741,3 +741,13 @@ h1, h2, h3, h4, h5, h6,
 }
 
 
+
+@media print {
+  .sidebar { display: none !important; }
+  header { display: none !important; }
+  .navbar { display: none !important; }
+  .main-content { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
+  .btn { display: none !important; }
+  .print-only { display: block !important; }
+  .no-print { display: none !important; }
+}

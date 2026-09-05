@@ -207,7 +207,7 @@ const AsnDetail = ({ asnId, onBack }) => {
           <Button variant="outline-green" className="fw-bold px-3" onClick={onBack}>
             ← Back to List
           </Button>
-          <Button variant="green" className="fw-bold px-3">
+          <Button variant="green" className="fw-bold px-3" onClick={() => window.print()}>
             <i className="fas fa-download me-1"></i> Download PDF
           </Button>
         </div>

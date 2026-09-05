@@ -119,12 +119,12 @@ const AsnDetail = ({ asnId, onBack }) => {
           const apiAsn = response.data.data.asn;
           
           const docs = [];
-          if (apiAsn.taxInvoiceUrl) docs.push({ name: 'Tax Invoice', status: 'Uploaded', file: 'Uploaded', mandatory: true });
-          if (apiAsn.ewayBillUrl) docs.push({ name: 'E-Way Bill', status: 'Uploaded', file: 'Uploaded', mandatory: true });
-          if (apiAsn.packingListUrl) docs.push({ name: 'Packing List', status: 'Uploaded', file: 'Uploaded', mandatory: true });
-          if (apiAsn.pdirUrl) docs.push({ name: 'Pre-dispatch inspection report', status: 'Uploaded', file: 'Uploaded', mandatory: true });
-          if (apiAsn.deviationUrl) docs.push({ name: 'Deviation approval', status: 'Uploaded', file: 'Uploaded', mandatory: false });
-          if (apiAsn.othersUrl) docs.push({ name: 'Others', status: 'Uploaded', file: 'Uploaded', mandatory: false });
+          if (apiAsn.taxInvoiceUrl) docs.push({ name: 'Tax Invoice', status: 'Uploaded', file: 'Uploaded', url: apiAsn.taxInvoiceUrl, mandatory: true });
+          if (apiAsn.ewayBillUrl) docs.push({ name: 'E-Way Bill', status: 'Uploaded', file: 'Uploaded', url: apiAsn.ewayBillUrl, mandatory: true });
+          if (apiAsn.packingListUrl) docs.push({ name: 'Packing List', status: 'Uploaded', file: 'Uploaded', url: apiAsn.packingListUrl, mandatory: true });
+          if (apiAsn.pdirUrl) docs.push({ name: 'Pre-dispatch inspection report', status: 'Uploaded', file: 'Uploaded', url: apiAsn.pdirUrl, mandatory: true });
+          if (apiAsn.deviationUrl) docs.push({ name: 'Deviation approval', status: 'Uploaded', file: 'Uploaded', url: apiAsn.deviationUrl, mandatory: false });
+          if (apiAsn.othersUrl) docs.push({ name: 'Others', status: 'Uploaded', file: 'Uploaded', url: apiAsn.othersUrl, mandatory: false });
 
           const mapped = {
             asn_number: asnId.startsWith("ASN-") ? asnId : `ASN-${apiAsn.createdDate ? apiAsn.createdDate.substring(0,4) : new Date().getFullYear()}-${String(apiAsn.id).padStart(5, '0')}`,
@@ -346,8 +346,12 @@ const AsnDetail = ({ asnId, onBack }) => {
                       <h6 className="fw-bold mb-0" style={{ fontSize: '11px' }}>{doc.name}</h6>
                       <span className="text-muted" style={{ fontSize: '10px' }}>{doc.file || doc.status}</span>
                     </div>
-                    {doc.file ? (
-                      <button className="btn btn-outline-success btn-sm py-0 px-2 fw-bold" style={{ fontSize: '10px' }}>
+                    {doc.url ? (
+                      <button 
+                        className="btn btn-outline-success btn-sm py-0 px-2 fw-bold" 
+                        style={{ fontSize: '10px' }}
+                        onClick={() => window.open(`/api/files/download/${encodeURIComponent(doc.url)}`, '_blank')}
+                      >
                         View
                       </button>
                     ) : (

@@ -776,8 +776,8 @@
 }
 
 @media print {
-  body * {
-    visibility: hidden;
+  .gate-entry-container > *:not(.modal) {
+    display: none !important;
   }
   .gate-entry-container .modal,
   .gate-entry-container .modal * {
@@ -795,7 +795,7 @@
     box-shadow: none;
   }
   .gate-entry-container .noprint {
-    display: none;
+    display: none !important;
   }
   
   .gate-entry-container .pass-h {

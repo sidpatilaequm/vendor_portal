@@ -312,11 +312,15 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
           packaging: formData.packaging,
           no_of_packages: formData.noOfPackages ? parseInt(formData.noOfPackages, 10) : null
         },
-        packages: packageDetails.map(p => ({
-          package_number: p.packageNumber,
-          material_details: Array.isArray(p.materialDetails) ? p.materialDetails.join(', ') : p.materialDetails,
-          quantity: parseFloat(p.quantity)
-        })),
+          packages: packageDetails.flatMap(p => {
+            const mats = Array.isArray(p.materialDetails) ? p.materialDetails : (p.materialDetails ? [p.materialDetails] : []);
+            if (mats.length === 0) return [];
+            return mats.map(m => ({
+              package_number: p.packageNumber,
+              material_details: m,
+              quantity: parseFloat((p.quantities && p.quantities[m]) || 0)
+            }));
+          }),
         items: []
       };
 
@@ -576,9 +580,30 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
                             onChange={(vals) => handlePackageChange(i, 'materialDetails', vals)}
                           />
                         </td>
-                        <td style={{ verticalAlign: 'middle' }}>
-                          <input type="number" min="0" className="batch-in mono" style={{ width: '100%' }} value={pkg.quantity} placeholder="0" onChange={e => handlePackageChange(i, 'quantity', e.target.value)} />
-                        </td>
+                          <td style={{ verticalAlign: 'middle' }}>
+                            {pkg.materialDetails && pkg.materialDetails.length > 0 ? (
+                              pkg.materialDetails.map(mat => (
+                                <div key={mat} style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+                                  <span style={{ fontSize: '11px', width: '90px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '8px' }} title={mat}>{mat}</span>
+                                  <input 
+                                    type="number" 
+                                    min="0"
+                                    className="batch-in mono" 
+                                    style={{ flex: 1, padding: '4px' }}
+                                    placeholder="Qty"
+                                    value={(pkg.quantities && pkg.quantities[mat]) || ''} 
+                                    onChange={e => {
+                                      const newQties = { ...(pkg.quantities || {}) };
+                                      newQties[mat] = e.target.value;
+                                      handlePackageChange(i, 'quantities', newQties);
+                                    }} 
+                                  />
+                                </div>
+                              ))
+                            ) : (
+                              <span style={{ fontSize: '11px', color: '#999' }}>Select materials</span>
+                            )}
+                          </td>
                       </tr>
                     ))}
                   </tbody>

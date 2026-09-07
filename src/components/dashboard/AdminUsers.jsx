@@ -47,6 +47,8 @@ const AdminUsers = () => {
   const [role, setRole] = useState('EMPLOYEE');
   const [departments, setDepartments] = useState([]);
   const [deptCode, setDeptCode] = useState('');
+  const [managers, setManagers] = useState([]);
+  const [managerCode, setManagerCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   // Edit-user modal state — also doubles as "reset password" (leave the password field blank to
@@ -115,6 +117,13 @@ const AdminUsers = () => {
         }
       })
       .catch((err) => console.warn('Failed to fetch departments', err));
+
+    // Reuses the same employee list Budget Maintenance's own "Reports To" picker sources from
+    // (WorkFlow's /api/budget/employees) — one shared employee/manager hierarchy, not a
+    // second one maintained separately here.
+    axios.get('/api/budget/employees', { headers: authHeaders() })
+      .then((res) => setManagers(res.data || []))
+      .catch((err) => console.warn('Failed to fetch managers', err));
   }, []);
 
   const handleAddSubmit = (e) => {
@@ -122,6 +131,7 @@ const AdminUsers = () => {
     setSaving(true);
     setAlert(null);
 
+    const isEmployeeRole = role === 'EMPLOYEE' || role === 'PURCHASE_DEPT';
     const payload = {
       email,
       password,
@@ -132,7 +142,8 @@ const AdminUsers = () => {
       plantCode,
       purchOrgCode,
       role,
-      deptCode: (role === 'EMPLOYEE' || role === 'PURCHASE_DEPT') ? deptCode : undefined,
+      deptCode: isEmployeeRole ? deptCode : undefined,
+      managerCode: isEmployeeRole ? (managerCode || undefined) : undefined,
     };
 
     axios.post('/api/users/create', payload, {
@@ -141,17 +152,13 @@ const AdminUsers = () => {
     .then(res => {
       setAlert({ type: 'success', message: 'User created — a welcome email with their temporary password was sent.' });
       // Reset form
-      setEmail(''); setPassword(''); setFirstName(''); setLastName(''); setPhoneNumber(''); setRole('EMPLOYEE');
+      setEmail(''); setPassword(''); setFirstName(''); setLastName(''); setPhoneNumber(''); setRole('EMPLOYEE'); setManagerCode('');
       fetchUsers();
       setTimeout(() => setShowAddModal(false), 1200);
     })
     .catch(err => {
       console.error('Create user error:', err);
-      // Simulate local creation
-      const newUser = { userId: Date.now(), ...payload };
-      setUsers([...users, newUser]);
-      setAlert({ type: 'success', message: 'User simulated and added locally.' });
-      setTimeout(() => setShowAddModal(false), 1000);
+      setAlert({ type: 'danger', message: errorMessage(err, 'Could not create this user.') });
     })
     .finally(() => {
       setSaving(false);
@@ -413,7 +420,25 @@ const AdminUsers = () => {
                       </select>
                     </div>
                   )}
-                  
+
+                  {(role === 'EMPLOYEE' || role === 'PURCHASE_DEPT') && (
+                    <div className="col-sm-6">
+                      <label className="form-label fw-bold text-muted small">Reports To</label>
+                      <select
+                        className="form-select border-success-subtle"
+                        value={managerCode}
+                        onChange={(e) => setManagerCode(e.target.value)}
+                      >
+                        <option value="">— Top of hierarchy —</option>
+                        {managers.map((m) => (
+                          <option key={m.employee_code} value={m.employee_code}>
+                            {m.name}{m.title ? ` (${m.title})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   {/* Enterprise Structure Row */}
                   <div className="col-sm-4">
                     <label className="form-label fw-bold text-muted small">Company *</label>

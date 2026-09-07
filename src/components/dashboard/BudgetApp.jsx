@@ -397,7 +397,6 @@ export default function BudgetApp() {
     // { id: "hierarchy", label: "WBS Hierarchy", icon: "fas fa-sitemap" },
     // { id: "lines", label: "Budget Lines", icon: "fas fa-list-ul" },
     { id: "upload", label: "Excel Upload", icon: "fas fa-file-upload" },
-    { id: "employees", label: "Employees", icon: "fas fa-users" },
   ];
 
   const ctx = {
@@ -483,7 +482,6 @@ export default function BudgetApp() {
           {page === "hierarchy" && <HierarchyPage ctx={ctx} />}
           {page === "lines" && <LinesPage ctx={ctx} />}
           {page === "upload" && <UploadPage ctx={ctx} />}
-          {page === "employees" && <EmployeesPage ctx={ctx} />}
         </div>
       </div>
 
@@ -1990,107 +1988,6 @@ function UploadPage({ ctx }) {
                 ))}
               </div>
             )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── EMPLOYEES ─────────────────────────────────────────────────────────────────
-function EmployeesPage({ ctx }) {
-  const { employees, setEmployees, departments, showToast } = ctx;
-  const [form, setForm] = useState({ name: "", title: "", email: "", dept_code: "", manager_code: "" });
-
-  const addEmployee = () => {
-    if (!form.name.trim() || !form.title.trim()) return showToast("Name and Title are required", false);
-    const token = localStorage.getItem('auth_token');
-    const adminEmail = localStorage.getItem('user_email') || localStorage.getItem('email') || "siddarthpatil17@gmail.com";
-    const headers = { 'Authorization': `Bearer ${token}` };
-    axios.post('/api/budget/employees', {
-      name: form.name.trim(),
-      title: form.title.trim(),
-      email: form.email.trim(),
-      admin_email: adminEmail,
-      dept_code: form.dept_code || null,
-      manager_code: form.manager_code || null
-    }, { headers })
-      .then(res => {
-        ctx.fetchData();
-        setForm({ name: "", title: "", email: "", dept_code: "", manager_code: "" });
-        showToast("Employee successfully added to team registry.");
-      })
-      .catch(err => showToast(err.response?.data?.detail || "Action failed", false));
-  };
-
-  // Render reporting line recursively
-  const buildTree = (list, managerCode = null, depth = 0) =>
-    list.filter(e => e.manager_code === managerCode).map(e => ({ ...e, depth, children: buildTree(list, e.employee_code, depth + 1) }));
-
-  const tree = useMemo(() => buildTree(employees), [employees]);
-
-  const renderTree = nodes => nodes.map(e => (
-    <div key={e.employee_code} style={{ marginLeft: `${e.depth * 15}px`, marginBottom: "8px" }}>
-      <div className="card border-0 bg-white p-3 shadow-sm rounded-3 d-flex flex-row align-items-center gap-3">
-        <div className="rounded-circle bg-success bg-opacity-10 text-success fw-bold d-flex align-items-center justify-content-center" style={{ width: "36px", height: "36px", flexShrink: 0 }}>
-          {e.name.charAt(0)}
-        </div>
-        <div className="flex-grow-1">
-          <div className="fw-bold text-dark small">{e.name} {e.email && <span className="fw-normal text-muted">({e.email})</span>}</div>
-          <div className="text-muted small fs-11">{e.title} · {departments.find(d => d.dept_code === e.dept_code)?.name || "External"}</div>
-        </div>
-        <div className="font-monospace text-muted small" style={{ fontSize: "11px" }}>{e.employee_code}</div>
-      </div>
-      {e.children?.length > 0 && (
-        <div className="mt-2 border-start ps-3" style={{ borderColor: "#e5e7eb" }}>
-          {renderTree(e.children)}
-        </div>
-      )}
-    </div>
-  ));
-
-  return (
-    <div className="row g-4">
-      <div className="col-lg-5 col-md-12">
-        <div className="card border-0 shadow-sm p-4 rounded-4">
-          <h6 className="fw-bold mb-3 text-success">Register Employee</h6>
-          <div className="mb-3">
-            <label className="form-label small text-muted fw-semibold">Full Name *</label>
-            <input type="text" className="form-control border-light-subtle" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Sambit Mohanty" />
-          </div>
-          <div className="mb-3">
-            <label className="form-label small text-muted fw-semibold">Employee Email</label>
-            <input type="email" className="form-control border-light-subtle" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="e.g. sambit@company.com" />
-          </div>
-          <div className="mb-3">
-            <label className="form-label small text-muted fw-semibold">Designation Title *</label>
-            <input type="text" className="form-control border-light-subtle" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Senior VP Finances" />
-          </div>
-          <div className="mb-3">
-            <label className="form-label small text-muted fw-semibold">Department</label>
-            <select className="form-select border-light-subtle" value={form.dept_code} onChange={e => setForm(f => ({ ...f, dept_code: e.target.value }))}>
-              <option value="">— Select Department —</option>
-              {departments.map(d => <option key={d.dept_code} value={d.dept_code}>{d.name}</option>)}
-            </select>
-          </div>
-          <div className="mb-3">
-            <label className="form-label small text-muted fw-semibold">Reports To</label>
-            <select className="form-select border-light-subtle" value={form.manager_code} onChange={e => setForm(f => ({ ...f, manager_code: e.target.value || null }))}>
-              <option value="">— Top of Hierarchy —</option>
-              {employees.map(e => <option key={e.employee_code} value={e.employee_code}>{e.name}</option>)}
-            </select>
-          </div>
-          <button className="btn btn-success btn-sm w-100 fw-bold py-2 mt-2" onClick={addEmployee}>Add Team Member</button>
-        </div>
-      </div>
-
-      <div className="col-lg-7 col-md-12">
-        <div className="card border-0 shadow-sm rounded-4 h-100 bg-light bg-opacity-25">
-          <div className="card-header bg-white border-bottom py-3">
-            <h6 className="fw-bold mb-0">Reporting Hierarchy Team Map</h6>
-          </div>
-          <div className="card-body p-4 overflow-y-auto" style={{ maxHeight: "460px" }}>
-            {renderTree(tree)}
           </div>
         </div>
       </div>

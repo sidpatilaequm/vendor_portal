@@ -72,7 +72,7 @@ const AdminEnterpriseStructure = () => {
 
   // Cross-reference lookups for the budget tabs — parent-name display, the Add modal's
   // parent/owner selects, and the drill-down. Fetched once on mount, not per-tab-switch.
-  const [orgCompanies, setOrgCompanies] = useState([]); // /api/organization/companies — Department's "Parent Company" picker
+  const [orgCompanies, setOrgCompanies] = useState([]); // /api/budget/organisations (WorkFlow's Organisation table) — Department's "Parent Company" picker
   const [departments, setDepartments] = useState([]);
   const [projects, setProjects] = useState([]);
   const [activities, setActivities] = useState([]);
@@ -131,20 +131,14 @@ const AdminEnterpriseStructure = () => {
   const fetchBudgetLookups = useCallback(() => {
     const headers = authHeaders();
     Promise.all([
-      axios.get('/api/organization/companies/', { headers }).catch(() => ({ data: [] })),
+      axios.get('/api/budget/organisations', { headers }).catch(() => ({ data: [] })),
       axios.get('/api/budget/departments', { headers }).catch(() => ({ data: [] })),
       axios.get('/api/budget/projects', { headers }).catch(() => ({ data: [] })),
       axios.get('/api/budget/activities', { headers }).catch(() => ({ data: [] })),
       axios.get('/api/budget/sub-activities', { headers }).catch(() => ({ data: [] })),
       axios.get('/api/budget/employees', { headers }).catch(() => ({ data: [] })),
-    ]).then(([compsRes, deptsRes, projsRes, actsRes, subsRes, empsRes]) => {
-      let comps = [];
-      if (Array.isArray(compsRes.data)) {
-        comps = compsRes.data;
-      } else if (compsRes.data?.data?.companies && Array.isArray(compsRes.data.data.companies)) {
-        comps = compsRes.data.data.companies;
-      }
-      setOrgCompanies(comps);
+    ]).then(([orgsRes, deptsRes, projsRes, actsRes, subsRes, empsRes]) => {
+      setOrgCompanies(Array.isArray(orgsRes.data) ? orgsRes.data : []);
       setDepartments(deptsRes.data || []);
       setProjects(projsRes.data || []);
       setActivities(actsRes.data || []);
@@ -212,7 +206,7 @@ const AdminEnterpriseStructure = () => {
     if (activeTab === 'departments') {
       url = '/api/budget/departments';
       const wbs = '1.' + (departments.length + 1);
-      payload = { name: deptName.trim(), org_code: 'ORG-001', wbs };
+      payload = { name: deptName.trim(), org_code: parentCompCode, wbs };
     } else if (activeTab === 'projects') {
       url = '/api/budget/projects';
       const parentDept = departments.find((d) => d.dept_code === parentDeptCode);
@@ -587,10 +581,10 @@ const AdminEnterpriseStructure = () => {
                 {activeTab === 'departments' && (
                   <>
                     <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Parent Company *</label>
+                      <label className="form-label fw-bold text-muted small">Organisation *</label>
                       <select className="form-select" required value={parentCompCode} onChange={(e) => setParentCompCode(e.target.value)}>
-                        <option value="">— Select Company —</option>
-                        {orgCompanies.map((c) => <option key={c.companyCode || c.code} value={c.companyCode || c.code}>{c.companyName || c.name} ({c.companyCode || c.code})</option>)}
+                        <option value="">— Select Organisation —</option>
+                        {orgCompanies.map((o) => <option key={o.org_code} value={o.org_code}>{o.name} ({o.org_code})</option>)}
                       </select>
                     </div>
                     <div className="mb-3">

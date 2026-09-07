@@ -15,6 +15,8 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
   const [workflowRequests, setWorkflowRequests] = useState([]);
   const [dashboardTiles, setDashboardTiles] = useState(null); // null = not loaded yet
   const [dashboardTilesLoadError, setDashboardTilesLoadError] = useState(false);
+  const [employeeCards, setEmployeeCards] = useState(null); // null = not loaded yet
+  const [employeeCardsLoadError, setEmployeeCardsLoadError] = useState(false);
 
   useEffect(() => {
     if (!resolvedIsAdmin) {
@@ -99,6 +101,43 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVendorTileGridRole, selectedCompanyCode]);
+
+  // Which employee dashboard cards are visible — resolved server-side from live Organisation
+  // Configuration (GET /api/employee-dashboard-cards), fetched fresh on every mount rather than
+  // read off AuthContext's orgConfig. AuthContext fetches orgConfig once and never revalidates
+  // across a logout/login in the same tab, so it can go stale between sessions — an admin turning
+  // a stage off, then someone logging out and into an employee account without a full page
+  // reload, still saw the old cards until a manual refresh. Same fetch-with-retry +
+  // revalidate-on-focus shape as the vendor tile fetch above, for the same reason.
+  const isEmployeeCardRole = !resolvedIsAdmin
+    && (role === 'EMPLOYEE' || role === 'PURCHASE_DEPT' || role === 'SUBMITTER' || role === 'APPROVER');
+  useEffect(() => {
+    if (!isEmployeeCardRole) return;
+    let cancelled = false;
+    const fetchEmployeeCards = (attemptsLeft = 3) => {
+      setEmployeeCardsLoadError(false);
+      axios.get('/api/public/employee-dashboard-cards')
+        .then((res) => {
+          if (cancelled) return;
+          setEmployeeCards(new Set(res.data?.cards || []));
+        })
+        .catch(() => {
+          if (cancelled) return;
+          if (attemptsLeft > 0) {
+            setTimeout(() => fetchEmployeeCards(attemptsLeft - 1), 600);
+          } else {
+            setEmployeeCardsLoadError(true);
+          }
+        });
+    };
+    fetchEmployeeCards();
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchEmployeeCards(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [isEmployeeCardRole]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -201,82 +240,68 @@ const DashboardHome = ({ isAdmin, onNavigate }) => {
 
   // Employee Portal Dashboard UI (Old Grid Layout)
   if (role === 'EMPLOYEE' || role === 'PURCHASE_DEPT' || role === 'SUBMITTER' || role === 'APPROVER') {
-    // Which org-config toggle (if any) an employee card is gated by — a card with no entry here
-    // is never hidden (Gate Entry included, per the confirmed vendor-visibility-only scope of that
-    // toggle). orgConfig is null until it loads; only an explicit `false` hides a card.
-    const CARD_GATE = {
-      "Purchase Requisition": "prToPoEnabled",
-      "Request for Quotation": "prToPoEnabled",
-      "Purchase Orders": "prToPoEnabled",
-      "Invoice": "invoiceVerificationEnabled",
-      "Vendor Payment": "vendorPaymentsEnabled",
-      "Vendor Returns": "vendorReturnsEnabled",
-    };
-    const cards = [
-      { title: "Vendor List", desc: "View and manage vendor profiles", icon: "fa-users", colorClass: "success" },
-      { title: "Material List", desc: "View all materials and their specifications", icon: "fa-box", colorClass: "primary" },
-      { title: "Indent", desc: "Create and track indents", icon: "fa-clipboard-list", colorClass: "info" },
-      { title: "Purchase Requisition", desc: "Track all purchase requisition requests", icon: "fa-file-alt", colorClass: "primary" },
-      { title: "Request for Quotation", desc: "View active RFQs and invite bids", icon: "fa-file-signature", colorClass: "warning" },
-      { title: "Quotation", desc: "View and compare vendor quotations", icon: "fa-comments-dollar", colorClass: "warning" },
-      { title: "Purchase Orders", desc: "Track and analyze all purchase orders", icon: "fa-shopping-cart", colorClass: "success" },
-      { title: "ASN", desc: "View Advance Shipping Notices", icon: "fa-truck", colorClass: "warning" },
-      { title: "Gate Entry", desc: "Monitor security gate check-ins and logs", icon: "fa-door-open", colorClass: "info" },
-      { title: "Material Inward", desc: "Verify and receive incoming material against gate entries", icon: "fa-box-open", colorClass: "success" },
-      { title: "Stock", desc: "Manage store inventory and stock levels", icon: "fa-cubes", colorClass: "success" },
-      { title: "Invoice", desc: "Track pending and completed invoices", icon: "fa-file-invoice-dollar", colorClass: "success" },
-      { title: "Vendor Payment", desc: "Track vendor payments", icon: "fa-wallet", colorClass: "secondary" },
-      { title: "Vendor Returns", desc: "Manage purchase returns and debit notes", icon: "fa-undo", colorClass: "danger" },
-      { title: "Work Flow Approval", desc: "View and manage pending workflow requests", icon: "fa-check-circle", colorClass: "primary" },
-      { title: "Dashboards", desc: "Reports published for everyone in your team", icon: "fa-chart-pie", colorClass: "info" },
-    ].filter((card) => {
-      const flag = CARD_GATE[card.title];
-      return !flag || orgConfig?.[flag] !== false;
-    });
-
-    const routeMap = {
-      "Vendor List": "vendorList",
-      "Material List": "material",
-      "Indent": "indent",
-      "Purchase Requisition": "pr",
-      "Request for Quotation": "rfq",
-      "Quotation": "quotation",
-      "Purchase Orders": "po",
-      "ASN": "asn",
-      "Gate Entry": "gate-entry",
-      "Material Inward": "material-inward",
-      "Stock": "stock",
-      "Invoice": "invoice",
-      "Vendor Payment": "vendor-payment",
-      "Vendor Returns": "vendor-returns",
-      "Work Flow Approval": "admin-workflows",
-      "Dashboards": "dashboards"
-    };
+    const ALL_CARDS = [
+      { title: "Vendor List", desc: "View and manage vendor profiles", icon: "fa-users", colorClass: "success", route: "vendorList" },
+      { title: "Material List", desc: "View all materials and their specifications", icon: "fa-box", colorClass: "primary", route: "material" },
+      { title: "Indent", desc: "Create and track indents", icon: "fa-clipboard-list", colorClass: "info", route: "indent" },
+      { title: "Purchase Requisition", desc: "Track all purchase requisition requests", icon: "fa-file-alt", colorClass: "primary", route: "pr" },
+      { title: "Request for Quotation", desc: "View active RFQs and invite bids", icon: "fa-file-signature", colorClass: "warning", route: "rfq" },
+      { title: "Quotation", desc: "View and compare vendor quotations", icon: "fa-comments-dollar", colorClass: "warning", route: "quotation" },
+      { title: "Purchase Orders", desc: "Track and analyze all purchase orders", icon: "fa-shopping-cart", colorClass: "success", route: "po" },
+      { title: "ASN", desc: "View Advance Shipping Notices", icon: "fa-truck", colorClass: "warning", route: "asn" },
+      { title: "Gate Entry", desc: "Monitor security gate check-ins and logs", icon: "fa-door-open", colorClass: "info", route: "gate-entry" },
+      { title: "Material Inward", desc: "Verify and receive incoming material against gate entries", icon: "fa-box-open", colorClass: "success", route: "material-inward" },
+      { title: "Stock", desc: "Manage store inventory and stock levels", icon: "fa-cubes", colorClass: "success", route: "stock" },
+      { title: "Invoice", desc: "Track pending and completed invoices", icon: "fa-file-invoice-dollar", colorClass: "success", route: "invoice" },
+      { title: "Vendor Payment", desc: "Track vendor payments", icon: "fa-wallet", colorClass: "secondary", route: "vendor-payment" },
+      { title: "Vendor Returns", desc: "Manage purchase returns and debit notes", icon: "fa-undo", colorClass: "danger", route: "vendor-returns" },
+      { title: "Work Flow Approval", desc: "View and manage pending workflow requests", icon: "fa-check-circle", colorClass: "primary", route: "admin-workflows" },
+      { title: "Dashboards", desc: "Reports published for everyone in your team", icon: "fa-chart-pie", colorClass: "info", route: "dashboards" },
+    ];
 
     return (
       <div className="container-fluid py-4 bg-light bg-opacity-50 min-vh-100 fade-in-slide">
         <div className="row g-4">
-          {/* Render standard cards */}
-          {cards.map((card, idx) => (
-            <div key={idx} className="col-12 col-sm-6 col-md-4 col-lg-3">
-              <div className="card h-100 shadow-sm border-0" style={{ borderRadius: '12px' }}>
-                <div className="card-body text-center p-4 d-flex flex-column align-items-center">
-                  <div className={`rounded-circle bg-light d-flex align-items-center justify-content-center mb-3 text-${card.colorClass}`} style={{ width: '60px', height: '60px' }}>
-                    <i className={`fas ${card.icon} fs-4`}></i>
+          {employeeCardsLoadError ? (
+            <div className="col-12 d-flex flex-column align-items-center gap-2 text-muted text-center py-5">
+              <span>Couldn't load which cards you're approved to see.</span>
+              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => window.location.reload()}>Retry</button>
+            </div>
+          ) : employeeCards === null ? (
+            [0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="col-12 col-sm-6 col-md-4 col-lg-3">
+                <div className="card h-100 shadow-sm border-0 placeholder-glow" style={{ borderRadius: '12px' }}>
+                  <div className="card-body text-center p-4 d-flex flex-column align-items-center">
+                    <div className="rounded-circle bg-light placeholder mb-3" style={{ width: '60px', height: '60px' }}></div>
+                    <span className="placeholder col-8 mb-2" style={{ height: '20px', borderRadius: '4px' }}></span>
+                    <span className="placeholder col-10 mb-4" style={{ height: '14px', borderRadius: '4px' }}></span>
+                    <span className="placeholder col-12 mt-auto" style={{ height: '38px', borderRadius: '50px' }}></span>
                   </div>
-                  <h5 className="fw-bold mb-2 text-dark">{card.title}</h5>
-                  <p className="text-muted small mb-4">{card.desc}</p>
-                  <button 
-                    className={`btn btn-outline-${card.colorClass} w-100 mt-auto rounded-pill fw-medium`}
-                    onClick={(e) => handleNavigation(e, routeMap[card.title])}
-                    style={{ fontSize: '14px' }}
-                  >
-                    View Details <i className="fas fa-arrow-right ms-1"></i>
-                  </button>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            ALL_CARDS.filter((card) => employeeCards.has(card.route)).map((card, idx) => (
+              <div key={idx} className="col-12 col-sm-6 col-md-4 col-lg-3">
+                <div className="card h-100 shadow-sm border-0" style={{ borderRadius: '12px' }}>
+                  <div className="card-body text-center p-4 d-flex flex-column align-items-center">
+                    <div className={`rounded-circle bg-light d-flex align-items-center justify-content-center mb-3 text-${card.colorClass}`} style={{ width: '60px', height: '60px' }}>
+                      <i className={`fas ${card.icon} fs-4`}></i>
+                    </div>
+                    <h5 className="fw-bold mb-2 text-dark">{card.title}</h5>
+                    <p className="text-muted small mb-4">{card.desc}</p>
+                    <button
+                      className={`btn btn-outline-${card.colorClass} w-100 mt-auto rounded-pill fw-medium`}
+                      onClick={(e) => handleNavigation(e, card.route)}
+                      style={{ fontSize: '14px' }}
+                    >
+                      View Details <i className="fas fa-arrow-right ms-1"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     );

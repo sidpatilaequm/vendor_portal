@@ -9,7 +9,11 @@ import axios from "axios";
 
 const FY = "FY 2026-27";
 const MONTHS = ["Apr-26", "May-26", "Jun-26", "Jul-26", "Aug-26", "Sep-26", "Oct-26", "Nov-26", "Dec-26", "Jan-27", "Feb-27", "Mar-27"];
-const CUR_PERIOD = 3; // index of current period (Jul-26 = 3, matching period_no-1 = 3)
+// Fiscal year starts in April — same calendar-month -> fiscal-period_no mapping as WorkFlow's
+// _current_fiscal_period(), converted to MONTHS' 0-based index. Was a hardcoded `3` (Jul-26);
+// computed from the real date so "current period" doesn't silently drift stale after launch.
+const FISCAL_PERIOD_MAP = { 4: 1, 5: 2, 6: 3, 7: 4, 8: 5, 9: 6, 10: 7, 11: 8, 12: 9, 1: 10, 2: 11, 3: 12 };
+const CUR_PERIOD = FISCAL_PERIOD_MAP[new Date().getMonth() + 1] - 1;
 
 const fmt = n => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n || 0);
 const fmtN = n => new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(n || 0);
@@ -1715,13 +1719,15 @@ function LinesPage({ ctx }) {
   }, [activities, projects, filter]);
 
   const saveEdit = (code) => {
+    const vals = { allocated: Number(editVals.allocated), pr: Number(editVals.pr), po: Number(editVals.po), invoiced: Number(editVals.invoiced) };
+    if (Object.values(vals).some(v => !Number.isFinite(v) || v < 0)) {
+      showToast("Allocated, PR, PO and Invoiced can't be negative.", false);
+      return;
+    }
     const token = localStorage.getItem('auth_token');
     const headers = { 'Authorization': `Bearer ${token}` };
     axios.patch(`/api/budget/activities/${code}`, {
-      allocated: Number(editVals.allocated),
-      pr: Number(editVals.pr),
-      po: Number(editVals.po),
-      invoiced: Number(editVals.invoiced),
+      ...vals,
       status_code: editVals.status_code,
     }, { headers })
       .then(res => {
@@ -1799,10 +1805,10 @@ function LinesPage({ ctx }) {
                   </td>
                   {isEdit ? (
                     <>
-                      <td className="text-end py-1.5"><input type="number" className="form-control form-control-sm text-end" value={editVals.allocated} onChange={e => setEditVals(v => ({ ...v, allocated: e.target.value }))} style={{ width: "90px", display: "inline-block" }} /></td>
-                      <td className="text-end py-1.5"><input type="number" className="form-control form-control-sm text-end" value={editVals.pr} onChange={e => setEditVals(v => ({ ...v, pr: e.target.value }))} style={{ width: "90px", display: "inline-block" }} /></td>
-                      <td className="text-end py-1.5"><input type="number" className="form-control form-control-sm text-end" value={editVals.po} onChange={e => setEditVals(v => ({ ...v, po: e.target.value }))} style={{ width: "90px", display: "inline-block" }} /></td>
-                      <td className="text-end py-1.5"><input type="number" className="form-control form-control-sm text-end" value={editVals.invoiced} onChange={e => setEditVals(v => ({ ...v, invoiced: e.target.value }))} style={{ width: "90px", display: "inline-block" }} /></td>
+                      <td className="text-end py-1.5"><input type="number" min="0" className="form-control form-control-sm text-end" value={editVals.allocated} onChange={e => setEditVals(v => ({ ...v, allocated: e.target.value }))} style={{ width: "90px", display: "inline-block" }} /></td>
+                      <td className="text-end py-1.5"><input type="number" min="0" className="form-control form-control-sm text-end" value={editVals.pr} onChange={e => setEditVals(v => ({ ...v, pr: e.target.value }))} style={{ width: "90px", display: "inline-block" }} /></td>
+                      <td className="text-end py-1.5"><input type="number" min="0" className="form-control form-control-sm text-end" value={editVals.po} onChange={e => setEditVals(v => ({ ...v, po: e.target.value }))} style={{ width: "90px", display: "inline-block" }} /></td>
+                      <td className="text-end py-1.5"><input type="number" min="0" className="form-control form-control-sm text-end" value={editVals.invoiced} onChange={e => setEditVals(v => ({ ...v, invoiced: e.target.value }))} style={{ width: "90px", display: "inline-block" }} /></td>
                       <td className="text-end py-2.5 font-monospace text-muted">—</td>
                       <td className="py-1.5">
                         <select className="form-select form-select-sm" value={editVals.status_code} onChange={e => setEditVals(v => ({ ...v, status_code: e.target.value }))} style={{ width: "110px" }}>
@@ -2105,7 +2111,13 @@ function CRModal({ ctx }) {
 
   const allocA = actA ? getPhaseArr(actA.phases, "alloc") : Array(12).fill(0);
   const consA = actA ? getPhaseArr(actA.phases, "cons") : Array(12).fill(0);
-  const freeM = actA ? allocA[Number(form.mFrom)] - consA[Number(form.mFrom)] : 0;
+  const prA = actA ? getPhaseArr(actA.phases, "pr") : Array(12).fill(0);
+  const poA = actA ? getPhaseArr(actA.phases, "po") : Array(12).fill(0);
+  // Free = allocated minus everything already spoken for (open PR/PO, not just actual spend) —
+  // matches WorkFlow's _free_budget, so a request can never be validated for more than the
+  // backend will actually let through at approval time.
+  const freeAt = m => allocA[m] - (prA[m] + poA[m] + consA[m]);
+  const freeM = actA ? freeAt(Number(form.mFrom)) : 0;
 
   const validate = () => {
     const amt = Number(form.amount) || 0;
@@ -2123,7 +2135,7 @@ function CRModal({ ctx }) {
     if (type === "carry") {
       if (mF >= CUR_PERIOD) return "Carry forward only applies to closed periods.";
       if (mT < CUR_PERIOD) return "Target month must be current/open period or later.";
-      const unutil = allocA[mF] - consA[mF];
+      const unutil = freeAt(mF);
       if (amt > unutil) return `Maximum carry available from ${MONTHS[mF]} is ${fmtK(unutil)}.`;
       return "";
     }

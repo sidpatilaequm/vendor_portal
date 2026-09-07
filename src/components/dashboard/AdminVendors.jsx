@@ -36,6 +36,7 @@ const displayGroupsFor = (classification) => DISPLAY_GROUPS_FOR_CLASSIFICATION[c
 const AdminVendors = ({ onBack }) => {
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -90,6 +91,7 @@ const AdminVendors = ({ onBack }) => {
 
   const fetchVendors = () => {
     setLoading(true);
+    setLoadError('');
     const token = localStorage.getItem('auth_token');
     axios.get('/api/vendors/all', {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -129,8 +131,12 @@ const AdminVendors = ({ onBack }) => {
       }
     })
     .catch(err => {
-      console.error('Failed to load vendors, loading fallback mock data.', err);
+      console.error('Failed to load vendors.', err);
       setVendors([]);
+      setLoadError(
+        err.response?.data?.statusMsg
+        || (err.response?.status === 403 ? 'Your session does not have access to the vendor list.' : 'Could not load vendors. Try again.')
+      );
     })
     .finally(() => {
       setLoading(false);
@@ -256,6 +262,13 @@ const AdminVendors = ({ onBack }) => {
           </div>
         </div>
       </div>
+
+      {loadError && (
+        <div className="alert alert-danger d-flex align-items-center justify-content-between">
+          <span>{loadError}</span>
+          <button type="button" className="btn btn-sm btn-outline-danger" onClick={fetchVendors}>Retry</button>
+        </div>
+      )}
 
       {/* Vendors Table */}
       <div className="card border-0 shadow-sm">

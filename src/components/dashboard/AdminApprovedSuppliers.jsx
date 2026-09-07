@@ -10,6 +10,15 @@ const CATEGORY_LABELS = {
   SUBCONTRACTING: 'Sub-contracting'
 };
 
+// Replaces the old comma-joined vendorCategory string with the 4 independent flags now on
+// SupplierRegistration — used for both the category filter dropdown and the badges below.
+const vendorBusinessTypes = (s) => [
+  s.vendorTypeProduct && 'PRODUCT',
+  s.vendorTypeService && 'SERVICE',
+  s.vendorTypeSubcontracting && 'SUBCONTRACTING',
+  s.vendorTypeSchedulingAgreement && 'SCHEDULING_AGREEMENT',
+].filter(Boolean);
+
 const AdminApprovedSuppliers = ({ onBack }) => {
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -48,7 +57,7 @@ const AdminApprovedSuppliers = ({ onBack }) => {
       || (s.email || '').toLowerCase().includes(q)
       || (s.vendorCode || '').toLowerCase().includes(q)
       || (s.gstNumber || '').toLowerCase().includes(q);
-    const matchesCategory = categoryFilter === 'ALL' || (s.vendorCategory || '').split(',').includes(categoryFilter);
+    const matchesCategory = categoryFilter === 'ALL' || vendorBusinessTypes(s).includes(categoryFilter);
     return matchesSearch && matchesCategory;
   });
 
@@ -153,9 +162,9 @@ const AdminApprovedSuppliers = ({ onBack }) => {
                         <div className="text-muted small font-monospace" style={{ fontSize: '11px' }}>PAN: {s.panNumber || '—'}</div>
                       </td>
                       <td>
-                        {s.vendorCategory ? (
+                        {vendorBusinessTypes(s).length > 0 ? (
                           <div className="d-flex flex-wrap gap-1">
-                            {s.vendorCategory.split(',').map((c) => (
+                            {vendorBusinessTypes(s).map((c) => (
                               <span key={c} className="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1 rounded-pill">
                                 {CATEGORY_LABELS[c] || c}
                               </span>
@@ -215,8 +224,8 @@ const AdminApprovedSuppliers = ({ onBack }) => {
                 <div className="col-sm-6">
                   <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Vendor Type</label>
                   <div className="small fw-semibold">
-                    {selectedSupplier.vendorCategory
-                      ? selectedSupplier.vendorCategory.split(',').map((c) => CATEGORY_LABELS[c] || c).join(', ')
+                    {vendorBusinessTypes(selectedSupplier).length > 0
+                      ? vendorBusinessTypes(selectedSupplier).map((c) => CATEGORY_LABELS[c] || c).join(', ')
                       : 'Not classified'}
                   </div>
                 </div>

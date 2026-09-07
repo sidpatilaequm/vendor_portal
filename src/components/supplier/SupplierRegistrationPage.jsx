@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import './supplier-form.css';
 import { SECTIONS } from './data';
 import { useSupplierForm } from './hooks/useSupplierForm';
@@ -21,6 +22,7 @@ import SuccessScreen from './components/SuccessScreen';
 // (OpenAI vision) and FolderIt storage instead of the prototype's local mock backend.
 const SupplierRegistrationPage = () => {
   const navigate = useNavigate();
+  const { orgConfig } = useAuth();
   const form = useSupplierForm();
   const { state, readiness, toast, emailDialogOpen, setEmailDialogOpen, resumeMessage, submission, primaryEmail } = form;
   const [activeSection, setActiveSection] = useState(SECTIONS[0].id);
@@ -74,6 +76,19 @@ const SupplierRegistrationPage = () => {
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // orgConfig is null while still loading — only show the closed message once we actually know
+  // it's off, not during that brief window (which would otherwise flash "closed" on every load).
+  if (orgConfig && orgConfig.vendorOnboardingEnabled === false) {
+    return (
+      <div className="supplier-page">
+        <div className="wrap" style={{ paddingTop: 80, textAlign: 'center' }}>
+          <h2>Vendor onboarding is currently closed</h2>
+          <p className="sdesc">We're not accepting new supplier registrations right now. Please check back later.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="supplier-page">

@@ -13,6 +13,7 @@ import AdminWorkflows from './AdminWorkflows';
 import AdminAnalytics from './AdminAnalytics';
 import AdminEmailTemplates from './AdminEmailTemplates';
 import AdminAutomation from './AdminAutomation';
+import AdminOrgConfig from './AdminOrgConfig';
 import Questionnaire from './Questionnaire';
 import BudgetApp from './BudgetApp';
 import PurchaseRequisition from './PurchaseRequisition';
@@ -100,6 +101,7 @@ const MENU = {
       workflows: { name: 'Workflow Templates', icon: 'fa-project-diagram', color: 'primary', desc: 'Approval routes for requisitions, orders and invoices.',
         real: (_, subTab, onNavigate) => <AdminWorkflows subTab={subTab} onNavigate={onNavigate} /> },
       automation: { name: 'System Automation', icon: 'fa-robot', color: 'info', desc: 'Manage background jobs like FolderIt PO auto-syncing.', real: (onBack) => <AdminAutomation onBack={onBack} /> },
+      orgConfig: { name: 'Organisation Configuration', icon: 'fa-sliders-h', color: 'primary', desc: 'Turn entire procurement stages on or off for every vendor and employee.', real: (onBack) => <AdminOrgConfig onBack={onBack} /> },
       emails: { name: 'Email Templates', icon: 'fa-envelope', color: 'warning', desc: 'Messages the portal sends to vendors and staff.', real: () => <AdminEmailTemplates /> },
       questionnaires: { name: 'Questionnaires', icon: 'fa-list-alt', color: 'info', desc: 'Forms vendors fill in at onboarding and audit.', real: () => <Questionnaire /> },
       reportDesigner: {

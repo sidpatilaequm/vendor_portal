@@ -8,6 +8,15 @@ import SecureDocumentViewer from '../common/SecureDocumentViewer';
 // and Capital Expenditure never surface as their own names, since neither has a dedicated tile on
 // the vendor dashboard — Raw Material folds into Product, Capital Expenditure into both Product
 // and Service.
+// Replaces the old comma-joined vendorCategory string with the 4 independent flags now on
+// SupplierRegistration — used for both the category filter dropdown and the list-table badges.
+const vendorBusinessTypes = (v) => [
+  v.vendorTypeProduct && 'PRODUCT',
+  v.vendorTypeService && 'SERVICE',
+  v.vendorTypeSubcontracting && 'SUBCONTRACTING',
+  v.vendorTypeSchedulingAgreement && 'SCHEDULING_AGREEMENT',
+].filter(Boolean);
+
 const VENDOR_TYPE_LABELS = {
   PRODUCTS: 'Product',
   SUBCONTRACTING: 'Subcontracting',
@@ -175,7 +184,7 @@ const AdminVendors = ({ onBack }) => {
                           v.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           v.gstin.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || v.status === statusFilter;
-    const matchesCategory = categoryFilter === 'ALL' || (v.vendorCategory || '').split(',').includes(categoryFilter);
+    const matchesCategory = categoryFilter === 'ALL' || vendorBusinessTypes(v).includes(categoryFilter);
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
@@ -308,9 +317,9 @@ const AdminVendors = ({ onBack }) => {
                               </div>
                             ))}
                           </div>
-                        ) : vendor.vendorCategory ? (
+                        ) : vendorBusinessTypes(vendor).length > 0 ? (
                           <div className="d-flex flex-wrap gap-1">
-                            {vendor.vendorCategory.split(',').map((c) => (
+                            {vendorBusinessTypes(vendor).map((c) => (
                               <span key={c} className="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2.5 py-1 rounded-pill">
                                 {CATEGORY_LABELS[c] || c}
                               </span>
@@ -397,7 +406,12 @@ const AdminVendors = ({ onBack }) => {
               {loadingDetail && <div className="text-muted small">Loading full profile…</div>}
               {!loadingDetail && detailError && <div className="text-danger small">{detailError}</div>}
               {!loadingDetail && vendorDetail && (
-                <VendorFullProfile detail={vendorDetail} />
+                <VendorFullProfile
+                  detail={vendorDetail}
+                  onBusinessTypesSaved={(patch) =>
+                    setVendorDetail((d) => ({ ...d, registration: { ...d.registration, ...patch } }))
+                  }
+                />
               )}
             </div>
             <div className="custom-modal-footer">
@@ -479,13 +493,6 @@ const AdminVendors = ({ onBack }) => {
 // the same detail SupplierRegistrationService builds for the approver's
 // review screen (backend_java's buildRegistrationDetail).
 
-const PROFILE_CATEGORY_LABELS = {
-  PRODUCT: 'Product',
-  SERVICE: 'Service',
-  SCHEDULING_AGREEMENT: 'Scheduling agreement',
-  SUBCONTRACTING: 'Sub-contracting',
-};
-
 const Field = ({ label, value, mono }) => (
   <div className="col-sm-6">
     <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>{label}</label>
@@ -523,18 +530,39 @@ const Section = ({ title, children }) => (
   </div>
 );
 
-function VendorFullProfile({ detail }) {
+const BUSINESS_TYPE_FIELDS = [
+  { key: 'vendorTypeProduct', bodyKey: 'product', label: 'Product' },
+  { key: 'vendorTypeService', bodyKey: 'service', label: 'Service' },
+  { key: 'vendorTypeSubcontracting', bodyKey: 'subcontracting', label: 'Subcontracting' },
+  { key: 'vendorTypeSchedulingAgreement', bodyKey: 'schedulingAgreement', label: 'Scheduling Agreement' },
+];
+
+function VendorFullProfile({ detail, onBusinessTypesSaved }) {
   const reg = detail.registration || {};
   const documents = detail.documents || [];
   const attachments = detail.attachments || [];
   const dynamicAnswers = detail.dynamicAnswers || [];
   const [viewerDoc, setViewerDoc] = useState(null);
+  const [savingType, setSavingType] = useState(null);
 
   const hasSecondContact = reg.contact2Name || reg.contact2Email || reg.contact2Phone;
 
   const answerText = (a) => {
     if (a.selectedLabels && a.selectedLabels.length) return a.selectedLabels.join(', ');
     return a.textValue || '—';
+  };
+
+  const toggleBusinessType = (field, checked) => {
+    setSavingType(field.key);
+    const nextValues = {};
+    BUSINESS_TYPE_FIELDS.forEach((f) => { nextValues[f.bodyKey] = f.key === field.key ? checked : !!reg[f.key]; });
+    const token = localStorage.getItem('auth_token');
+    axios.patch(`/api/supplier-registration/${reg.id}/business-types`, nextValues, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(() => onBusinessTypesSaved?.({ [field.key]: checked }))
+      .catch((err) => alert('Failed to save: ' + (err.response?.data?.statusMsg || err.message)))
+      .finally(() => setSavingType(null));
   };
 
   return (
@@ -546,10 +574,24 @@ function VendorFullProfile({ detail }) {
         </div>
         <Field label="Address" value={reg.address} />
         <Field label="Company Type" value={reg.companyType} />
-        <Field
-          label="Vendor Type"
-          value={reg.vendorCategory ? reg.vendorCategory.split(',').map((c) => PROFILE_CATEGORY_LABELS[c] || c).join(', ') : 'Not classified'}
-        />
+        <div className="col-12">
+          <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Vendor Type</label>
+          <div className="d-flex flex-wrap gap-3 mt-1">
+            {BUSINESS_TYPE_FIELDS.map((f) => (
+              <div className="form-check" key={f.key}>
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id={`vt-${f.key}`}
+                  checked={!!reg[f.key]}
+                  disabled={savingType === f.key}
+                  onChange={(e) => toggleBusinessType(f, e.target.checked)}
+                />
+                <label className="form-check-label" htmlFor={`vt-${f.key}`}>{f.label}</label>
+              </div>
+            ))}
+          </div>
+        </div>
         <Field label="Business Type(s)" value={reg.businessTypes} />
         <Field label="Business Scope" value={reg.businessScope} />
         <Field label="Status" value={reg.status} />

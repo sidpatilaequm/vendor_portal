@@ -1,6 +1,12 @@
 import React from 'react';
+import { useAuth } from '../../context/AuthContext';
+
+// pr/quotation/po/asn all belong to the PR-to-PO flow the Organisation Configuration screen
+// can turn off org-wide — hidden here (in addition to being blocked server-side) when it is.
+const PR_TO_PO_IDS = new Set(['pr', 'quotation', 'po', 'asn']);
 
 const Sidebar = ({ activeTab, onTabChange, isCollapsed, toggleCollapse }) => {
+  const { orgConfig } = useAuth();
   const userStr = localStorage.getItem('user_data');
   let role = 'VENDOR';
   if (userStr) {
@@ -8,7 +14,7 @@ const Sidebar = ({ activeTab, onTabChange, isCollapsed, toggleCollapse }) => {
   }
 
   let menuItems = [];
-  
+
   let vendorMenuItems = [];
 
   if (role === 'VENDOR' || role === 'VENDOR_ADMIN') {
@@ -34,6 +40,8 @@ const Sidebar = ({ activeTab, onTabChange, isCollapsed, toggleCollapse }) => {
       { id: 'reports', label: 'Vendor Profile', icon: 'fas fa-id-badge' },
     ];
   }
+
+  vendorMenuItems = vendorMenuItems.filter((item) => !PR_TO_PO_IDS.has(item.id) || orgConfig?.prToPoEnabled !== false);
 
   return (
     <div className={`dashboard-sidebar bg-white border-end d-flex flex-column flex-shrink-0 transition-all`} style={{ width: isCollapsed ? '80px' : '260px', minHeight: 'calc(100vh - 70px)', transition: 'width 0.3s' }}>

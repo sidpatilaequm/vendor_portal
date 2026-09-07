@@ -10,6 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [alert, setAlert] = useState(null);
   const [selectedCompanyCode, setSelectedCompanyCode] = useState(null);
   const [companiesList, setCompaniesList] = useState([]);
+  const [orgConfig, setOrgConfig] = useState(null);
 
   useEffect(() => {
     // Restore session on mount
@@ -40,6 +41,15 @@ export const AuthProvider = ({ children }) => {
       })
       .catch(err => console.error("Failed to load companies list:", err));
   }, [authToken]);
+
+  // Org-wide stage toggles (Organisation Configuration) — deliberately NOT keyed on authToken
+  // like the companies fetch above: this has to resolve before login too, since the pre-login
+  // Become-a-Supplier page needs it to know whether vendor onboarding is open at all.
+  useEffect(() => {
+    axios.get('/api/public/org-config')
+      .then(res => setOrgConfig(res.data))
+      .catch(err => console.error("Failed to load org config:", err));
+  }, []);
 
   const showAlert = (message, type = 'danger') => {
     setAlert({ type, message });
@@ -232,7 +242,8 @@ export const AuthProvider = ({ children }) => {
       logout,
       selectedCompanyCode,
       updateSelectedCompanyCode,
-      companiesList
+      companiesList,
+      orgConfig
     }}>
       {children}
     </AuthContext.Provider>

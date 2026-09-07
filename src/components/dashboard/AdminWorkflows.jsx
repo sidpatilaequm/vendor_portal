@@ -2010,6 +2010,34 @@ const AdminWorkflows = ({ subTab = 'wf_dashboard', onNavigate }) => {
                           </div>
                         </div>
                       </div>
+
+                      {/* The vendor's own submission-time OCR + Microvista check (see
+                          VendorChangeRequestService.submit's document branch) — same badge/detail
+                          markup as the Become-a-Supplier review below, so the reviewer sees this
+                          without needing to re-download the file themselves. */}
+                      {changeRequestDetail.newVerifyStatus && (
+                        <div className="mt-3 pt-3 border-top small">
+                          <label className="text-muted small fw-bold text-uppercase d-block mb-2">Vendor's verification check</label>
+                          {changeRequestDetail.newVerifyStatus === 'verified' && (
+                            <>
+                              <span className="badge bg-success-subtle text-success">Verified — {changeRequestDetail.newVerifyMessage}</span>
+                              {!!(changeRequestDetail.newVerifyDetails || []).length && (
+                                <div className="row g-2 mt-2">
+                                  {changeRequestDetail.newVerifyDetails.map((vd) => (
+                                    <div className="col-6" key={vd.label}>
+                                      <div className="text-muted" style={{ fontSize: '10px' }}>{vd.label}</div>
+                                      <div className="small">{vd.value || '—'}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </>
+                          )}
+                          {changeRequestDetail.newVerifyStatus === 'error' && (
+                            <span className="badge bg-danger-subtle text-danger">Could not verify — {changeRequestDetail.newVerifyMessage}</span>
+                          )}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>

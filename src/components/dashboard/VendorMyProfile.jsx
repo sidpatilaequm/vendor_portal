@@ -238,7 +238,39 @@ export default function VendorMyProfile({ onBack }) {
   );
 
   const openChangeModal = (itemType, itemKey, label, extra = {}) => {
-    setChangeModal({ itemType, itemKey, label, reason: '', file: null, answer: {}, ...extra });
+    setChangeModal({ itemType, itemKey, label, reason: '', file: null, answer: {}, verifyStatus: null, ...extra });
+  };
+
+  // Same live check Become-a-Supplier runs while a vendor is filling out the original form — OCR
+  // + Microvista, against the replacement file itself rather than a form field, so it fires the
+  // moment a file is picked instead of on a field edit. Read-only: nothing is saved until the
+  // vendor actually submits (see submit(), which independently re-derives and persists its own
+  // copy server-side rather than trusting this preview).
+  const checkReplacementDocument = (file, itemKey) => {
+    if (!file) return;
+    const form = new FormData();
+    form.append('itemKey', String(itemKey));
+    form.append('file', file);
+    axios.post('/api/supplier-registration/change-requests/preview-verify', form, {
+      headers: { ...authHeaders(), 'Content-Type': 'multipart/form-data' },
+    })
+      .then((res) => {
+        const result = res.data?.data?.result || {};
+        setChangeModal((m) => (m && m.file === file ? {
+          ...m,
+          verifyStatus: result.verified ? 'verified' : 'error',
+          verifyMessage: result.message,
+          verifyDetails: result.details || [],
+        } : m));
+      })
+      .catch((e) => {
+        setChangeModal((m) => (m && m.file === file ? {
+          ...m,
+          verifyStatus: 'error',
+          verifyMessage: e?.response?.data?.statusMsg || e?.response?.data?.errorMessage || 'Could not check this document.',
+          verifyDetails: [],
+        } : m));
+      });
   };
 
   const submitChange = () => {
@@ -498,9 +530,46 @@ export default function VendorMyProfile({ onBack }) {
                   type="file"
                   className="input"
                   accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={(e) => setChangeModal((m) => ({ ...m, file: e.target.files?.[0] || null }))}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    const isDocument = changeModal.itemType === 'document';
+                    setChangeModal((m) => ({
+                      ...m,
+                      file,
+                      verifyStatus: file && isDocument ? 'checking' : null,
+                      verifyMessage: null,
+                      verifyDetails: [],
+                    }));
+                    if (file && isDocument) checkReplacementDocument(file, changeModal.itemKey);
+                  }}
                 />
               </label>
+            )}
+
+            {changeModal.itemType === 'document' && changeModal.verifyStatus && (
+              <div className="qs-muted" style={{ marginTop: 8, fontSize: 13 }}>
+                {changeModal.verifyStatus === 'checking' && (
+                  <span><span className="spinner-border spinner-border-sm" style={{ width: 13, height: 13, marginRight: 6 }}></span>Checking against the official record…</span>
+                )}
+                {changeModal.verifyStatus === 'verified' && (
+                  <>
+                    <span className="chip chip--published">Verified — {changeModal.verifyMessage}</span>
+                    {!!changeModal.verifyDetails?.length && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px', marginTop: 8 }}>
+                        {changeModal.verifyDetails.map((d) => (
+                          <div key={d.label}>
+                            <div style={{ fontWeight: 600 }}>{d.label}</div>
+                            <div>{d.value || '—'}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+                {changeModal.verifyStatus === 'error' && (
+                  <span className="chip chip--closed">Could not verify — {changeModal.verifyMessage}</span>
+                )}
+              </div>
             )}
 
             <div className="row-actions" style={{ marginTop: 8 }}>

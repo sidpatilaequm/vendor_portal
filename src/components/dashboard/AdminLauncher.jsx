@@ -79,8 +79,11 @@ const MENU = {
       invitations: { name: 'Invitations', icon: 'fa-envelope-open-text', color: 'primary', desc: 'Invite a new supplier to register.', real: () => <AdminInvitations /> },
       materials: { name: 'Materials', icon: 'fa-box', color: 'primary', desc: 'Part master with cost, stock and lead time.', stub: true,
         table: 'material_master', endpoint: '/api/materials' },
-      orgdata: { name: 'Organisation Data', icon: 'fa-building', color: 'secondary', desc: 'Companies, countries and currencies.',
-        real: () => <AdminMasterData /> },
+      // orgdata: hidden from the UI for now (menu entry removed on request) — the
+      // AdminMasterData component and its endpoints are untouched, just not reachable
+      // from the admin launcher.
+      // orgdata: { name: 'Organisation Data', icon: 'fa-building', color: 'secondary', desc: 'Companies, countries and currencies.',
+      //   real: () => <AdminMasterData /> },
       enterpriseStructure: { name: 'Enterprise Structure', icon: 'fa-industry', color: 'success', desc: 'Company, plant and purchasing organisation/group master data, plus the department/project/activity hierarchy behind the budget module.',
         real: () => <AdminEnterpriseStructure /> },
       purchaseRoles: { name: 'Purchasing Roles', icon: 'fa-user-shield', color: 'warning', desc: 'Which document types a vendor or employee role can act on, per company code.',

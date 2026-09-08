@@ -33,6 +33,7 @@ const MM_TABS = [
 
 const BUDGET_TABS = [
   { key: 'departments', label: 'Department', icon: 'fa-network-wired' },
+  { key: 'assignedDepartments', label: 'Assigned Departments', icon: 'fa-link' },
   { key: 'projects', label: 'Project', icon: 'fa-folder' },
   { key: 'activities', label: 'Activity', icon: 'fa-file-invoice' },
   { key: 'subActivities', label: 'Sub-Activity', icon: 'fa-tasks' },
@@ -40,6 +41,9 @@ const BUDGET_TABS = [
 
 const TABS = [...MM_TABS, ...BUDGET_TABS];
 const BUDGET_TAB_KEYS = new Set(BUDGET_TABS.map((t) => t.key));
+// A department isn't owned by one company (see companies below) — "Assigned Departments" is a
+// management view over existing departments, not a creatable record, so it gets no Add modal.
+const CREATABLE_TAB_KEYS = new Set([...BUDGET_TAB_KEYS].filter((k) => k !== 'assignedDepartments'));
 
 const ENDPOINTS = {
   companies: '/api/mm/companies',
@@ -50,6 +54,7 @@ const ENDPOINTS = {
   storageLocations: '/api/mm/storage-locations',
   warehouses: '/api/mm/warehouses',
   departments: '/api/budget/departments',
+  assignedDepartments: '/api/budget/departments',
   projects: '/api/budget/projects',
   activities: '/api/budget/activities',
   subActivities: '/api/budget/sub-activities',
@@ -62,7 +67,7 @@ const AdminEnterpriseStructure = () => {
   const [rows, setRows] = useState({
     companies: [], plants: [], purchasingOrgs: [], purchasingGroups: [],
     plantLocations: [], storageLocations: [], warehouses: [],
-    departments: [], projects: [], activities: [], subActivities: [],
+    departments: [], assignedDepartments: [], projects: [], activities: [], subActivities: [],
   });
   const [loading, setLoading] = useState(false);
 
@@ -72,7 +77,7 @@ const AdminEnterpriseStructure = () => {
 
   // Cross-reference lookups for the budget tabs — parent-name display, the Add modal's
   // parent/owner selects, and the drill-down. Fetched once on mount, not per-tab-switch.
-  const [orgCompanies, setOrgCompanies] = useState([]); // /api/budget/organisations (WorkFlow's Organisation table) — Department's "Parent Company" picker
+  const [mmCompanies, setMmCompanies] = useState([]); // /api/mm/companies (backend_java's real Company table) — the Assigned Departments tab's company picker
   const [departments, setDepartments] = useState([]);
   const [projects, setProjects] = useState([]);
   const [activities, setActivities] = useState([]);
@@ -94,7 +99,6 @@ const AdminEnterpriseStructure = () => {
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState(null);
   const [deptName, setDeptName] = useState('');
-  const [parentCompCode, setParentCompCode] = useState('');
   const [projName, setProjName] = useState('');
   const [parentDeptCode, setParentDeptCode] = useState('');
   const [actName, setActName] = useState('');
@@ -131,14 +135,17 @@ const AdminEnterpriseStructure = () => {
   const fetchBudgetLookups = useCallback(() => {
     const headers = authHeaders();
     Promise.all([
-      axios.get('/api/budget/organisations', { headers }).catch(() => ({ data: [] })),
+      axios.get('/api/mm/companies', { headers }).catch(() => ({ data: [] })),
       axios.get('/api/budget/departments', { headers }).catch(() => ({ data: [] })),
       axios.get('/api/budget/projects', { headers }).catch(() => ({ data: [] })),
       axios.get('/api/budget/activities', { headers }).catch(() => ({ data: [] })),
       axios.get('/api/budget/sub-activities', { headers }).catch(() => ({ data: [] })),
       axios.get('/api/budget/employees', { headers }).catch(() => ({ data: [] })),
-    ]).then(([orgsRes, deptsRes, projsRes, actsRes, subsRes, empsRes]) => {
-      setOrgCompanies(Array.isArray(orgsRes.data) ? orgsRes.data : []);
+    ]).then(([companiesRes, deptsRes, projsRes, actsRes, subsRes, empsRes]) => {
+      const companiesData = companiesRes.data;
+      const companiesList = Array.isArray(companiesData) ? companiesData
+        : (companiesData && Array.isArray(companiesData.companies) ? companiesData.companies : []);
+      setMmCompanies(companiesList);
       setDepartments(deptsRes.data || []);
       setProjects(projsRes.data || []);
       setActivities(actsRes.data || []);
@@ -206,7 +213,7 @@ const AdminEnterpriseStructure = () => {
     if (activeTab === 'departments') {
       url = '/api/budget/departments';
       const wbs = '1.' + (departments.length + 1);
-      payload = { name: deptName.trim(), org_code: parentCompCode, wbs };
+      payload = { name: deptName.trim(), wbs };
     } else if (activeTab === 'projects') {
       url = '/api/budget/projects';
       const parentDept = departments.find((d) => d.dept_code === parentDeptCode);
@@ -249,7 +256,7 @@ const AdminEnterpriseStructure = () => {
     axios.post(url, payload, { headers })
       .then(() => {
         setAlert({ type: 'success', message: 'Record added successfully!' });
-        setDeptName(''); setParentCompCode('');
+        setDeptName('');
         setProjName(''); setParentDeptCode('');
         setActName(''); setParentProjCode(''); setCostTypeCode('Opex'); setOwnerCode(''); setAllocatedBudget('');
         setSubActName(''); setParentActCode(''); setLevel('1');
@@ -262,6 +269,21 @@ const AdminEnterpriseStructure = () => {
         setAlert({ type: 'danger', message: err.response?.data?.detail || err.response?.data?.message || 'Could not add this record.' });
       })
       .finally(() => setSaving(false));
+  };
+
+  // ── Assigned Departments — company assignment ──────────────────────────
+
+  const assignCompany = (deptCode, companyCode) => {
+    if (!companyCode) return;
+    axios.post(`/api/budget/departments/${deptCode}/companies`, { company_code: companyCode }, { headers: authHeaders() })
+      .then(() => { fetchTab('assignedDepartments'); fetchBudgetLookups(); })
+      .catch((err) => console.error('Assign company error:', err));
+  };
+
+  const unassignCompany = (deptCode, companyCode) => {
+    axios.delete(`/api/budget/departments/${deptCode}/companies/${companyCode}`, { headers: authHeaders() })
+      .then(() => { fetchTab('assignedDepartments'); fetchBudgetLookups(); })
+      .catch((err) => console.error('Unassign company error:', err));
   };
 
   // ── Table rendering ──────────────────────────────────────────────────
@@ -284,6 +306,8 @@ const AdminEnterpriseStructure = () => {
         return <tr><th className="ps-4" style={{ width: 120 }}>No.</th><th>Description</th><th>Plant / Sloc</th><th>Bins</th><th className="pe-4"></th></tr>;
       case 'departments':
         return <tr><th className="ps-4 py-3" style={{ width: 120 }}>WBS</th><th>Department Name</th><th className="pe-4">Department Code</th></tr>;
+      case 'assignedDepartments':
+        return <tr><th className="ps-4 py-3" style={{ width: 160 }}>Department Code</th><th>Department Name</th><th className="pe-4">Assigned Companies</th></tr>;
       case 'projects':
         return <tr><th className="ps-4 py-3" style={{ width: 120 }}>WBS</th><th>Project Name</th><th>Parent Department</th><th className="pe-4">Project Code</th></tr>;
       case 'activities':
@@ -392,6 +416,40 @@ const AdminEnterpriseStructure = () => {
             <td className="pe-4"><code className="bg-light px-2 py-0.5 rounded text-success fw-bold font-monospace" style={{ fontSize: 12 }}>{item.dept_code}</code></td>
           </tr>
         ));
+      case 'assignedDepartments':
+        return data.map((item) => {
+          const assignedCodes = item.company_codes || [];
+          const unassigned = mmCompanies.filter((c) => !assignedCodes.includes(c.companyCode));
+          return (
+            <tr key={item.dept_code}>
+              <td className="ps-4"><code className="bg-light px-2 py-0.5 rounded text-success fw-bold font-monospace" style={{ fontSize: 12 }}>{item.dept_code}</code></td>
+              <td className="fw-semibold" style={{ fontSize: 13.5 }}>{item.name}</td>
+              <td className="pe-4">
+                <div className="d-flex flex-wrap align-items-center gap-2">
+                  {assignedCodes.length === 0 && <span className="text-muted small">Unassigned</span>}
+                  {assignedCodes.map((code) => {
+                    const company = mmCompanies.find((c) => c.companyCode === code);
+                    return (
+                      <span key={code} className="badge bg-primary-subtle text-primary d-flex align-items-center gap-1 px-2 py-1" style={{ fontSize: 11.5 }}>
+                        {company ? company.companyName : code}
+                        <i className="fas fa-times ms-1" style={{ cursor: 'pointer' }}
+                           onClick={() => unassignCompany(item.dept_code, code)}
+                           title="Unassign"></i>
+                      </span>
+                    );
+                  })}
+                  {unassigned.length > 0 && (
+                    <select className="form-select form-select-sm w-auto" style={{ fontSize: 12 }} value=""
+                      onChange={(e) => assignCompany(item.dept_code, e.target.value)}>
+                      <option value="">+ Assign company…</option>
+                      {unassigned.map((c) => <option key={c.companyCode} value={c.companyCode}>{c.companyName}</option>)}
+                    </select>
+                  )}
+                </div>
+              </td>
+            </tr>
+          );
+        });
       case 'projects':
         return data.map((item) => {
           const parentDept = departments.find((d) => d.dept_code === item.dept_code);
@@ -460,7 +518,7 @@ const AdminEnterpriseStructure = () => {
         <div className="col">
           <h4 className="fw-bold mb-1 text-dark">Enterprise Structure</h4>
         </div>
-        {BUDGET_TAB_KEYS.has(activeTab) && (
+        {CREATABLE_TAB_KEYS.has(activeTab) && (
           <div className="col-auto">
             <Button onClick={openAddModal} className="btn-success btn-sm">
               <i className="fas fa-plus me-1"></i> Add Record
@@ -581,15 +639,11 @@ const AdminEnterpriseStructure = () => {
                 {activeTab === 'departments' && (
                   <>
                     <div className="mb-3">
-                      <label className="form-label fw-bold text-muted small">Organisation *</label>
-                      <select className="form-select" required value={parentCompCode} onChange={(e) => setParentCompCode(e.target.value)}>
-                        <option value="">— Select Organisation —</option>
-                        {orgCompanies.map((o) => <option key={o.org_code} value={o.org_code}>{o.name} ({o.org_code})</option>)}
-                      </select>
-                    </div>
-                    <div className="mb-3">
                       <label className="form-label fw-bold text-muted small">Department Name *</label>
                       <input type="text" className="form-control" required value={deptName} onChange={(e) => setDeptName(e.target.value)} placeholder="e.g. Engineering" />
+                    </div>
+                    <div className="form-text mb-3">
+                      Company assignment is optional and done afterward from the "Assigned Departments" tab.
                     </div>
                   </>
                 )}

@@ -409,9 +409,9 @@ const AdminUsers = () => {
                         className="form-select border-success-subtle"
                         value={deptCode}
                         onChange={(e) => setDeptCode(e.target.value)}
-                        required
+                        required={departments.length > 0}
                       >
-                        {departments.length === 0 && <option value="">Loading...</option>}
+                        {departments.length === 0 && <option value="">No departments yet — add one in Enterprise Structure</option>}
                         {departments.map((d) => (
                           <option key={d.deptCode} value={d.deptCode}>
                             {d.deptName} ({d.deptCode})

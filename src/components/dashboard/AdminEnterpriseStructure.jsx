@@ -99,6 +99,7 @@ const AdminEnterpriseStructure = () => {
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState(null);
   const [deptName, setDeptName] = useState('');
+  const [deptCompanyCodes, setDeptCompanyCodes] = useState([]);
   const [projName, setProjName] = useState('');
   const [parentDeptCode, setParentDeptCode] = useState('');
   const [actName, setActName] = useState('');
@@ -254,15 +255,33 @@ const AdminEnterpriseStructure = () => {
     }
 
     axios.post(url, payload, { headers })
-      .then(() => {
-        setAlert({ type: 'success', message: 'Record added successfully!' });
-        setDeptName('');
-        setProjName(''); setParentDeptCode('');
-        setActName(''); setParentProjCode(''); setCostTypeCode('Opex'); setOwnerCode(''); setAllocatedBudget('');
-        setSubActName(''); setParentActCode(''); setLevel('1');
-        fetchTab(activeTab);
-        fetchBudgetLookups();
-        setTimeout(() => setShowAddModal(false), 1000);
+      .then((res) => {
+        // A new department can be handed straight to one or more companies here instead of
+        // requiring a second trip through the "Assigned Departments" tab — reuses the same
+        // assign endpoint the badges there call, just fired once per selected company.
+        const assignCompanies = (activeTab === 'departments' && deptCompanyCodes.length > 0 && res.data?.dept_code)
+          ? Promise.all(deptCompanyCodes.map((companyCode) =>
+              axios.post(`/api/budget/departments/${res.data.dept_code}/companies`, { company_code: companyCode }, { headers })
+            ))
+          : Promise.resolve();
+
+        assignCompanies
+          .then(() => {
+            setAlert({ type: 'success', message: 'Record added successfully!' });
+            setDeptName(''); setDeptCompanyCodes([]);
+            setProjName(''); setParentDeptCode('');
+            setActName(''); setParentProjCode(''); setCostTypeCode('Opex'); setOwnerCode(''); setAllocatedBudget('');
+            setSubActName(''); setParentActCode(''); setLevel('1');
+            fetchTab(activeTab);
+            fetchBudgetLookups();
+            setTimeout(() => setShowAddModal(false), 1000);
+          })
+          .catch((err) => {
+            console.error('Company assignment error:', err);
+            setAlert({ type: 'danger', message: 'Department was created, but assigning one or more companies failed. Use the "Assigned Departments" tab to finish.' });
+            fetchTab(activeTab);
+            fetchBudgetLookups();
+          });
       })
       .catch((err) => {
         console.error('Add record error:', err);
@@ -642,8 +661,23 @@ const AdminEnterpriseStructure = () => {
                       <label className="form-label fw-bold text-muted small">Department Name *</label>
                       <input type="text" className="form-control" required value={deptName} onChange={(e) => setDeptName(e.target.value)} placeholder="e.g. Engineering" />
                     </div>
-                    <div className="form-text mb-3">
-                      Company assignment is optional and done afterward from the "Assigned Departments" tab.
+                    <div className="mb-3">
+                      <label className="form-label fw-bold text-muted small">Companies</label>
+                      <select
+                        multiple
+                        className="form-select"
+                        style={{ minHeight: 110 }}
+                        value={deptCompanyCodes}
+                        onChange={(e) => setDeptCompanyCodes(Array.from(e.target.selectedOptions, (o) => o.value))}
+                      >
+                        {mmCompanies.length === 0 && <option value="" disabled>No companies available</option>}
+                        {mmCompanies.map((c) => (
+                          <option key={c.companyCode} value={c.companyCode}>{c.companyName}</option>
+                        ))}
+                      </select>
+                      <div className="form-text">
+                        Optional — hold Ctrl/Cmd to select more than one. Can also be changed later from the "Assigned Departments" tab.
+                      </div>
                     </div>
                   </>
                 )}

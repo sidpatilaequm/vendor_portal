@@ -13,6 +13,7 @@ import AdminWorkflows from './AdminWorkflows';
 import AdminAnalytics from './AdminAnalytics';
 import AdminEmailTemplates from './AdminEmailTemplates';
 import AdminReportSchedules from './AdminReportSchedules';
+import AdminExcelMappings from './AdminExcelMappings';
 import AdminAutomation from './AdminAutomation';
 import AdminOrgConfig from './AdminOrgConfig';
 import Questionnaire from './Questionnaire';
@@ -108,6 +109,7 @@ const MENU = {
       orgConfig: { name: 'Organisation Configuration', icon: 'fa-sliders-h', color: 'primary', desc: 'Turn entire procurement stages on or off for every vendor and employee.', real: (onBack) => <AdminOrgConfig onBack={onBack} /> },
       emails: { name: 'Email Templates', icon: 'fa-envelope', color: 'warning', desc: 'Messages the portal sends to vendors and staff.', real: () => <AdminEmailTemplates /> },
       reportSchedules: { name: 'Report Schedules', icon: 'fa-clock', color: 'info', desc: 'Send an analytics report to specified people on a recurring basis.', real: () => <AdminReportSchedules /> },
+      excelMappings: { name: 'Excel Column Mappings', icon: 'fa-file-excel', color: 'success', desc: 'Which column of each SAP report excel (payments, returns, credit notes, invoices, stock) feeds which real table column.', real: () => <AdminExcelMappings /> },
       questionnaires: { name: 'Questionnaires', icon: 'fa-list-alt', color: 'info', desc: 'Forms vendors fill in at onboarding and audit.', real: () => <Questionnaire /> },
       reportDesigner: {
         name: 'Report Designer', icon: 'fa-chart-pie', color: 'success', desc: 'Build custom reports against the live database — bind boxes to tables, add formulas, publish role-scoped links.',

@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import Button from '../common/Button';
 
-// Admin screen: for each of the 5 SAP report excels (Vendor Payments, Vendor Returns, Credit
-// Notes, Invoices, Vendor Stock), define which Excel column feeds which column of that report's
-// real target table. Talks to backend_java's /api/admin/excel-mappings/*. Config only — saving a
-// mapping here does not import any data or start any folder-watching; that's a later step once
-// the mappings are confirmed correct.
+// Admin screen: for each report type, define which Excel column feeds which column of the real
+// table(s). Talks to backend_java's /api/admin/excel-mappings/*. The 5 SAP report excels (Vendor
+// Payments, Vendor Returns, Credit Notes, Invoices, Vendor Stock) are import-only for now — saving
+// a mapping there does not import data or start any folder-watching yet. ASN's mapping backs a
+// real, working export ("Export to Excel" on the ASN list screen, and the "Download export"
+// button below) — same mapping mechanism, reverse direction.
 
 const REPORT_TYPES = [
   { value: 'VENDOR_PAYMENTS', label: 'Vendor Payments', table: 'vendor_payments' },
@@ -14,6 +15,7 @@ const REPORT_TYPES = [
   { value: 'CREDIT_NOTES', label: 'Credit Notes', table: 'vendor_credit_notes' },
   { value: 'INVOICES', label: 'Invoices', table: 'vendor_invoice' },
   { value: 'VENDOR_STOCK', label: 'Vendor Stock', table: 'current_stock' },
+  { value: 'ASN', label: 'Advance Shipment Notice (ASN)', table: 'asns' },
 ];
 
 const NOT_MAPPED = '';
@@ -35,6 +37,7 @@ const AdminExcelMappings = () => {
   const [inspecting, setInspecting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [alert, setAlert] = useState(null);
 
   const loadStatuses = useCallback(() => {
@@ -131,6 +134,31 @@ const AdminExcelMappings = () => {
   const currentType = REPORT_TYPES.find((t) => t.value === selected);
   const mappableColumns = targetColumns.filter((c) => !c.systemManaged);
   const mappedCount = Object.values(columnMap).filter(Boolean).length;
+  const headerColumns = targetColumns.filter((c) => (c.table || 'header') === 'header');
+  const itemColumns = targetColumns.filter((c) => c.table === 'item');
+
+  const downloadExport = () => {
+    setDownloading(true);
+    setAlert(null);
+    const url = selected === 'ASN'
+      ? '/api/vendor/asns/export.xlsx'
+      : `/api/admin/excel-mappings/${selected}/export.xlsx`;
+    axios.get(url, { headers: authHeaders(), responseType: 'blob' })
+      .then((res) => {
+        const objectUrl = window.URL.createObjectURL(new Blob([res.data]));
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.setAttribute('download', `${selected.toLowerCase()}-export.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(objectUrl);
+      })
+      .catch(() => {
+        setAlert({ type: 'danger', message: 'Could not generate the export — make sure the mapping is saved with at least one column.' });
+      })
+      .finally(() => setDownloading(false));
+  };
 
   return (
     <div className="p-4">
@@ -224,50 +252,29 @@ const AdminExcelMappings = () => {
                 2. Map "{currentType.table}" columns to excel columns
                 <span className="text-muted fw-normal ms-2">({mappedCount} of {mappableColumns.length} mapped)</span>
               </div>
-              <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save mapping'}</Button>
+              <div className="d-flex gap-2">
+                <button
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={downloadExport}
+                  disabled={downloading || mappedCount === 0}
+                  title={mappedCount === 0 ? 'Save a mapping with at least one column first' : 'Download a real export using this mapping'}
+                >
+                  {downloading ? 'Generating…' : 'Download export'}
+                </button>
+                <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save mapping'}</Button>
+              </div>
             </div>
             {targetColumns.length === 0 ? (
               <div className="text-muted small">No columns found for this table.</div>
+            ) : itemColumns.length === 0 ? (
+              <ColumnMappingTable columns={headerColumns} columnMap={columnMap} setMappingFor={setMappingFor} headerOptions={headerOptions} />
             ) : (
-              <div className="table-responsive">
-                <table className="table table-sm align-middle">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '35%' }}>{currentType.table} column</th>
-                      <th style={{ width: '15%' }}>Type</th>
-                      <th>Excel column</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {targetColumns.map((c) => (
-                      <tr key={c.name} className={c.systemManaged ? 'text-muted' : undefined}>
-                        <td>
-                          <span className="fw-semibold" style={{ fontSize: 13 }}>{c.name}</span>
-                          {!c.nullable && !c.systemManaged && <span className="text-danger ms-1" title="required">*</span>}
-                        </td>
-                        <td className="text-muted small">{c.type}</td>
-                        <td>
-                          {c.systemManaged ? (
-                            <span className="badge bg-secondary-subtle text-secondary" title={c.systemManagedReason}>
-                              <i className="fas fa-lock me-1" style={{ fontSize: 10 }} />
-                              {c.systemManagedReason}
-                            </span>
-                          ) : (
-                            <select
-                              className="form-select form-select-sm"
-                              value={columnMap[c.name] || NOT_MAPPED}
-                              onChange={(e) => setMappingFor(c.name, e.target.value)}
-                            >
-                              <option value={NOT_MAPPED}>— not mapped —</option>
-                              {headerOptions.map((h) => <option key={h} value={h}>{h}</option>)}
-                            </select>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                <div className="text-uppercase text-muted small fw-bold mb-1" style={{ letterSpacing: '0.03em' }}>Header</div>
+                <ColumnMappingTable columns={headerColumns} columnMap={columnMap} setMappingFor={setMappingFor} headerOptions={headerOptions} />
+                <div className="text-uppercase text-muted small fw-bold mb-1 mt-3" style={{ letterSpacing: '0.03em' }}>Line items</div>
+                <ColumnMappingTable columns={itemColumns} columnMap={columnMap} setMappingFor={setMappingFor} headerOptions={headerOptions} />
+              </>
             )}
           </div>
         </>
@@ -275,5 +282,47 @@ const AdminExcelMappings = () => {
     </div>
   );
 };
+
+const ColumnMappingTable = ({ columns, columnMap, setMappingFor, headerOptions }) => (
+  <div className="table-responsive mb-2">
+    <table className="table table-sm align-middle">
+      <thead>
+        <tr>
+          <th style={{ width: '35%' }}>Column</th>
+          <th style={{ width: '15%' }}>Type</th>
+          <th>Excel column</th>
+        </tr>
+      </thead>
+      <tbody>
+        {columns.map((c) => (
+          <tr key={c.name} className={c.systemManaged ? 'text-muted' : undefined}>
+            <td>
+              <span className="fw-semibold" style={{ fontSize: 13 }}>{c.name}</span>
+              {!c.nullable && !c.systemManaged && <span className="text-danger ms-1" title="required">*</span>}
+            </td>
+            <td className="text-muted small">{c.type}</td>
+            <td>
+              {c.systemManaged ? (
+                <span className="badge bg-secondary-subtle text-secondary" title={c.systemManagedReason}>
+                  <i className="fas fa-lock me-1" style={{ fontSize: 10 }} />
+                  {c.systemManagedReason}
+                </span>
+              ) : (
+                <select
+                  className="form-select form-select-sm"
+                  value={columnMap[c.name] || NOT_MAPPED}
+                  onChange={(e) => setMappingFor(c.name, e.target.value)}
+                >
+                  <option value={NOT_MAPPED}>— not mapped —</option>
+                  {headerOptions.map((h) => <option key={h} value={h}>{h}</option>)}
+                </select>
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
 
 export default AdminExcelMappings;

@@ -33,6 +33,7 @@ const RULES = [
   ['/api/employee', { target: BACKEND_JAVA }],
   ['/api/vendors', { target: BACKEND_JAVA }],
   ['^/api/vendor/asns/history/.+', { target: BACKEND_JAVA }],
+  ['^/api/vendor/asns/export', { target: BACKEND_JAVA }],
   ['^/api/vendor/asns/.+', { target: WORKFLOW_TARGET }],
   ['^/api/vendor/asns/?$', { target: BACKEND_JAVA }],
   ['/api/vendor/create-pr-options', { target: WORKFLOW_TARGET }],

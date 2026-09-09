@@ -24,6 +24,7 @@ const ASN = ({ onBack }) => {
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(false);
   const [showKpis, setShowKpis] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const { selectedCompanyCode } = useAuth();
   const [asns, setAsns] = useState([]);
 
@@ -103,6 +104,39 @@ const ASN = ({ onBack }) => {
       setAsns([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const exportToExcel = async () => {
+    setExporting(true);
+    const token = localStorage.getItem('auth_token');
+    try {
+      let endpoint = '/api/vendor/asns/export.xlsx';
+      if (selectedCompanyCode) endpoint += `?company_code=${selectedCompanyCode}`;
+      const response = await axios.get(endpoint, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
+      });
+      const objectUrl = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.setAttribute('download', 'asn-export.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      let message = 'Could not generate the ASN export — an admin may need to configure the export mapping first.';
+      // responseType: 'blob' means an error body arrives as a Blob too, not parsed JSON.
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          message = JSON.parse(text)?.statusMsg || message;
+        } catch (e) { /* keep default message */ }
+      }
+      alert(message);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -190,6 +224,9 @@ const ASN = ({ onBack }) => {
           <h4 className="fw-bold text-uppercase mb-1" style={{ color: '#293383' }}>Advance Shipment Notices</h4>
         </div>
         <div className="d-flex gap-2">
+          <Button variant="outline-green" className="fw-bold shadow-sm" onClick={exportToExcel} disabled={exporting}>
+            <i className="fas fa-file-excel me-1"></i> {exporting ? 'Exporting…' : 'Export to Excel'}
+          </Button>
 
           {!isEmployeeOrAdmin && (
             <Button variant="outline-green" className="fw-bold shadow-sm" onClick={openPoSelectionModal}>

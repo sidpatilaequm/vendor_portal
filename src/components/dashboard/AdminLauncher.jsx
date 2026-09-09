@@ -12,6 +12,7 @@ import AdminPurchaseRoles from './AdminPurchaseRoles';
 import AdminWorkflows from './AdminWorkflows';
 import AdminAnalytics from './AdminAnalytics';
 import AdminEmailTemplates from './AdminEmailTemplates';
+import AdminReportSchedules from './AdminReportSchedules';
 import AdminAutomation from './AdminAutomation';
 import AdminOrgConfig from './AdminOrgConfig';
 import Questionnaire from './Questionnaire';
@@ -106,6 +107,7 @@ const MENU = {
       automation: { name: 'System Automation', icon: 'fa-robot', color: 'info', desc: 'Manage background jobs like FolderIt PO auto-syncing.', real: (onBack) => <AdminAutomation onBack={onBack} /> },
       orgConfig: { name: 'Organisation Configuration', icon: 'fa-sliders-h', color: 'primary', desc: 'Turn entire procurement stages on or off for every vendor and employee.', real: (onBack) => <AdminOrgConfig onBack={onBack} /> },
       emails: { name: 'Email Templates', icon: 'fa-envelope', color: 'warning', desc: 'Messages the portal sends to vendors and staff.', real: () => <AdminEmailTemplates /> },
+      reportSchedules: { name: 'Report Schedules', icon: 'fa-clock', color: 'info', desc: 'Send an analytics report to specified people on a recurring basis.', real: () => <AdminReportSchedules /> },
       questionnaires: { name: 'Questionnaires', icon: 'fa-list-alt', color: 'info', desc: 'Forms vendors fill in at onboarding and audit.', real: () => <Questionnaire /> },
       reportDesigner: {
         name: 'Report Designer', icon: 'fa-chart-pie', color: 'success', desc: 'Build custom reports against the live database — bind boxes to tables, add formulas, publish role-scoped links.',

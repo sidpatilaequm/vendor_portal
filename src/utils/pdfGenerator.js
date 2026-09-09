@@ -1,4 +1,4 @@
-﻿import { jsPDF } from "jspdf";
+import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import QRCode from "qrcode";
 
@@ -14,7 +14,7 @@ export const generateAsnPdf = async (asn) => {
   const loadLogo = () =>
     new Promise((resolve, reject) => {
       const img = new Image();
-      img.src = "/ankit-favicon.png";
+      img.src = "/ankit-logo.png";
       img.onload = () => resolve(img);
       img.onerror = (e) => reject(e);
     });
@@ -22,7 +22,7 @@ export const generateAsnPdf = async (asn) => {
   // HEADER: logo top-left, ASN# top-right
   try {
     const logoImg = await loadLogo();
-    doc.addImage(logoImg, "PNG", margin, 30, 90, 28);
+    doc.addImage(logoImg, "PNG", margin, 25, 100, 32);
   } catch (err) {
     console.warn("Could not load logo", err);
   }

@@ -14,36 +14,40 @@ const MaterialInward = ({ onBack }) => {
   const [workQueue, setWorkQueue] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchQueue = async () => {
-      try {
-        const response = await fetch('http://localhost:8080/api/employee/material-inward/queue');
-        if (response.ok) {
-          const data = await response.json();
-          const mappedQueue = data.map(item => ({
-            gate_entry_id: item.gateEntryId,
-            gate_entry_no: item.gateEntryNo,
-            po_reference: item.poReference,
-            vendor: item.vendorName,
-            vehicle: item.vehicleNo,
-            gate_in: item.gateInTime,
-            status: item.status,
-            status_slug: item.status?.toLowerCase().replace(' ', '-'),
-            status_badge: 'warning',
-            boxes: item.noOfBoxes || 0
-          }));
-          setWorkQueue(mappedQueue);
-        } else {
-          console.error("Failed to fetch queue data");
-        }
-      } catch (error) {
-        console.error("Error fetching queue:", error);
-      } finally {
-        setLoading(false);
+  const fetchQueue = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/employee/material-inward/queue');
+      if (response.ok) {
+        const data = await response.json();
+        const mappedQueue = data.map(item => ({
+          gate_entry_id: item.gateEntryId,
+          gate_entry_no: item.gateEntryNo,
+          po_reference: item.poReference,
+          vendor: item.vendorName,
+          vehicle: item.vehicleNo,
+          gate_in: item.gateInTime,
+          status: item.status,
+          status_slug: item.status?.toLowerCase().replace(' ', '-'),
+          status_badge: item.status?.toLowerCase() === 'completed' ? 'success' : 'warning',
+          boxes: item.noOfBoxes || 0
+        }));
+        setWorkQueue(mappedQueue);
+      } else {
+        console.error("Failed to fetch queue data");
       }
-    };
-    fetchQueue();
-  }, []);
+    } catch (error) {
+      console.error("Error fetching queue:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedGateEntryId) {
+      fetchQueue();
+    }
+  }, [selectedGateEntryId]);
 
   if (selectedGateEntryId) {
     return <MaterialInwardVerification gateEntryId={selectedGateEntryId} onBack={() => setSelectedGateEntryId(null)} />;
@@ -166,7 +170,16 @@ const MaterialInward = ({ onBack }) => {
                 </tr>
               </thead>
               <tbody>
-                {filteredQueue.length > 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan="8" className="text-center py-5">
+                      <div className="spinner-border text-primary" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                      </div>
+                      <div className="mt-2 text-muted fs-14">Loading queue...</div>
+                    </td>
+                  </tr>
+                ) : filteredQueue.length > 0 ? (
                   filteredQueue.map((item) => (
                     <tr key={item.gate_entry_id || item.gate_entry_no} className="cursor-pointer" onClick={() => setSelectedGateEntryId(item.gate_entry_id)}>
                       <td className="ps-4">

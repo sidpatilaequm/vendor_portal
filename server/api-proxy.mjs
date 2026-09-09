@@ -52,6 +52,7 @@ const RULES = [
   ['/api/messages', { target: WORKFLOW_TARGET }],
   ['/api/requests', { target: WORKFLOW_TARGET }],
   ['/api/email-templates', { target: WORKFLOW_TARGET }],
+  ['/api/report-schedules', { target: WORKFLOW_TARGET }],
   ['/api/extract-invoice', { target: INVOICE_TARGET, rewrite: (p) => p.replace(/^\/api\/extract-invoice/, '/extract-invoice') }],
   ['/api/budget', { target: WORKFLOW_TARGET, rewrite: (p) => p.replace(/^\/api\/budget/, '/api') }],
   ['/api/department-status', { target: BACKEND_JAVA }],

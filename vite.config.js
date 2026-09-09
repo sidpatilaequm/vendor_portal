@@ -72,7 +72,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       '^/api/vendor/asns/.+': {
-        target: WORKFLOW_TARGET,
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '^/api/vendor/asns/?$': {

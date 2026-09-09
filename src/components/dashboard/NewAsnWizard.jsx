@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { generateAsnPdf } from '../../utils/pdfGenerator';
 import './NewAsnWizard.css';
 
 const MultiSelectDropdown = ({ options, selectedValues, onChange, placeholder = "Select Materials..." }) => {
@@ -36,9 +37,13 @@ const MultiSelectDropdown = ({ options, selectedValues, onChange, placeholder = 
         {(!selectedValues || selectedValues.length === 0) ? (
           <span style={{color: 'var(--muted)'}}>{placeholder}</span>
         ) : (
-          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', width: '100%' }}>
-            {selectedValues.map(val => options.find(o => o.value === val)?.label || val).join(', ')}
-          </span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', padding: '4px 0', width: '100%' }}>
+            {selectedValues.map(val => (
+              <span key={val} style={{ background: 'var(--teal-soft)', border: '1px solid var(--teal)', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', color: 'var(--teal-dk)' }}>
+                {options.find(o => o.value === val)?.label || val}
+              </span>
+            ))}
+          </div>
         )}
       </div>
       {isOpen && (
@@ -55,11 +60,93 @@ const MultiSelectDropdown = ({ options, selectedValues, onChange, placeholder = 
   );
 };
 
+const SearchableSelect = ({ options, value, onChange, placeholder = "Select Item..." }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedOpt = options.find(o => o.value === value);
+  const filteredOptions = options.filter(o => 
+    o.label.toLowerCase().includes(search.toLowerCase()) || 
+    (o.code && o.code.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  return (
+    <div style={{ position: 'relative', width: '100%' }} ref={dropdownRef}>
+      <div 
+        style={{ 
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          border: isOpen ? '1px solid var(--teal)' : '1px solid var(--line)',
+          padding: '8px 12px', fontSize: '12px', background: '#fff'
+        }}
+        onClick={() => { setIsOpen(!isOpen); setSearch(""); }}
+      >
+        <span style={{ color: selectedOpt ? 'var(--text)' : 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {selectedOpt ? selectedOpt.label : placeholder}
+        </span>
+        <i className={`fas fa-chevron-${isOpen ? 'up' : 'down'} text-muted`} style={{ fontSize: '10px' }}></i>
+      </div>
+      
+      {isOpen && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid var(--line)', zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+          <div style={{ padding: '8px', borderBottom: '1px solid var(--line-soft)' }}>
+            <input 
+              type="text" 
+              autoFocus
+              placeholder="Search..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ width: '100%', padding: '6px 10px', fontSize: '12px', border: '1px solid var(--line-soft)', borderRadius: '4px', outline: 'none' }}
+            />
+          </div>
+          <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+            {filteredOptions.length === 0 ? (
+              <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--muted)', textAlign: 'center' }}>No matches found</div>
+            ) : (
+              filteredOptions.map(opt => (
+                <div 
+                  key={opt.value} 
+                  style={{ 
+                    padding: '8px 12px', fontSize: '12px', cursor: 'pointer',
+                    background: value === opt.value ? 'var(--teal-soft)' : '#fff',
+                    color: 'var(--text)', borderBottom: '1px solid var(--line-soft)'
+                  }}
+                  onMouseEnter={e => e.target.style.background = 'var(--teal-soft)'}
+                  onMouseLeave={e => e.target.style.background = value === opt.value ? 'var(--teal-soft)' : '#fff'}
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                  }}
+                >
+                  <div style={{ fontWeight: 500 }}>{opt.label}</div>
+                  {opt.code && <div style={{ fontSize: '10px', color: 'var(--muted)', marginTop: '2px' }}>Code: {opt.code}</div>}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [previewFile, setPreviewFile] = useState(null);
   const [previewTitle, setPreviewTitle] = useState('');
+  const [isGeneratedAsn, setIsGeneratedAsn] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
 
   // Use poObj for basic details, fallback to mock if undefined
   const [poDetails] = useState({
@@ -69,21 +156,22 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
     plantDock: 'P12 · Dock 04'
   });
 
+  const [allPoLines, setAllPoLines] = useState([]);
   const [lines, setLines] = useState([]);
   const [lineState, setLineState] = useState([]);
+  const [selectedRowIndex, setSelectedRowIndex] = useState(null);
 
   useEffect(() => {
     const fetchPoItems = async () => {
       if (!poId) {
         // Fallback to dummy data
         const dummyLines = [
-          { no: 10, part: "AA-BRK-1042", oem: "BRK1042-LH", desc: "Bracket, wing rib LH", uom: "EA", ordered: 1200, received: 400, onLive: 200, tolPct: 0, needsHeat: false },
-          { no: 20, part: "AA-FST-8871", oem: "FST8871-TI", desc: "Fastener, titanium M6×32", uom: "EA", ordered: 5000, received: 5000, onLive: 0, tolPct: 5, needsHeat: false },
-          { no: 30, part: "AA-SEA-3390", oem: "SEA3390-32", desc: "Seal, hydraulic 32 mm", uom: "EA", ordered: 800, received: 0, onLive: 300, tolPct: 5, needsHeat: true },
-          { no: 40, part: "AA-PLT-2201", oem: "PLT2201-AL", desc: "Plate, aluminium 6061 · 2 mm", uom: "KG", ordered: 2500, received: 900, onLive: 0, tolPct: 2, needsHeat: true }
+          { uid: 'd-10', no: 10, part: "AA-BRK-1042", oem: "BRK1042-LH", desc: "Bracket, wing rib LH", uom: "EA", ordered: 1200, received: 400, onLive: 200, tolPct: 0, needsHeat: false },
+          { uid: 'd-20', no: 20, part: "AA-FST-8871", oem: "FST8871-TI", desc: "Fastener, titanium M6×32", uom: "EA", ordered: 5000, received: 5000, onLive: 0, tolPct: 5, needsHeat: false },
+          { uid: 'd-30', no: 30, part: "AA-SEA-3390", oem: "SEA3390-32", desc: "Seal, hydraulic 32 mm", uom: "EA", ordered: 800, received: 0, onLive: 300, tolPct: 5, needsHeat: true },
+          { uid: 'd-40', no: 40, part: "AA-PLT-2201", oem: "PLT2201-AL", desc: "Plate, aluminium 6061 · 2 mm", uom: "KG", ordered: 2500, received: 900, onLive: 0, tolPct: 2, needsHeat: true }
         ];
-        setLines(dummyLines);
-        setLineState(dummyLines.map(l => ({ qty: "", batch: l.needsHeat ? "" : "—" })));
+        setAllPoLines(dummyLines);
         return;
       }
       try {
@@ -95,6 +183,7 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
         const itemsData = response.data?.data?.items || response.data?.items || [];
         if (itemsData.length > 0) {
           const fetchedItems = itemsData.map((item, index) => ({
+            uid: `api-${item.lineNumber || index}-${item.materialNumber || index}-${index}`,
             no: item.lineNumber || (index + 1) * 10,
             part: item.materialNumber || `ITEM-${index}`,
             oem: item.oem || "N/A",
@@ -108,8 +197,7 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
             needsHeat: false,
             sloc: 'SL01'
           }));
-          setLines(fetchedItems);
-          setLineState(fetchedItems.map(l => ({ qty: "", batch: l.needsHeat ? "" : "—" })));
+          setAllPoLines(fetchedItems);
         }
       } catch (err) {
         console.error('Failed to fetch PO items', err);
@@ -169,7 +257,7 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
   // Calculate functions
   const fmt = n => (n != null && n !== '') ? Number(n).toLocaleString("en-IN") : '—';
   const avail = l => l.pending !== undefined ? l.pending : (Math.max(0, l.ordered - l.received) - l.onLive);
-  const tolQty = l => Math.floor(l.ordered * l.tolPct / 100);
+  const tolQty = l => Math.floor(l.ordered * (l.tolerance || 0) / 100);
   const isClosed = l => avail(l) <= 0 && l.received >= l.ordered;
 
   const handleLineChange = (index, field, value) => {
@@ -178,10 +266,39 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
     setLineState(updated);
   };
 
+  const handleAddLine = () => {
+    setLines([...lines, null]);
+    setLineState([...lineState, { qty: "", batch: "" }]);
+    setSelectedRowIndex(lines.length);
+  };
+
+  const handleDeleteLine = () => {
+    if (selectedRowIndex !== null && selectedRowIndex >= 0 && selectedRowIndex < lines.length) {
+      const newLines = lines.filter((_, idx) => idx !== selectedRowIndex);
+      const newLineState = lineState.filter((_, idx) => idx !== selectedRowIndex);
+      setLines(newLines);
+      setLineState(newLineState);
+      setSelectedRowIndex(null);
+    }
+  };
+
+  const handleItemChange = (index, val) => {
+    const item = allPoLines.find(poLine => String(poLine.uid) === String(val));
+    if (item) {
+      const newLines = [...lines];
+      newLines[index] = item;
+      setLines(newLines);
+      
+      const newLineState = [...lineState];
+      newLineState[index] = { qty: String(Math.max(0, avail(item))), batch: item.needsHeat ? "" : "—" };
+      setLineState(newLineState);
+    }
+  };
+
   const handleFillRemaining = () => {
     const updated = [...lineState];
     lines.forEach((l, i) => {
-      if (!isClosed(l)) {
+      if (l && !isClosed(l)) {
         updated[i] = { ...updated[i], qty: String(Math.max(0, avail(l))) };
       }
     });
@@ -325,7 +442,8 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
       };
 
       lines.forEach((l, i) => {
-        const q = parseFloat(lineState[i].qty) || 0;
+        if (!l) return;
+        const q = parseFloat(lineState[i]?.qty) || 0;
         if (q > 0) {
           asnData.items.push({
             line_number: l.no,
@@ -375,7 +493,52 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
         }
       });
 
-      onSuccess(res.data?.statusMsg || 'ASN created successfully');
+      const newAsnNumber = res.data?.data?.asn_number || res.data?.asn_number || "ASN-PENDING";
+      
+      // Construct ASN data for PDF matching AsnDetail expected format
+      const asnForPdf = {
+        asn_number: newAsnNumber,
+        po_reference: poDetails.poNumber,
+        po_date: poDetails.poDate,
+        despatch_date: formData.dispatchDate,
+        expected_delivery: formData.expectedDelivery,
+        despatch_address: 'Ambuja Cements, Survey No 47, Surat-Magdalla Road, Surat, Gujarat 395007', // Mock for now
+        deliver_address: 'Plot 47, Peenya Industrial Area, Bangalore 560058',
+        transport_mode: 'Road',
+        carrier: formData.transporterCode,
+        vehicle_no: formData.vehicleNumber,
+        invoice_date: formData.invoiceDate,
+        invoice_number: formData.invoiceNumber,
+        eway_bill: formData.ewayBill,
+        packages_count: formData.noOfPackages || 0,
+        lines: asnData.items.map(item => ({
+          lineNo: item.line_number,
+          material_number: item.part_number,
+          despatchQty: item.quantity_shipped,
+          uom: 'EA', // Fallback, could map from allPoLines if needed
+          batchNo: item.batch_heat_number,
+          description: allPoLines.find(p => p.no === item.line_number && p.part === item.part_number)?.desc || 'Item',
+          hsn: allPoLines.find(p => p.no === item.line_number && p.part === item.part_number)?.hsn_code || 'N/A'
+        }))
+      };
+
+      try {
+        const doc = await generateAsnPdf(asnForPdf);
+        if (doc) {
+          const pdfBlobUrl = URL.createObjectURL(doc.output("blob"));
+          setPreviewFile(pdfBlobUrl);
+          setPreviewTitle(`Generated ASN - ${newAsnNumber}`);
+          setIsGeneratedAsn(true);
+          setSuccessMsg(res.data?.statusMsg || 'ASN created successfully');
+        } else {
+          // If generation fails, just finish
+          onSuccess(res.data?.statusMsg || 'ASN created successfully');
+        }
+      } catch (pdfErr) {
+        console.error("PDF generation error:", pdfErr);
+        onSuccess(res.data?.statusMsg || 'ASN created successfully');
+      }
+
     } catch (err) {
       console.error(err);
       setError('Failed to submit ASN. Please try again.');
@@ -387,19 +550,38 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
   // Totals
   let tLines = 0, tQty = 0, blocked = [];
   lines.forEach((l, i) => {
-    const q = parseFloat(lineState[i].qty) || 0;
+    if (!l) return;
+    const q = parseFloat(lineState[i]?.qty) || 0;
     if (q <= 0 || isClosed(l)) return;
     tLines++;
     tQty += q;
     const a = avail(l), tol = tolQty(l);
     if (q > a + tol) blocked.push(`line ${l.no} exceeds balance`);
-    if (l.needsHeat && !lineState[i].batch.trim()) blocked.push(`line ${l.no} has no heat number`);
+    if (l.needsHeat && !lineState[i]?.batch?.trim()) blocked.push(`line ${l.no} has no heat number`);
   });
 
   const tHu = tLines ? Math.max(1, Math.ceil(tQty / 500)) : 0;
-  const openLines = lines.filter(l => !isClosed(l)).length;
+  const openLines = allPoLines.filter(l => !isClosed(l)).length;
 
   const canSubmit = tLines > 0 && blocked.length === 0;
+
+  const selectedUids = lines.map(l => l?.uid).filter(Boolean);
+
+  const getAvailableOptionsForPackage = (pkgIndex) => {
+    return lines.filter(l => l).filter(l => {
+      const lineIdx = lines.findIndex(line => line?.part === l.part);
+      const shipQty = parseFloat(lineState[lineIdx]?.qty) || 0;
+      
+      const packedInOthers = packageDetails.reduce((sum, p, idx) => {
+        if (idx === pkgIndex) return sum;
+        return sum + (parseFloat(p.quantities?.[l.part]) || 0);
+      }, 0);
+      
+      const alreadySelectedInThis = packageDetails[pkgIndex]?.materialDetails?.includes(l.part);
+      
+      return (shipQty - packedInOthers > 0) || alreadySelectedInThis;
+    }).map(l => ({ value: `${l.part}`, label: `${l.part} - ${l.desc}` }));
+  };
 
   return (
     <div className="asn-wizard-wrapper">
@@ -427,8 +609,8 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
           <div className="po-cell"><div className="k">PO date</div><div className="v">{poDetails.poDate}</div></div>
           <div className="po-cell"><div className="k">Valid to</div><div className="v">{poDetails.validTo}</div></div>
           <div className="po-cell"><div className="k">Plant / dock</div><div className="v">{poDetails.plantDock}</div></div>
-          <div className="po-cell"><div className="k">Lines</div><div className="v">{openLines} open · {lines.length - openLines} closed</div></div>
-          <div className="po-cell"><div className="k">PO status</div><div className="v"><span className="pill part"><span className="dot"></span>Partially shipped</span></div></div>
+          <div className="po-cell"><div className="k">Lines</div><div className="v">{openLines} open · {allPoLines.length - openLines} closed</div></div>
+          <div className="po-cell"><div className="k">PO status</div><div className="v"><span className="dot" style={{ background: openLines === 0 ? 'var(--green)' : 'var(--red)' }}></span>{openLines === 0 ? 'Fully received' : 'Partially shipped'}</div></div>
         </div>
 
         <div className="note" style={{ marginTop: '14px' }}>
@@ -439,18 +621,39 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
         </div>
 
         <div className="asn-card">
-          <div className="asn-card-hd">
-            <h2>Order lines</h2>
-            <span className="pill grey">{openLines} lines available to ship</span>
-            <label style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--muted)', cursor: 'pointer' }}>
-              <input type="checkbox" checked={showClosed} onChange={e => setShowClosed(e.target.checked)} /> Show closed lines
-            </label>
+          <div className="asn-card-hd" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h2 style={{ display: 'inline-block', marginRight: '10px' }}>Order lines</h2>
+              <span className="pill grey">{openLines} lines available to ship</span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--muted)', cursor: 'pointer', marginRight: '16px' }}>
+                <input type="checkbox" checked={showClosed} onChange={e => setShowClosed(e.target.checked)} /> Show closed lines
+              </label>
+              <button
+                type="button"
+                className="btn btn-sm btn-light border text-muted fw-bold d-flex align-items-center gap-1 animate-hover"
+                onClick={handleAddLine}
+                style={{ borderRadius: '6px', fontSize: '12px', padding: '4px 10px' }}
+              >
+                <i className="fas fa-plus"></i> New Line
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-light border text-muted fw-bold d-flex align-items-center gap-1 animate-hover"
+                onClick={handleDeleteLine}
+                style={{ borderRadius: '6px', fontSize: '12px', padding: '4px 10px' }}
+              >
+                <i className="fas fa-times"></i> Delete Line
+              </button>
+            </div>
           </div>
-          <div className="tbl-scroll">
+          <div className="tbl-scroll" style={{ overflow: 'visible' }}>
             <table className="lines">
               <thead>
                 <tr>
-                  <th style={{ width: '230px' }}>Line / part</th>
+                  <th style={{ width: '40px' }}></th>
+                  <th style={{ width: '230px' }}>Item Selection</th>
                   <th style={{ minWidth: '210px' }}>Balance</th>
                   <th className="r">Available</th>
                   <th className="r" style={{ width: '140px' }}>Ship now</th>
@@ -460,11 +663,33 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
               </thead>
               <tbody>
                 {lines.map((l, i) => {
+                  const isSelected = selectedRowIndex === i;
+
+                  if (!l) {
+                    return (
+                      <tr key={`empty-${i}`} className={isSelected ? 'table-active bg-light border-start border-3 border-success' : ''} onClick={() => setSelectedRowIndex(i)} style={{ cursor: 'pointer' }}>
+                        <td className="text-center text-muted">
+                          {isSelected && <i className="fas fa-arrow-right text-success"></i>}
+                        </td>
+                        <td style={{ padding: '4px' }}>
+                          <SearchableSelect 
+                            options={allPoLines
+                              .filter(poLine => !selectedUids.includes(poLine.uid))
+                              .map(poLine => ({ value: poLine.uid, label: poLine.desc, code: poLine.part }))}
+                            value=""
+                            onChange={(val) => handleItemChange(i, val)}
+                          />
+                        </td>
+                        <td colSpan="5" className="text-muted" style={{ fontSize: '12px', paddingLeft: '12px' }}>Please select an item to view details</td>
+                      </tr>
+                    );
+                  }
+
                   const closed = isClosed(l);
                   if (closed && !showClosed) return null;
 
                   const a = avail(l), tol = tolQty(l);
-                  const q = parseFloat(lineState[i].qty) || 0;
+                  const q = parseFloat(lineState[i]?.qty || 0) || 0;
                   const over = q > a;
                   const inTol = over && q <= a + tol && tol > 0;
                   const hardOver = over && !inTol;
@@ -482,17 +707,28 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
 
                   let msg = "", cls = "";
                   if (closed) { msg = "Fully received — no balance"; cls = "ok"; }
-                  else if (hardOver) { msg = `Over by ${fmt(q - a - tol)} ${l.uom}. Maximum ${fmt(a + tol)} including ${l.tolPct}% tolerance.`; cls = "err"; }
-                  else if (inTol) { msg = `${fmt(q - a)} ${l.uom} above balance — inside the ${l.tolPct}% tolerance. Buyer approval on receipt.`; cls = "warn"; }
+                  else if (hardOver) { msg = `Over by ${fmt(q - a - tol)} ${l.uom}. Maximum ${fmt(a + tol)} including ${l.tolerance || 0}% tolerance.`; cls = "err"; }
+                  else if (inTol) { msg = `${fmt(q - a)} ${l.uom} above balance — inside the ${l.tolerance || 0}% tolerance. Buyer approval on receipt.`; cls = "warn"; }
                   else if (q > 0) { msg = `${fmt(a - q)} ${l.uom} will remain open after this shipment`; cls = "ok"; }
                   else { msg = tol > 0 ? `Tolerance +${fmt(tol)} ${l.uom}` : "—"; cls = "ok"; }
 
                   const batchErr = !closed && q > 0 && l.needsHeat && !lineState[i].batch.trim();
 
                   return (
-                    <tr key={l.no} className={closed ? "closed" : ""}>
+                    <tr key={l.uid || l.no} className={`${closed ? 'closed' : ''} ${isSelected ? 'table-active bg-light border-start border-3 border-success' : ''}`} onClick={() => setSelectedRowIndex(i)} style={{ cursor: 'pointer' }}>
+                      <td className="text-center text-muted" style={{ width: '40px' }}>
+                        {isSelected && <i className="fas fa-arrow-right text-success"></i>}
+                      </td>
                       <td>
-                        <div className="oem-tag">Line {l.no} · OEM {l.oem}</div>
+                        <div className="oem-tag" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>Line {l.no} · OEM {l.oem}</span>
+                          <i className="fas fa-edit text-muted" title="Change Item" onClick={(e) => {
+                            e.stopPropagation();
+                            const newLines = [...lines];
+                            newLines[i] = null;
+                            setLines(newLines);
+                          }}></i>
+                        </div>
                         <div className="part-no">{l.part}</div>
                         <div className="part-desc">{l.desc}</div>
                       </td>
@@ -515,11 +751,11 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
                       <td className="r"><div className="avail">{fmt(Math.max(a, 0))}<small>{l.uom}</small></div></td>
                       <td className="r qty-cell">
                         <input className={`qty-in ${hardOver ? "err" : inTol ? "warn" : ""}`} type="text" inputMode="numeric"
-                          value={lineState[i].qty} disabled={closed} onChange={e => handleLineChange(i, 'qty', e.target.value)} aria-label={`Quantity for line ${l.no}`} />
+                          value={lineState[i]?.qty || ""} disabled={closed} onChange={e => handleLineChange(i, 'qty', e.target.value)} aria-label={`Quantity for line ${l.no}`} />
                         <div className={`qty-msg ${cls}`}>{msg}</div>
                       </td>
                       <td>
-                        <input className={`batch-in ${batchErr ? "err" : ""}`} value={lineState[i].batch} disabled={closed || !l.needsHeat}
+                        <input className={`batch-in ${batchErr ? "err" : ""}`} value={lineState[i]?.batch || ""} disabled={closed || !l.needsHeat}
                           placeholder="Heat no." onChange={e => handleLineChange(i, 'batch', e.target.value)} aria-label={`Batch for line ${l.no}`} />
                         {batchErr && <div className="qty-msg err">Required</div>}
                       </td>
@@ -561,21 +797,21 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
             <div className="asn-card-hd"><h2>Package Details</h2></div>
             <div className="asn-card-bd" style={{ padding: '0', overflow: 'visible' }}>
               <div className="tbl-scroll" style={{ overflow: 'visible' }}>
-                <table className="lines" style={{ minWidth: '100%' }}>
+                <table className="lines" style={{ width: '100%', tableLayout: 'fixed' }}>
                   <thead>
                     <tr>
                       <th style={{ width: '100px' }}>Package #</th>
                       <th>Material Details</th>
-                      <th style={{ width: '200px' }}>Quantity</th>
+                      <th style={{ width: '280px' }}>Quantity</th>
                     </tr>
                   </thead>
                   <tbody>
                     {packageDetails.map((pkg, i) => (
                       <tr key={i}>
                         <td style={{ verticalAlign: 'middle' }}><b>{pkg.packageNumber}</b></td>
-                        <td style={{ verticalAlign: 'middle' }}>
+                        <td style={{ verticalAlign: 'middle', maxWidth: '0' }}>
                           <MultiSelectDropdown 
-                            options={lines.map(l => ({ value: `${l.part}`, label: `${l.part} - ${l.desc}` }))}
+                            options={getAvailableOptionsForPackage(i)}
                             selectedValues={pkg.materialDetails || []}
                             onChange={(vals) => handlePackageChange(i, 'materialDetails', vals)}
                           />
@@ -584,7 +820,7 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
                             {pkg.materialDetails && pkg.materialDetails.length > 0 ? (
                               pkg.materialDetails.map(mat => (
                                 <div key={mat} style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-                                  <span style={{ fontSize: '11px', width: '90px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '8px' }} title={mat}>{mat}</span>
+                                  <span style={{ fontSize: '11px', width: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '8px' }} title={mat}>{mat}</span>
                                   <input 
                                     type="number" 
                                     min="0"
@@ -642,8 +878,8 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
             <table>
               <thead><tr><th>Line</th><th>Ordered</th><th>Received</th><th>On live ASN</th><th>Available</th></tr></thead>
               <tbody>
-                {lines.map(l => (
-                  <tr key={l.no}>
+                {allPoLines.map(l => (
+                  <tr key={l.uid}>
                     <td>{l.no} · {l.part}</td>
                     <td>{fmt(l.ordered)}</td>
                     <td>{fmt(l.received)}</td>
@@ -731,6 +967,8 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
         </div>
       </div>
 
+
+
       {/* PDF Preview Modal */}
       {previewFile && (
         <div className="custom-modal-overlay" style={{ zIndex: 9999 }}>
@@ -739,7 +977,13 @@ const NewAsnWizard = ({ poId, poObj, onBack, onSuccess }) => {
               <h5 className="custom-modal-title text-dark fw-bold">
                 Preview: {previewTitle}
               </h5>
-              <button className="custom-modal-close-btn" onClick={() => { URL.revokeObjectURL(previewFile); setPreviewFile(null); }}>&times;</button>
+              <button className="custom-modal-close-btn" onClick={() => { 
+                URL.revokeObjectURL(previewFile); 
+                setPreviewFile(null); 
+                if (isGeneratedAsn) {
+                  onSuccess(successMsg);
+                }
+              }}>&times;</button>
             </div>
             <div className="custom-modal-body p-0" style={{ flex: 1 }}>
               <iframe src={previewFile} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Preview" />

@@ -170,19 +170,7 @@ const GateEntry = ({ onBack }) => {
   };
 
   const handleLineVerify = (i, mat, qty, uom) => {
-    if (lineLock[i]) {
-      setLineLock(prev => ({ ...prev, [i]: false }));
-      appendLog(`Line ${mat} reopened for re-count`, "warn");
-      return;
-    }
-    const v = parseFloat(lineVal[i]);
-    if (lineVal[i] === undefined || lineVal[i] === "" || isNaN(v)) {
-      appendLog(`Enter the counted quantity for ${mat} before verifying`, "warn");
-      return;
-    }
-    setLineLock(prev => ({ ...prev, [i]: true }));
-    const diff = v - qty;
-    appendLog(`Verified ${mat} — counted ${v} of ${qty} ${uom} declared`, diff === 0 ? "ok" : "warn");
+    // Disabled material verification for gate entry
   };
 
   const submitDecision = async (decision) => {
@@ -191,8 +179,8 @@ const GateEntry = ({ onBack }) => {
     
     const lineVerification = sel.lines.map((l, i) => ({
       materialCode: l.mat,
-      countedQty: parseFloat(lineVal[i] || 0),
-      remark: lineRmk[i] || ""
+      countedQty: l.qty, // Implicitly assume full quantity as security doesn't verify
+      remark: "Verified implicitly at package level"
     }));
 
     const payload = {
@@ -254,19 +242,11 @@ const GateEntry = ({ onBack }) => {
     if (d.req && !docState[d.id]) mandUnanswered++;
   });
 
-  let verified = 0, qtyIssue = 0, needRmk = 0, tDec = 0, tAct = 0;
+  let verified = sel ? sel.lines.length : 0, qtyIssue = 0, needRmk = 0, tDec = 0, tAct = 0;
   if (sel) {
     sel.lines.forEach((l, i) => {
       tDec += l.qty;
-      if (lineLock[i]) {
-        verified++;
-        const v = parseFloat(lineVal[i]);
-        tAct += v;
-        if (v !== l.qty) {
-          qtyIssue++;
-          if (!(lineRmk[i] || "").trim()) needRmk++;
-        }
-      }
+      tAct += l.qty; // Assume full count
     });
   }
 
@@ -274,7 +254,7 @@ const GateEntry = ({ onBack }) => {
   const pkgDiff = pkgLock && pkgNum !== sel?.pkgs;
   if (pkgDiff && !pkgRmk.trim()) needRmk++;
 
-  const complete = pkgLock && sel && verified === sel.lines.length && mandUnanswered === 0 && needRmk === 0;
+    const complete = pkgLock && sel && mandUnanswered === 0 && needRmk === 0;
 
   let verdictClass = "v-idle";
   let verdictTitle = "No delivery selected";
@@ -288,16 +268,14 @@ const GateEntry = ({ onBack }) => {
       let pending = [];
       if (mandUnanswered) pending.push(`${mandUnanswered} mandatory document(s) not recorded`);
       if (!pkgLock) pending.push("package count not verified");
-      if (verified < sel.lines.length) pending.push(`${sel.lines.length - verified} line(s) not verified`);
       if (needRmk) pending.push(`${needRmk} reason(s) required against differences`);
       verdictSub = "Pending: " + pending.join(" · ");
-    } else if (qtyIssue || pkgDiff || mandMissing) {
+    } else if (pkgDiff || mandMissing) {
       verdictClass = "v-hold";
       verdictTitle = "HOLD — supervisor approval needed";
       let why = [];
       if (mandMissing) why.push(`${mandMissing} mandatory document(s) missing`);
       if (pkgDiff) why.push("package count differs from declared");
-      if (qtyIssue) why.push(`${qtyIssue} line(s) short or in excess`);
       verdictSub = why.join(" · ") + ". A gate officer cannot release this — call the stores supervisor.";
     } else {
       verdictClass = "v-ok";
@@ -508,69 +486,7 @@ const GateEntry = ({ onBack }) => {
                     )}
                   </div>
 
-                  <div style={{ overflowX: "auto" }}>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Material</th><th>Description</th>
-                          <th style={{ textAlign: "right" }}>Declared</th><th>UOM</th>
-                          <th style={{ textAlign: "right" }}>Counted at gate</th><th>Verify</th><th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sel.lines.map((l, i) => {
-                          const v = parseFloat(lineVal[i]);
-                          const diff = v - l.qty;
-                          const locked = lineLock[i];
-                          const trClass = locked ? (diff === 0 ? "done" : "diff") : "";
-                          let stClass = "p";
-                          let stText = "Not counted";
-                          if (locked) {
-                            if (diff === 0) { stClass = "m"; stText = "Matches"; }
-                            else if (diff < 0) { stClass = "s"; stText = `Short by ${Math.abs(diff)} ${l.uom}`; }
-                            else { stClass = "x"; stText = `Excess by ${diff} ${l.uom}`; }
-                          }
-
-                          return (
-                            <tr key={i} className={trClass}>
-                              <td style={{ fontFamily: "Consolas,monospace" }}>{l.mat}</td>
-                              <td>{l.desc}</td>
-                              <td style={{ textAlign: "right" }}><span className="dec">{l.qty}</span></td>
-                              <td>{l.uom}</td>
-                              <td style={{ textAlign: "right" }}>
-                                <input
-                                  className="cnt"
-                                  type="number"
-                                  placeholder="0"
-                                  disabled={locked}
-                                  value={lineVal[i] || ""}
-                                  onChange={e => setLineVal(prev => ({ ...prev, [i]: e.target.value }))}
-                                />
-                                {locked && diff !== 0 && (
-                                  <input
-                                    className="rmk"
-                                    style={{ display: "block" }}
-                                    placeholder="Reason for the difference (required)"
-                                    value={lineRmk[i] || ""}
-                                    onChange={e => setLineRmk(prev => ({ ...prev, [i]: e.target.value }))}
-                                  />
-                                )}
-                              </td>
-                              <td><button className={`vbtn ${locked ? "undo" : ""}`} onClick={() => handleLineVerify(i, l.mat, l.qty, l.uom)}>{locked ? "Re-count" : "Verify"}</button></td>
-                              <td><span className={`st ${stClass}`}>{stText}</span></td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="totals">
-                    <div>Lines verified <b>{verified} / {sel.lines.length}</b></div>
-                    <div>Total declared <b>{tDec}</b></div>
-                    <div>Total counted <b>{tAct}</b></div>
-                    <div>Net difference <b style={{ color: tAct - tDec === 0 ? "var(--ok)" : "var(--warn)" }}>{tAct - tDec > 0 ? "+" : ""}{tAct - tDec}</b></div>
-                  </div>
+                  {/* Material Verification Section Removed for Gate Entry */}
                 </div>
 
                 <div className="card">

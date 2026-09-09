@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import QRCode from 'qrcode';
 import Button from '../common/Button';
+import { generateAsnPdf } from '../../utils/pdfGenerator';
 
 const AsnDetail = ({ asnId, onBack }) => {
   const [asn, setAsn] = useState(null);
@@ -126,34 +131,58 @@ const AsnDetail = ({ asnId, onBack }) => {
           if (apiAsn.deviationUrl) docs.push({ name: 'Deviation approval', status: 'Uploaded', file: 'Uploaded', url: apiAsn.deviationUrl, mandatory: false });
           if (apiAsn.othersUrl) docs.push({ name: 'Others', status: 'Uploaded', file: 'Uploaded', url: apiAsn.othersUrl, mandatory: false });
 
+          let enrichedItems = (apiAsn.items || []).map(item => ({
+            ...item,
+            material_number: item.materialNumber || item.partNumber || '—',
+            description: item.materialDescription || item.partNumber || '—',
+            hsn: item.hsnCode || '—',
+            uom: item.uom || '—',
+            sloc: item.storageLocation || '—'
+          }));
+          const fetchedPoDate = apiAsn.poDate || '—';
+
           const mapped = {
             asn_number: asnId.startsWith("ASN-") ? asnId : `ASN-${apiAsn.createdDate ? apiAsn.createdDate.substring(0,4) : new Date().getFullYear()}-${String(apiAsn.id).padStart(5, '0')}`,
             po_reference: apiAsn.poNumber,
+            po_date: fetchedPoDate,
             despatch_date: apiAsn.dispatchDate,
             expected_delivery: apiAsn.expectedDelivery,
             is_partial: apiAsn.partial,
             despatch_address: '—',
             deliver_address: '—',
-            transport_mode: 'Road',
+            transport_mode: apiAsn.modeOfTransport || 'Road',
             vehicle_no: apiAsn.vehicleNumber,
+            carrier: apiAsn.transporterName || apiAsn.carrier || '—',
+            lr_number: apiAsn.lrNumber || apiAsn.lr_number || '—',
+            vendor_name: apiAsn.vendorName || apiAsn.vendor_name || '—',
+            vendor_address: apiAsn.vendorAddress || apiAsn.vendor_address || '—',
             invoice_date: apiAsn.invoiceDate,
             packages: (apiAsn.packaging || '') + (apiAsn.noOfPackages ? ` - ${apiAsn.noOfPackages}` : ''),
+            packages_count: apiAsn.noOfPackages || 0,
             gross_weight: 'TBD',
             eway_bill: apiAsn.ewayBill,
             eway_validity: apiAsn.ewbValidTo,
             invoice_number: apiAsn.invoiceNumber,
+            vendor_delivery_note: apiAsn.vendorDeliveryNote || apiAsn.vendor_delivery_note || '—',
             status: apiAsn.status || 'SUBMITTED',
             status_slug: (apiAsn.status || 'submitted').toLowerCase(),
             status_badge: apiAsn.status === 'ALLOWED' ? 'success' : (apiAsn.status === 'REJECTED' ? 'danger' : 'warning'),
-            lines: apiAsn.items ? apiAsn.items.map(i => ({
+            asnPackages: (apiAsn.packages || []).map(p => ({
+              packageNo: p.package_number,
+              materialDetails: p.material_details,
+              quantity: p.quantity
+            })),
+            packages_count: apiAsn.noOfPackages || (apiAsn.packages || []).length || 0,
+            lines: enrichedItems.map(i => ({
               lineNo: i.lineNumber,
-              description: i.partNumber,
-              hsn: '—',
+              description: i.description || i.partNumber,
+              material_number: i.material_number || i.partNumber,
+              hsn: i.hsn || '—',
               despatchQty: i.quantityShipped,
-              uom: '—',
+              uom: i.uom || '—',
               batchNo: i.batchHeatNumber,
-              sloc: '—'
-            })) : [],
+              sloc: i.sloc || '—'
+            })),
             documents: docs
           };
           setAsn(mapped);
@@ -172,6 +201,60 @@ const AsnDetail = ({ asnId, onBack }) => {
 
     fetchAsnDetails();
   }, [asnId]);
+
+  const handleDownloadExcel = () => {
+    if (!asn) return;
+
+    const headerData = [
+      ['ASN Number', asn.asn_number],
+      ['PO Reference', asn.po_reference],
+      ['Status', asn.status],
+      ['Despatch Date', asn.despatch_date],
+      ['Expected Delivery', asn.expected_delivery],
+      ['Carrier', asn.carrier || '—'],
+      ['Gross Weight', asn.gross_weight],
+      ['Transport Mode', asn.transport_mode],
+      ['Vehicle Number', asn.vehicle_number],
+      ['Invoice Date', asn.invoice_date || '—'],
+      ['E-Way Bill Number', asn.eway_bill],
+      ['E-Way Bill Validity', asn.eway_validity],
+      ['Packages Count / Type', asn.packages_count],
+      ['Despatch Address', asn.despatch_address],
+      ['Delivery Address', asn.deliver_address],
+      [],
+      ['LINE ITEMS'],
+      ['PO Line', 'Material', 'Description', 'HSN Code', 'Qty', 'UOM', 'Batch Number', 'Storage Location']
+    ];
+
+    const itemRows = (asn.lines || []).map(item => [
+      item.lineNo,
+      item.description, // using description as material description
+      item.description,
+      item.hsn,
+      item.despatchQty,
+      item.uom,
+      item.batchNo,
+      item.sloc
+    ]);
+
+    const wsData = [...headerData, ...itemRows];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    XLSX.utils.book_append_sheet(wb, ws, "ASN Details");
+    XLSX.writeFile(wb, `${asn.asn_number || 'ASN'}_details.xlsx`);
+  };
+
+  const handleDownloadCustomPDF = async () => {
+    if (!asn) return;
+    try {
+      const doc = await generateAsnPdf(asn);
+      if (doc) doc.save(`${asn.asn_number || 'ASN'}.pdf`);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      alert('Failed to generate PDF. Check console for details. Error: ' + err.message);
+    }
+  };
 
   if (loading) {
     return (
@@ -207,7 +290,10 @@ const AsnDetail = ({ asnId, onBack }) => {
           <Button variant="outline-green" className="fw-bold px-3" onClick={onBack}>
             ← Back to List
           </Button>
-          <Button variant="green" className="fw-bold px-3" onClick={() => window.print()}>
+          <Button variant="success" className="fw-bold px-3" onClick={handleDownloadExcel}>
+            <i className="fas fa-file-excel me-1"></i> Download Excel
+          </Button>
+          <Button variant="outline-green" className="fw-bold px-3" onClick={handleDownloadCustomPDF}>
             <i className="fas fa-download me-1"></i> Download PDF
           </Button>
         </div>

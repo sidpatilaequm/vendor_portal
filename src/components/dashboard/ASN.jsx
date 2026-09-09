@@ -120,7 +120,11 @@ const ASN = ({ onBack }) => {
       if (!Array.isArray(data)) data = [];
       data = data.filter(po => {
         const status = po.poStatus || po.status;
-        return status && (status.toLowerCase() === 'acknowledged' || status.toLowerCase() === 'partial_dispatch');
+        return status && (
+          status.toLowerCase() === 'acknowledged' || 
+          status.toLowerCase() === 'partial_dispatch' || 
+          status.toLowerCase().includes('partial')
+        );
       });
       setAvailablePos(data);
     } catch (err) {
@@ -156,9 +160,14 @@ const ASN = ({ onBack }) => {
     setShowCreateWizard(true);
   };
 
+  const [toastMsg, setToastMsg] = useState(null);
+
   const handleWizardSuccess = (msg) => {
     setShowCreateWizard(false);
-    if (msg) alert(msg);
+    if (msg) {
+      setToastMsg(msg);
+      setTimeout(() => setToastMsg(null), 3000);
+    }
     fetchASNs();
   };
 
@@ -298,7 +307,22 @@ const ASN = ({ onBack }) => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAsns.map((asn) => (
+                {loading ? (
+                  <tr>
+                    <td colSpan="11" className="text-center py-5">
+                      <div className="spinner-border text-primary" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                      </div>
+                      <div className="text-muted mt-2 fw-semibold">Loading ASNs...</div>
+                    </td>
+                  </tr>
+                ) : filteredAsns.length === 0 ? (
+                  <tr>
+                    <td colSpan="11" className="text-center py-5 text-muted fw-semibold">
+                      No Advance Shipment Notices found
+                    </td>
+                  </tr>
+                ) : filteredAsns.map((asn) => (
                   <tr key={asn.asn_number} className="cursor-pointer" onClick={() => setSelectedAsnId(asn.asn_number)}>
                     <td className="ps-4">
                       <div className="fw-bold text-success" style={{ fontSize: '13px' }}>{asn.display_number}</div>
@@ -425,21 +449,28 @@ const ASN = ({ onBack }) => {
                 </table>
               </div>
             </div>
-            <div className="custom-modal-footer bg-light p-3 d-flex justify-content-between">
-              {/* <button
-                className="btn btn-outline-primary btn-sm fw-bold px-4 shadow-sm"
-                onClick={handleCreateStandalone}
-                style={{ borderRadius: '8px' }}
-              >
-                Create Without PO
-              </button> */}
-              {/* <button
+            <div className="custom-modal-footer bg-light p-3 d-flex justify-content-end">
+              <button
                 className="btn btn-outline-secondary btn-sm fw-bold px-4 shadow-sm"
                 onClick={() => setShowPoSelectModal(false)}
                 style={{ borderRadius: '8px' }}
               >
                 Close
-              </button> */}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Toast */}
+      {toastMsg && (
+        <div className="position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1050 }}>
+          <div className="toast show align-items-center text-white bg-success border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+            <div className="d-flex">
+              <div className="toast-body fw-bold fs-6 d-flex align-items-center">
+                <i className="fas fa-check-circle me-2 fs-5"></i> {toastMsg}
+              </div>
+              <button type="button" className="btn-close btn-close-white me-2 m-auto" onClick={() => setToastMsg(null)} aria-label="Close"></button>
             </div>
           </div>
         </div>

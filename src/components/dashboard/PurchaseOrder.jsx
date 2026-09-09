@@ -502,6 +502,7 @@ const PurchaseOrder = ({ onBack }) => {
                                         <th className="text-end py-2">Pending</th>
                                         <th className="text-end py-2">Unit Price</th>
                                         <th className="text-end py-2">Total Value</th>
+                                        <th className="py-2">HSN</th>
                                         <th className="py-2 pe-3">Delivery Date</th>
                                       </tr>
                                     </thead>
@@ -516,7 +517,8 @@ const PurchaseOrder = ({ onBack }) => {
                                             <td className="text-end fw-medium text-danger">{item.pendingQuantity !== undefined ? item.pendingQuantity : item.quantity}</td>
                                             <td className="text-end text-muted">{formatCurrency(item.unitPrice)}</td>
                                             <td className="text-end fw-semibold">{formatCurrency(item.totalValue)}</td>
-                                            <td className="pe-3">{formatDate(item.confirmedDeliveryDate)}</td>
+                                            <td className="text-center">{item.hsnCode || '-'}</td>
+                                            <td className="pe-3">{formatDate(item.confirmedDeliveryDate || r.requestedDeliveryDate)}</td>
                                           </tr>
                                         ))
                                       ) : (

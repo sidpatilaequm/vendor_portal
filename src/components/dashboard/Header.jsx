@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Header = ({ onNavigate }) => {
+  const navigate = useNavigate();
   // companiesList (real SAP company codes, not the vendor's own profile) is fetched once by
   // AuthContext on session restore and shared here, rather than each component fetching its own
   // copy.
@@ -40,7 +42,11 @@ const Header = ({ onNavigate }) => {
     <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top px-4 py-2" style={{ height: '70px', zIndex: 1000 }}>
       <div className="container-fluid d-flex justify-content-between align-items-center">
         {/* Brand logo */}
-        <div className="d-flex align-items-center">
+        <div 
+          className="d-flex align-items-center" 
+          onClick={() => navigate(currentUser?.role?.toUpperCase() === 'ADMIN' ? '/admin/dashboard' : '/vendor/dashboard')}
+          style={{ cursor: 'pointer' }}
+        >
           <img src="/ankit-logo.png" alt="Ankit Group" style={{ height: 34, width: 'auto' }} />
         </div>
 

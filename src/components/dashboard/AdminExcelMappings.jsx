@@ -129,6 +129,7 @@ const AdminExcelMappings = () => {
   const headerOptions = Array.from(new Set([...excelHeaders, ...Object.values(columnMap).filter(Boolean)]));
 
   const currentType = REPORT_TYPES.find((t) => t.value === selected);
+  const mappableColumns = targetColumns.filter((c) => !c.systemManaged);
   const mappedCount = Object.values(columnMap).filter(Boolean).length;
 
   return (
@@ -221,7 +222,7 @@ const AdminExcelMappings = () => {
             <div className="d-flex justify-content-between align-items-center mb-2">
               <div className="fw-semibold small">
                 2. Map "{currentType.table}" columns to excel columns
-                <span className="text-muted fw-normal ms-2">({mappedCount} of {targetColumns.length} mapped)</span>
+                <span className="text-muted fw-normal ms-2">({mappedCount} of {mappableColumns.length} mapped)</span>
               </div>
               <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save mapping'}</Button>
             </div>
@@ -239,21 +240,28 @@ const AdminExcelMappings = () => {
                   </thead>
                   <tbody>
                     {targetColumns.map((c) => (
-                      <tr key={c.name}>
+                      <tr key={c.name} className={c.systemManaged ? 'text-muted' : undefined}>
                         <td>
                           <span className="fw-semibold" style={{ fontSize: 13 }}>{c.name}</span>
-                          {!c.nullable && <span className="text-danger ms-1" title="required">*</span>}
+                          {!c.nullable && !c.systemManaged && <span className="text-danger ms-1" title="required">*</span>}
                         </td>
                         <td className="text-muted small">{c.type}</td>
                         <td>
-                          <select
-                            className="form-select form-select-sm"
-                            value={columnMap[c.name] || NOT_MAPPED}
-                            onChange={(e) => setMappingFor(c.name, e.target.value)}
-                          >
-                            <option value={NOT_MAPPED}>— not mapped —</option>
-                            {headerOptions.map((h) => <option key={h} value={h}>{h}</option>)}
-                          </select>
+                          {c.systemManaged ? (
+                            <span className="badge bg-secondary-subtle text-secondary" title={c.systemManagedReason}>
+                              <i className="fas fa-lock me-1" style={{ fontSize: 10 }} />
+                              {c.systemManagedReason}
+                            </span>
+                          ) : (
+                            <select
+                              className="form-select form-select-sm"
+                              value={columnMap[c.name] || NOT_MAPPED}
+                              onChange={(e) => setMappingFor(c.name, e.target.value)}
+                            >
+                              <option value={NOT_MAPPED}>— not mapped —</option>
+                              {headerOptions.map((h) => <option key={h} value={h}>{h}</option>)}
+                            </select>
+                          )}
                         </td>
                       </tr>
                     ))}

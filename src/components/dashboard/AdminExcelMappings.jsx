@@ -40,6 +40,20 @@ const AdminExcelMappings = () => {
   const [downloading, setDownloading] = useState(false);
   const [alert, setAlert] = useState(null);
 
+  const [folderSyncByType, setFolderSyncByType] = useState({}); // reportType -> status
+  const [runningNow, setRunningNow] = useState(false);
+
+  const loadFolderSync = useCallback(() => {
+    axios.get('/api/admin/report-folder-sync', { headers: authHeaders() })
+      .then((res) => {
+        const map = {};
+        (res.data || []).forEach((s) => { map[s.reportType] = s; });
+        setFolderSyncByType(map);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const loadStatuses = useCallback(() => {
     axios.get('/api/admin/excel-mappings', { headers: authHeaders() })
       .then((res) => {
@@ -75,7 +89,33 @@ const AdminExcelMappings = () => {
   }, []);
 
   useEffect(() => { loadStatuses(); }, [loadStatuses]);
+  useEffect(() => { loadFolderSync(); }, [loadFolderSync]);
   useEffect(() => { loadReportType(selected); }, [selected, loadReportType]);
+
+  const toggleFolderSyncEnabled = (reportType, enabled) => {
+    axios.patch(`/api/admin/report-folder-sync/${reportType}`, { enabled }, { headers: { ...authHeaders(), 'Content-Type': 'application/json' } })
+      .then(loadFolderSync)
+      .catch(() => {});
+  };
+
+  const updateFolderSyncInterval = (reportType, intervalMinutes) => {
+    axios.patch(`/api/admin/report-folder-sync/${reportType}`, { intervalMinutes }, { headers: { ...authHeaders(), 'Content-Type': 'application/json' } })
+      .then(loadFolderSync)
+      .catch(() => {});
+  };
+
+  const runFolderSyncNow = (reportType) => {
+    setRunningNow(true);
+    axios.post(`/api/admin/report-folder-sync/${reportType}/run`, {}, { headers: authHeaders() })
+      .then(() => {
+        setAlert({ type: 'success', message: 'Checked the folder just now — see the status below.' });
+        loadFolderSync();
+      })
+      .catch((err) => {
+        setAlert({ type: 'danger', message: err.response?.data?.error || 'Could not run the check.' });
+      })
+      .finally(() => setRunningNow(false));
+  };
 
   const runInspect = () => {
     if (!file) {
@@ -192,6 +232,14 @@ const AdminExcelMappings = () => {
           );
         })}
       </div>
+
+      <FolderSyncPanel
+        status={folderSyncByType[selected]}
+        onToggleEnabled={(enabled) => toggleFolderSyncEnabled(selected, enabled)}
+        onIntervalChange={(mins) => updateFolderSyncInterval(selected, mins)}
+        onRunNow={() => runFolderSyncNow(selected)}
+        running={runningNow}
+      />
 
       {alert && <div className={`alert alert-${alert.type} py-1.5 mb-3 small`}>{alert.message}</div>}
 
@@ -332,6 +380,72 @@ const ColumnMappingTable = ({ columns, columnMap, setMappingFor, headerOptions }
       {headerOptions.map((h) => <option key={h} value={h} />)}
     </datalist>
   </div>
+  );
+};
+
+const FolderSyncPanel = ({ status, onToggleEnabled, onIntervalChange, onRunNow, running }) => {
+  if (!status) {
+    return (
+      <div className="border rounded p-3 mb-3 bg-light">
+        <div className="d-flex align-items-center gap-2 text-muted small">
+          <i className="fas fa-folder" />
+          Not connected to a FolderIt folder — this report isn't watched automatically yet.
+        </div>
+      </div>
+    );
+  }
+
+  const lastRun = status.lastRunAt ? new Date(status.lastRunAt).toLocaleString() : 'Never run yet';
+
+  return (
+    <div className="border rounded p-3 mb-3">
+      <div className="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+          <div className="fw-semibold small mb-1">
+            <i className="fas fa-folder-open me-1 text-warning" />
+            Connected folder: {status.folderName
+              ? <span className="fw-bold">{status.folderName}</span>
+              : <span className="text-muted">(could not resolve name)</span>}
+            <span className="text-muted ms-2" style={{ fontSize: 11 }}>uid: {status.folderitFolderUid}</span>
+          </div>
+          <div className="text-muted small">
+            Checks every
+            <input
+              type="number"
+              min={1}
+              className="form-control form-control-sm d-inline-block mx-1"
+              style={{ width: 60 }}
+              defaultValue={status.intervalMinutes}
+              onBlur={(e) => {
+                const v = Number(e.target.value);
+                if (v > 0 && v !== status.intervalMinutes) onIntervalChange(v);
+              }}
+            />
+            minutes for new or changed excel files, and imports them using this mapping.
+          </div>
+          <div className="text-muted small mt-1">
+            Last checked: {lastRun}
+            {status.filesProcessedLastRun > 0 && <span className="text-success ms-2">({status.filesProcessedLastRun} file{status.filesProcessedLastRun === 1 ? '' : 's'} imported)</span>}
+            {status.lastRunStatus && <div className="mt-1" style={{ fontSize: 11 }}>{status.lastRunStatus}</div>}
+          </div>
+        </div>
+        <div className="d-flex gap-2 align-items-center">
+          <div className="form-check form-switch">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              role="switch"
+              checked={status.enabled}
+              onChange={(e) => onToggleEnabled(e.target.checked)}
+            />
+            <label className="form-check-label small text-muted">{status.enabled ? 'Enabled' : 'Paused'}</label>
+          </div>
+          <button className="btn btn-sm btn-outline-secondary" onClick={onRunNow} disabled={running}>
+            {running ? 'Checking…' : 'Check now'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

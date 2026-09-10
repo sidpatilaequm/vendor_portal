@@ -668,6 +668,7 @@ const BUSINESS_TYPE_FIELDS = [
 
 function VendorFullProfile({ detail, vendor, onBusinessTypesSaved }) {
   const reg = detail.registration || {};
+  const currentProfile = detail.currentProfile;
   const documents = detail.documents || [];
   const attachments = detail.attachments || [];
   const dynamicAnswers = detail.dynamicAnswers || [];
@@ -703,7 +704,7 @@ function VendorFullProfile({ detail, vendor, onBusinessTypesSaved }) {
           <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Company Legal Name</label>
           <div className="fw-bold fs-5 text-dark">{reg.vendorName || '—'}</div>
         </div>
-        <Field label="Address" value={reg.address} />
+        <Field label="Address" value={currentProfile?.address || reg.address} />
         <Field label="Company Type" value={reg.companyType} />
         <div className="col-12">
           <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Vendor Type</label>

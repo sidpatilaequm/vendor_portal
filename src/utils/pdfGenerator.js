@@ -50,9 +50,51 @@ export const generateAsnPdf = async (asn) => {
   doc.setTextColor(100, 100, 100);
   doc.text("Notice of goods despatched - not a tax invoice", margin, y + 12);
 
-  // SHIP FROM / SHIP TO
-  y += 24;
-  const boxW = (pageWidth - margin * 2 - 10) / 2;
+  // Generate Top Section Header QR Code containing all header details dynamically
+  const headerQrPayload = JSON.stringify({
+    asn_number: asn.asn_number || "PENDING",
+    ship_from: asn.vendor_name || "Vendor",
+    vendor_address: asn.vendor_address || "-",
+    ship_to: "Aequm India Private Limited",
+    po_reference: asn.po_reference || "-",
+    po_date: asn.po_date || "-",
+    vendor_delivery_note: asn.vendor_delivery_note || "-",
+    invoice_number: asn.invoice_number || "-",
+    eway_bill: asn.eway_bill || "-",
+    transport_mode: asn.transport_mode || "-",
+    carrier: asn.carrier || "-",
+    vehicle_no: asn.vehicle_no || "-",
+    lr_number: asn.lr_number || "-",
+    despatch_date: asn.despatch_date || "-",
+    expected_delivery: asn.expected_delivery || "-",
+    packages_count: asn.packages_count || (asn.asnPackages || []).length || 0,
+    total_lines: (asn.lines || []).length,
+    total_units: (asn.lines || []).reduce((acc, l) => acc + (parseFloat(l.despatchQty) || 0), 0),
+    gross_weight: asn.gross_weight || "102.150",
+    net_weight: asn.net_weight || "89.950"
+  });
+
+  let headerQrUrl = null;
+  try {
+    headerQrUrl = await QRCode.toDataURL(headerQrPayload, { margin: 0, scale: 4 });
+  } catch (err) {
+    console.error("Failed to generate header QR code", err);
+  }
+
+  // Draw Header QR Code at top right (enlarged to 75x75)
+  const qrSize = 75;
+  if (headerQrUrl) {
+    doc.addImage(headerQrUrl, "PNG", pageWidth - margin - qrSize, 65, qrSize, qrSize);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(100, 100, 100);
+    doc.text("ASN HEADER QR", pageWidth - margin - (qrSize / 2), 65 + qrSize + 9, { align: "center" });
+  }
+
+  // SHIP FROM / SHIP TO (Moved down to y = 155 so it clears the enlarged QR Code)
+  y = 155;
+  const qrRightGap = qrSize + 15; // Gap on the right for QR Code
+  const boxW = (pageWidth - margin * 2 - qrRightGap - 10) / 2;
 
   doc.setDrawColor(210, 210, 210);
   doc.setFillColor(247, 247, 247);

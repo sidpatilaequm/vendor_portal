@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import BackButton from '../common/BackButton';
+import QrScannerModal from '../common/QrScannerModal';
+import '../common/QrScannerModal.css';
 import './GateEntry.css';
 
 
@@ -68,8 +70,37 @@ const GateEntry = ({ onBack }) => {
   const [pkgVal, setPkgVal] = useState("");
   const [pkgLock, setPkgLock] = useState(false);
   const [pkgRmk, setPkgRmk] = useState("");
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [feed, setFeed] = useState([{ time: getNowStr(), msg: "Awaiting selection", kind: "" }]);
   const [passGe, setPassGe] = useState(null);
+
+  const handleQrScan = (payload) => {
+    let count = null;
+    try {
+      if (payload.trim().startsWith('{')) {
+        const parsed = JSON.parse(payload);
+        count = parsed.packages_count ?? parsed.no_of_packages ?? parsed.pkgs ?? parsed.packages;
+      }
+    } catch (e) {}
+
+    if (count == null) {
+      const pkgMatch = payload.match(/PKG:(\d+)/i) || payload.match(/packages_count[:=]\s*(\d+)/i) || payload.match(/(\d+)\s*pkgs/i);
+      if (pkgMatch) {
+        count = parseInt(pkgMatch[1], 10);
+      } else if (!isNaN(payload.trim()) && payload.trim() !== '') {
+        count = parseInt(payload.trim(), 10);
+      } else if (sel && sel.pkgs) {
+        count = sel.pkgs;
+      }
+    }
+
+    if (count != null) {
+      setPkgVal(String(count));
+      appendLog(`QR Code Scanned — Package count (${count}) loaded from QR`, "ok");
+    } else {
+      appendLog(`QR Code Scanned — ${payload.substring(0, 30)}`, "ok");
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -445,7 +476,27 @@ const GateEntry = ({ onBack }) => {
                     <div className="pkg">
                       <div><span className="lab">Packages declared</span><span className="big">{sel.pkgs}</span></div>
                       <div><span className="lab">Packages counted at gate</span>
-                        <input type="number" placeholder="0" disabled={pkgLock} value={pkgVal} onChange={e => setPkgVal(e.target.value)} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input type="number" placeholder="0" disabled={pkgLock} value={pkgVal} onChange={e => setPkgVal(e.target.value)} />
+                          <button
+                            type="button"
+                            className="qr-scan-btn icon-only"
+                            title="Scan Package / ASN QR Code"
+                            disabled={pkgLock}
+                            onClick={() => setIsQrModalOpen(true)}
+                          >
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="3" y="3" width="7" height="7"></rect>
+                              <rect x="14" y="3" width="7" height="7"></rect>
+                              <rect x="14" y="14" width="7" height="7"></rect>
+                              <rect x="3" y="14" width="7" height="7"></rect>
+                              <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                              <line x1="18" y1="7" x2="18.01" y2="7"></line>
+                              <line x1="7" y1="18" x2="7.01" y2="18"></line>
+                              <line x1="18" y1="18" x2="18.01" y2="18"></line>
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                       <button className={`vbtn ${pkgLock ? "undo" : ""}`} onClick={handlePkgVerify}>{pkgLock ? "Re-count" : "Verify package count"}</button>
                       <span className={`st ${!pkgLock ? "p" : (pkgDiff ? (pkgNum < sel.pkgs ? "s" : "x") : "m")}`}>
@@ -572,6 +623,14 @@ const GateEntry = ({ onBack }) => {
           </div>
         </div>
       )}
+
+      <QrScannerModal
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+        onScan={handleQrScan}
+        title="Scan ASN Header QR / Package QR"
+        defaultSampleQr={sel ? { asn_number: sel.asn || "ASN-2026-0024", packages_count: sel.pkgs || 2 } : { packages_count: 2 }}
+      />
     </div>
   );
 };

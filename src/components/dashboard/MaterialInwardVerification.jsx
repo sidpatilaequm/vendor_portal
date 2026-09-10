@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import BackButton from '../common/BackButton';
+import QrScannerModal from '../common/QrScannerModal';
+import '../common/QrScannerModal.css';
 import './material-inward-verification.css';
 
 // Utility functions
@@ -70,6 +72,74 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
   const [dialogContent, setDialogContent] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
   const [warehouses, setWarehouses] = useState([]);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+
+  const handleQrScan = (payload) => {
+    if (!C || !C.boxes) return;
+    const str = payload.trim();
+    let targetBoxNo = null;
+
+    try {
+      if (str.startsWith('{')) {
+        const parsed = JSON.parse(str);
+        if (parsed.box_no) targetBoxNo = parsed.box_no;
+        else if (parsed.pkg_no) targetBoxNo = `BOX-${String(parsed.pkg_no).padStart(3, '0')}`;
+      }
+    } catch (e) {}
+
+    if (!targetBoxNo) {
+      const pkgMatch = str.match(/PKG:(\d+)/i) || str.match(/BOX-(\d+)/i) || str.match(/\bBOX\s*#?\s*(\d+)\b/i);
+      if (pkgMatch) {
+        const num = parseInt(pkgMatch[1], 10);
+        targetBoxNo = `BOX-${String(num).padStart(3, '0')}`;
+      }
+    }
+
+    if (!targetBoxNo) {
+      const exactBox = C.boxes.find(b => b.box_no.toLowerCase() === str.toLowerCase());
+      if (exactBox) {
+        targetBoxNo = exactBox.box_no;
+      } else {
+        const boxWithMat = C.boxes.find(b => b.lines.some(l => l.item_no.toLowerCase() === str.toLowerCase() || (l.description && l.description.toLowerCase().includes(str.toLowerCase()))));
+        if (boxWithMat) {
+          targetBoxNo = boxWithMat.box_no;
+        } else if (C.boxes.length > 0) {
+          targetBoxNo = selBox || C.boxes[0].box_no;
+        }
+      }
+    }
+
+    if (targetBoxNo) {
+      const targetBox = C.boxes.find(b => b.box_no === targetBoxNo);
+      if (targetBox) {
+        setSelBox(targetBox.box_no);
+        updateC(c => {
+          const bx = c.boxes.find(x => x.box_no === targetBox.box_no);
+          if (bx) {
+            bx.counted = true;
+            bx.counted_at = bx.counted_at || now();
+            bx.lines.forEach(l => {
+              if (Array.isArray(l.batches) && l.batches.length > 0) {
+                l.batches.forEach(bt => {
+                  bt.counted_qty = bt.packed_qty;
+                  bt.touched = true;
+                });
+              } else {
+                l.counted_qty = l.packed_qty;
+                l.touched = true;
+              }
+            });
+          }
+        });
+        setEcho({
+          kind: "ok",
+          text: `✓ QR Scanned: ${targetBox.box_no}`,
+          sub: `Selected and quantities auto-filled from QR code.`
+        });
+        toast(`QR Scanned: ${targetBox.box_no} selected & quantities verified.`);
+      }
+    }
+  };
 
   useEffect(() => {
     if (toastMessage) {
@@ -534,7 +604,24 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
       {C.stage === "count" && (
         <div style={{display:"flex", gap:"18px", alignItems:"flex-start", flexWrap:"wrap"}}>
           <div style={{flex:"1 1 340px", display:"flex", flexDirection:"column", gap:"9px"}}>
-            <div style={{fontFamily:"var(--mono)", fontSize:"9px", letterSpacing:".12em", textTransform:"uppercase", color:"var(--muted)", marginBottom:"5px"}}>Consignment Boxes</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
+              <div style={{ fontFamily: "var(--mono)", fontSize: "9px", letterSpacing: ".12em", textTransform: "uppercase", color: "var(--muted)" }}>Consignment Boxes</div>
+              <button
+                type="button"
+                className="qr-scan-btn"
+                style={{ padding: '3px 8px', fontSize: '11px', borderRadius: '4px' }}
+                onClick={() => setIsQrModalOpen(true)}
+                title="Scan Package / Box QR Code"
+              >
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                Scan QR
+              </button>
+            </div>
             {C.boxes.map(b => (
               <div key={b.box_no} className={`miv-boxrow ${b.box_no === selBox ? "sel" : ""} ${b.counted ? "done" : "todo"}`}>
                 <div className="miv-boxhead" onClick={() => selectBox(b.box_no)}>
@@ -555,7 +642,27 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
               const b = C.boxes.find(x => x.box_no === selBox);
               return (
                 <div className="miv-card">
-                  <header><h2>{b.box_no}</h2><span className="miv-stamp">seal {b.seal_no} {b.seal_ok === false ? "· BROKEN" : "· intact"}</span></header>
+                  <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <h2>{b.box_no}</h2>
+                      <span className="miv-stamp">seal {b.seal_no} {b.seal_ok === false ? "· BROKEN" : "· intact"}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="qr-scan-btn"
+                      style={{ padding: '5px 12px', fontSize: '12px', borderRadius: '5px' }}
+                      onClick={() => setIsQrModalOpen(true)}
+                      title="Scan Box QR Code"
+                    >
+                      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                      </svg>
+                      Scan Box QR
+                    </button>
+                  </header>
                   <div className="miv-card-body">
                     <table className="miv-g">
                       <thead>
@@ -922,6 +1029,14 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
           </div>
         </div>
       )}
+
+      <QrScannerModal
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+        onScan={handleQrScan}
+        title="Scan Package / Box QR Code"
+        defaultSampleQr={selBox ? `SSCC:0019482100${selBox.replace('BOX-','')}|PKG:${selBox.replace('BOX-0','')}|LINES:2` : "SSCC:001948210001|PKG:1|LINES:2"}
+      />
     </div>
   );
 }

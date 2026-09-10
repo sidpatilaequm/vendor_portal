@@ -129,7 +129,8 @@ const AdminExcelMappings = () => {
   // Every excel header we can offer in the dropdown: whatever the last inspect found, plus
   // anything already saved (so a saved mapping never disappears just because the admin hasn't
   // re-inspected a file yet this session).
-  const headerOptions = Array.from(new Set([...excelHeaders, ...Object.values(columnMap).filter(Boolean)]));
+  const headerOptions = Array.from(new Set([...excelHeaders, ...Object.values(columnMap).filter(Boolean)]))
+    .sort((a, b) => a.localeCompare(b));
 
   const currentType = REPORT_TYPES.find((t) => t.value === selected);
   const mappableColumns = targetColumns.filter((c) => !c.systemManaged);

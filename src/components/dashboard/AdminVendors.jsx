@@ -421,7 +421,7 @@ const AdminVendors = ({ onBack }) => {
               {!loadingDetail && vendorDetail && (
                 <VendorFullProfile
                   detail={vendorDetail}
-                  email={selectedVendor.email}
+                  vendor={selectedVendor}
                   onBusinessTypesSaved={(patch) =>
                     setVendorDetail((d) => ({ ...d, registration: { ...d.registration, ...patch } }))
                   }
@@ -548,39 +548,30 @@ const Section = ({ title, children }) => (
 // old "Vendors" tab on the User Management screen (System Settings), which just duplicated this
 // same list with nothing vendor-specific on top of it. Matched to a UserDetail row by email since
 // the supplier-registration profile has no direct user id of its own.
-function VendorAccountSection({ email }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
+function VendorAccountSection({ vendor }) {
+  // vendor (the selected row from the Master Data vendor list) already carries userId, email,
+  // firstName, lastName, phoneNumber and isActive straight from VendorService.getAllVendors()
+  // (it puts UserDetail's own fields on every row) -- no separate fetch/match needed.
+  const [user, setUser] = useState(vendor || null);
+  const [firstName, setFirstName] = useState(vendor?.firstName || '');
+  const [lastName, setLastName] = useState(vendor?.lastName || '');
+  const [phone, setPhone] = useState(vendor?.phoneNumber || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState(null);
 
   useEffect(() => {
-    if (!email) { setLoading(false); setError('No login email on file for this vendor.'); return; }
-    setLoading(true);
-    setError('');
-    const token = localStorage.getItem('auth_token');
-    axios.get('/api/users/list', { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
-        const users = res.data?.data?.users || [];
-        const match = users.find((u) => (u.email || '').toLowerCase() === email.toLowerCase());
-        if (!match) { setError('No portal login account found for ' + email + '.'); return; }
-        setUser(match);
-        setFirstName(match.firstName || '');
-        setLastName(match.lastName || '');
-        setPhone(match.phoneNumber || '');
-      })
-      .catch(() => setError('Could not load the login account for this vendor.'))
-      .finally(() => setLoading(false));
-  }, [email]);
+    setUser(vendor || null);
+    setFirstName(vendor?.firstName || '');
+    setLastName(vendor?.lastName || '');
+    setPhone(vendor?.phoneNumber || '');
+    setPassword('');
+    setAlert(null);
+  }, [vendor?.userId]);
 
   const save = () => {
-    if (!user) return;
+    if (!user?.userId) return;
     setSaving(true);
     setAlert(null);
     const token = localStorage.getItem('auth_token');
@@ -599,7 +590,7 @@ function VendorAccountSection({ email }) {
   };
 
   const toggleActive = () => {
-    if (!user) return;
+    if (!user?.userId) return;
     const activating = user.isActive === false;
     const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
     if (!activating && !window.confirm(`Deactivate ${name} (${user.email})? They will no longer be able to sign in.`)) return;
@@ -617,9 +608,8 @@ function VendorAccountSection({ email }) {
 
   return (
     <Section title="Portal Login Account">
-      {loading && <div className="col-12 text-muted small">Loading account…</div>}
-      {!loading && error && <div className="col-12 text-muted small">{error}</div>}
-      {!loading && user && (
+      {!user?.userId && <div className="col-12 text-muted small">No portal login account linked to this vendor.</div>}
+      {user?.userId && (
         <>
           <div className="col-12">
             {alert && <div className={`alert alert-${alert.type} py-1.5 mb-2 small`}>{alert.message}</div>}
@@ -676,7 +666,7 @@ const BUSINESS_TYPE_FIELDS = [
   { key: 'vendorTypeSchedulingAgreement', bodyKey: 'schedulingAgreement', label: 'Scheduling Agreement' },
 ];
 
-function VendorFullProfile({ detail, email, onBusinessTypesSaved }) {
+function VendorFullProfile({ detail, vendor, onBusinessTypesSaved }) {
   const reg = detail.registration || {};
   const documents = detail.documents || [];
   const attachments = detail.attachments || [];
@@ -706,7 +696,7 @@ function VendorFullProfile({ detail, email, onBusinessTypesSaved }) {
 
   return (
     <>
-      <VendorAccountSection email={email} />
+      <VendorAccountSection vendor={vendor} />
 
       <Section title="Company">
         <div className="col-12">

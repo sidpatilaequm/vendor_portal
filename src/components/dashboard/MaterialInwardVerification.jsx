@@ -871,6 +871,7 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
                   const units = allLines().reduce((a, {line}) => a + lineState(line).accepted, 0);
                   updateC(c => { c.inward = {grn_no: data.grnNumber || ("GRN-" + c.gate_entry_no.replace(/^GE-/,"")), at:now(), units }; });
                   toast("Inward raised — putaway list ready.");
+                  setTimeout(onBack, 1500); // Go back after short delay
                 })
                 .catch(err => {
                   console.error("Failed to submit verification", err);
@@ -908,6 +909,7 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
                 .then(data => {
                   updateC(c => { c.rtv = {rtv_no: data.rtvNumber || ("RTV-" + c.gate_entry_no.replace(/^GE-/,"")), at:now(), boxes:c.boxes.length, vehicle:c.vehicle_no}; });
                   toast("Return to vendor raised.");
+                  setTimeout(onBack, 1500); // Go back after short delay
                 })
                 .catch(err => {
                   console.error("Failed to submit rejection", err);

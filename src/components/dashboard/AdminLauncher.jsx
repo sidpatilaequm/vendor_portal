@@ -96,8 +96,6 @@ const MENU = {
     name: 'System Settings', eyebrow: '03', icon: 'fa-cog', color: 'secondary',
     desc: 'How the portal identifies your company, who can sign in, and what it sends out.',
     children: {
-      company: { name: 'Company Profile', icon: 'fa-id-card', color: 'secondary', desc: 'Legal entity, tax registration and registered address.', stub: true,
-        table: 'company_profile', endpoint: '/api/company-profile' },
       users: { name: 'User Accounts', icon: 'fa-user-cog', color: 'primary', desc: 'People who can sign in, and their role.', real: () => <AdminUsers /> },
       auditLog: { name: 'Audit Log', icon: 'fa-clipboard-list', color: 'secondary', desc: 'Who changed what on employee and admin accounts.',
         real: () => <AdminAuditLog /> },

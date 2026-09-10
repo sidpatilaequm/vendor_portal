@@ -421,6 +421,7 @@ const AdminVendors = ({ onBack }) => {
               {!loadingDetail && vendorDetail && (
                 <VendorFullProfile
                   detail={vendorDetail}
+                  email={selectedVendor.email}
                   onBusinessTypesSaved={(patch) =>
                     setVendorDetail((d) => ({ ...d, registration: { ...d.registration, ...patch } }))
                   }
@@ -543,6 +544,131 @@ const Section = ({ title, children }) => (
   </div>
 );
 
+// The vendor's own portal login account (name/phone/password, deactivate) — moved here from the
+// old "Vendors" tab on the User Management screen (System Settings), which just duplicated this
+// same list with nothing vendor-specific on top of it. Matched to a UserDetail row by email since
+// the supplier-registration profile has no direct user id of its own.
+function VendorAccountSection({ email }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [alert, setAlert] = useState(null);
+
+  useEffect(() => {
+    if (!email) { setLoading(false); setError('No login email on file for this vendor.'); return; }
+    setLoading(true);
+    setError('');
+    const token = localStorage.getItem('auth_token');
+    axios.get('/api/users/list', { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
+        const users = res.data?.data?.users || [];
+        const match = users.find((u) => (u.email || '').toLowerCase() === email.toLowerCase());
+        if (!match) { setError('No portal login account found for ' + email + '.'); return; }
+        setUser(match);
+        setFirstName(match.firstName || '');
+        setLastName(match.lastName || '');
+        setPhone(match.phoneNumber || '');
+      })
+      .catch(() => setError('Could not load the login account for this vendor.'))
+      .finally(() => setLoading(false));
+  }, [email]);
+
+  const save = () => {
+    if (!user) return;
+    setSaving(true);
+    setAlert(null);
+    const token = localStorage.getItem('auth_token');
+    const payload = { firstName, lastName, phoneNumber: phone };
+    if (password) payload.password = password;
+    axios.put(`/api/users/${user.userId}`, payload, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then(() => {
+        setAlert({ type: 'success', message: password ? 'Saved — the user was emailed their new password.' : 'Saved.' });
+        setPassword('');
+        setUser((u) => ({ ...u, firstName, lastName, phoneNumber: phone }));
+      })
+      .catch((err) => setAlert({ type: 'danger', message: err.response?.data?.statusMsg || 'Could not save changes.' }))
+      .finally(() => setSaving(false));
+  };
+
+  const toggleActive = () => {
+    if (!user) return;
+    const activating = user.isActive === false;
+    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
+    if (!activating && !window.confirm(`Deactivate ${name} (${user.email})? They will no longer be able to sign in.`)) return;
+    const token = localStorage.getItem('auth_token');
+    if (activating) {
+      // No reactivate endpoint exists yet on backend_java's user API — only deactivate
+      // (DELETE) is wired up, matching what the old Vendors tab on User Management offered.
+      setAlert({ type: 'danger', message: 'Reactivating a deactivated account isn’t supported yet — ask an admin to do this via the database.' });
+      return;
+    }
+    axios.delete(`/api/users/${user.userId}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(() => setUser((u) => ({ ...u, isActive: false })))
+      .catch((err) => setAlert({ type: 'danger', message: err.response?.data?.statusMsg || 'Could not deactivate this account.' }));
+  };
+
+  return (
+    <Section title="Portal Login Account">
+      {loading && <div className="col-12 text-muted small">Loading account…</div>}
+      {!loading && error && <div className="col-12 text-muted small">{error}</div>}
+      {!loading && user && (
+        <>
+          <div className="col-12">
+            {alert && <div className={`alert alert-${alert.type} py-1.5 mb-2 small`}>{alert.message}</div>}
+          </div>
+          <div className="col-sm-6">
+            <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Login Email</label>
+            <div className="small fw-semibold">{user.email}</div>
+          </div>
+          <div className="col-sm-6">
+            <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Status</label>
+            <div>
+              <span className={`badge ${user.isActive === false ? 'bg-secondary-subtle text-secondary' : 'bg-success-subtle text-success'} px-2 py-1 rounded fw-semibold`} style={{ fontSize: 11 }}>
+                {user.isActive === false ? 'Deactivated' : 'Active'}
+              </span>
+            </div>
+          </div>
+          <div className="col-sm-6">
+            <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>First Name</label>
+            <input className="form-control form-control-sm" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+          </div>
+          <div className="col-sm-6">
+            <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Last Name</label>
+            <input className="form-control form-control-sm" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+          </div>
+          <div className="col-sm-6">
+            <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Phone Number</label>
+            <input className="form-control form-control-sm" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))} />
+          </div>
+          <div className="col-sm-6">
+            <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Reset Password</label>
+            <div className="input-group input-group-sm">
+              <input type={showPassword ? 'text' : 'password'} className="form-control" minLength={8} placeholder="Leave blank to keep current" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <button type="button" className="btn btn-outline-secondary" onClick={() => setShowPassword(!showPassword)}>
+                <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+              </button>
+            </div>
+          </div>
+          <div className="col-12 d-flex gap-2">
+            <Button onClick={save} loading={saving} className="btn-success px-3" style={{ fontSize: 12 }}>Save Account Changes</Button>
+            <button className="btn btn-outline-danger btn-sm" onClick={toggleActive} disabled={user.isActive === false}>
+              <i className="fas fa-user-minus me-1"></i>Deactivate
+            </button>
+          </div>
+        </>
+      )}
+    </Section>
+  );
+}
+
 const BUSINESS_TYPE_FIELDS = [
   { key: 'vendorTypeProduct', bodyKey: 'product', label: 'Product' },
   { key: 'vendorTypeService', bodyKey: 'service', label: 'Service' },
@@ -550,7 +676,7 @@ const BUSINESS_TYPE_FIELDS = [
   { key: 'vendorTypeSchedulingAgreement', bodyKey: 'schedulingAgreement', label: 'Scheduling Agreement' },
 ];
 
-function VendorFullProfile({ detail, onBusinessTypesSaved }) {
+function VendorFullProfile({ detail, email, onBusinessTypesSaved }) {
   const reg = detail.registration || {};
   const documents = detail.documents || [];
   const attachments = detail.attachments || [];
@@ -580,6 +706,8 @@ function VendorFullProfile({ detail, onBusinessTypesSaved }) {
 
   return (
     <>
+      <VendorAccountSection email={email} />
+
       <Section title="Company">
         <div className="col-12">
           <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Company Legal Name</label>

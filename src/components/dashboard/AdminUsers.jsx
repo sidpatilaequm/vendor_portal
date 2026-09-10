@@ -27,7 +27,6 @@ const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [listError, setListError] = useState('');
-  const [activeTab, setActiveTab] = useState('staff');
   const [showAddModal, setShowAddModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState(null);
@@ -221,9 +220,9 @@ const AdminUsers = () => {
       .finally(() => setEditSaving(false));
   };
 
-  const vendorUsers = users.filter((u) => u.role === 'VENDOR');
+  // Vendor accounts are managed from Master Data → Vendors now (same edit/deactivate
+  // capability lives there, on each vendor's own profile) — this screen is staff-only.
   const staffUsers = users.filter((u) => u.role !== 'VENDOR');
-  const visibleUsers = activeTab === 'vendors' ? vendorUsers : staffUsers;
 
   return (
     <div className="fade-in-slide container-fluid py-4 bg-light bg-opacity-50" style={{ minHeight: '100%' }}>
@@ -232,13 +231,11 @@ const AdminUsers = () => {
         <div className="col">
           <h4 className="fw-bold mb-1 text-dark">User Management</h4>
         </div>
-        {activeTab === 'staff' && (
-          <div className="col-auto">
-            <Button onClick={() => { setAlert(null); setShowAddModal(true); }} className="btn-success btn-sm">
-              <i className="fas fa-plus me-1"></i> Add User
-            </Button>
-          </div>
-        )}
+        <div className="col-auto">
+          <Button onClick={() => { setAlert(null); setShowAddModal(true); }} className="btn-success btn-sm">
+            <i className="fas fa-plus me-1"></i> Add User
+          </Button>
+        </div>
       </div>
 
       {listError && (
@@ -247,29 +244,6 @@ const AdminUsers = () => {
           <button className="btn btn-link btn-sm p-0 ms-2" onClick={fetchUsers}>Try again</button>
         </div>
       )}
-
-      <div className="card border-0 shadow-sm mb-4">
-        <div className="card-body p-2">
-          <div className="d-flex flex-wrap gap-2 text-start">
-            <button
-              className={`btn border-0 d-flex align-items-center gap-2 py-2 px-3 rounded ${activeTab === 'staff' ? 'active-tab-style' : 'text-dark hover-tab-style'}`}
-              onClick={() => setActiveTab('staff')}
-            >
-              <i className="fas fa-user-tie text-success"></i>
-              <span className="fw-semibold small">Staff</span>
-              <span className="badge bg-secondary-subtle text-secondary">{staffUsers.length}</span>
-            </button>
-            <button
-              className={`btn border-0 d-flex align-items-center gap-2 py-2 px-3 rounded ${activeTab === 'vendors' ? 'active-tab-style' : 'text-dark hover-tab-style'}`}
-              onClick={() => setActiveTab('vendors')}
-            >
-              <i className="fas fa-truck-loading text-success"></i>
-              <span className="fw-semibold small">Vendors</span>
-              <span className="badge bg-secondary-subtle text-secondary">{vendorUsers.length}</span>
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Users Table */}
       <div className="card border-0 shadow-sm">
@@ -294,8 +268,8 @@ const AdminUsers = () => {
                       Loading users list...
                     </td>
                   </tr>
-                ) : visibleUsers.length > 0 ? (
-                  visibleUsers.map((user) => (
+                ) : staffUsers.length > 0 ? (
+                  staffUsers.map((user) => (
                     <tr key={user.userId}>
                       <td className="ps-4">
                         <div className="fw-bold text-dark" style={{ fontSize: '13.5px' }}>{user.firstName} {user.lastName}</div>
@@ -336,7 +310,7 @@ const AdminUsers = () => {
                 ) : (
                   <tr>
                     <td colSpan="6" className="text-center py-5 text-muted">
-                      No {activeTab === 'vendors' ? 'vendor' : 'staff'} accounts found.
+                      No staff accounts found.
                     </td>
                   </tr>
                 )}

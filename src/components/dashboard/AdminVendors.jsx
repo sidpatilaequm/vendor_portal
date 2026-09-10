@@ -422,8 +422,17 @@ const AdminVendors = ({ onBack }) => {
                 <VendorFullProfile
                   detail={vendorDetail}
                   vendor={selectedVendor}
+                  companyLabel={companyLabel}
                   onBusinessTypesSaved={(patch) =>
                     setVendorDetail((d) => ({ ...d, registration: { ...d.registration, ...patch } }))
+                  }
+                  onCompanyBusinessTypesSaved={(companyCode, patch) =>
+                    setVendorDetail((d) => ({
+                      ...d,
+                      companyBusinessTypes: (d.companyBusinessTypes || []).map((c) =>
+                        c.companyCode === companyCode ? { ...c, ...patch } : c
+                      ),
+                    }))
                   }
                 />
               )}
@@ -666,14 +675,17 @@ const BUSINESS_TYPE_FIELDS = [
   { key: 'vendorTypeSchedulingAgreement', bodyKey: 'schedulingAgreement', label: 'Scheduling Agreement' },
 ];
 
-function VendorFullProfile({ detail, vendor, onBusinessTypesSaved }) {
+function VendorFullProfile({ detail, vendor, companyLabel, onBusinessTypesSaved, onCompanyBusinessTypesSaved }) {
   const reg = detail.registration || {};
   const currentProfile = detail.currentProfile;
   const documents = detail.documents || [];
   const attachments = detail.attachments || [];
   const dynamicAnswers = detail.dynamicAnswers || [];
+  const documentTypeSelections = detail.documentTypeSelections || [];
+  const companyBusinessTypes = detail.companyBusinessTypes || [];
   const [viewerDoc, setViewerDoc] = useState(null);
   const [savingType, setSavingType] = useState(null);
+  const [savingCompanyType, setSavingCompanyType] = useState(null);
 
   const hasSecondContact = reg.contact2Name || reg.contact2Email || reg.contact2Phone;
 
@@ -695,6 +707,24 @@ function VendorFullProfile({ detail, vendor, onBusinessTypesSaved }) {
       .finally(() => setSavingType(null));
   };
 
+  // Which companies this vendor is actually scoped to — same source of truth AdminWorkflows.jsx
+  // uses for its per-company document-type picker.
+  const vendorCompanyCodes = [...new Set(documentTypeSelections.map((s) => s.companyCode))];
+
+  const toggleCompanyBusinessType = (companyCode, field, checked) => {
+    setSavingCompanyType(`${companyCode}:${field.key}`);
+    const current = companyBusinessTypes.find((c) => c.companyCode === companyCode) || {};
+    const nextValues = { companyCode };
+    BUSINESS_TYPE_FIELDS.forEach((f) => { nextValues[f.bodyKey] = f.key === field.key ? checked : !!current[f.bodyKey]; });
+    const token = localStorage.getItem('auth_token');
+    axios.patch(`/api/supplier-registration/${reg.id}/company-business-types`, nextValues, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(() => onCompanyBusinessTypesSaved?.(companyCode, { [field.bodyKey]: checked }))
+      .catch((err) => alert('Failed to save: ' + (err.response?.data?.statusMsg || err.message)))
+      .finally(() => setSavingCompanyType(null));
+  };
+
   return (
     <>
       <VendorAccountSection vendor={vendor} />
@@ -708,21 +738,49 @@ function VendorFullProfile({ detail, vendor, onBusinessTypesSaved }) {
         <Field label="Company Type" value={reg.companyType} />
         <div className="col-12">
           <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Vendor Type</label>
-          <div className="d-flex flex-wrap gap-3 mt-1">
-            {BUSINESS_TYPE_FIELDS.map((f) => (
-              <div className="form-check" key={f.key}>
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id={`vt-${f.key}`}
-                  checked={!!reg[f.key]}
-                  disabled={savingType === f.key}
-                  onChange={(e) => toggleBusinessType(f, e.target.checked)}
-                />
-                <label className="form-check-label" htmlFor={`vt-${f.key}`}>{f.label}</label>
-              </div>
-            ))}
-          </div>
+          {vendorCompanyCodes.length > 0 ? (
+            <div className="d-flex flex-column gap-2 mt-1">
+              {vendorCompanyCodes.map((companyCode) => {
+                const current = companyBusinessTypes.find((c) => c.companyCode === companyCode) || {};
+                return (
+                  <div key={companyCode} className="border rounded p-2 bg-light bg-opacity-50">
+                    <div className="fw-bold text-dark" style={{ fontSize: '12px' }}>{companyLabel ? companyLabel(companyCode) : companyCode}</div>
+                    <div className="d-flex flex-wrap gap-3 mt-1">
+                      {BUSINESS_TYPE_FIELDS.map((f) => (
+                        <div className="form-check" key={f.key}>
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            id={`vt-${companyCode}-${f.key}`}
+                            checked={!!current[f.bodyKey]}
+                            disabled={savingCompanyType === `${companyCode}:${f.key}`}
+                            onChange={(e) => toggleCompanyBusinessType(companyCode, f, e.target.checked)}
+                          />
+                          <label className="form-check-label" htmlFor={`vt-${companyCode}-${f.key}`}>{f.label}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="d-flex flex-wrap gap-3 mt-1">
+              {BUSINESS_TYPE_FIELDS.map((f) => (
+                <div className="form-check" key={f.key}>
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id={`vt-${f.key}`}
+                    checked={!!reg[f.key]}
+                    disabled={savingType === f.key}
+                    onChange={(e) => toggleBusinessType(f, e.target.checked)}
+                  />
+                  <label className="form-check-label" htmlFor={`vt-${f.key}`}>{f.label}</label>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <Field label="Business Type(s)" value={reg.businessTypes} />
         <Field label="Business Scope" value={reg.businessScope} />

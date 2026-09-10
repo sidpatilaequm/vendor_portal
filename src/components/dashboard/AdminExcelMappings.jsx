@@ -199,7 +199,10 @@ const AdminExcelMappings = () => {
       ) : (
         <>
           <div className="border rounded p-3 mb-4">
-            <div className="fw-semibold small mb-2">1. Read a sample "{currentType.label}" excel</div>
+            <div className="fw-semibold small mb-2">1. Read a sample "{currentType.label}" excel (optional)</div>
+            <div className="text-muted small mb-2">
+              Only needed if you have a real file to match column names against — you can also just type the excel column name directly in step 2 below, no file required.
+            </div>
             <div className="d-flex gap-2 flex-wrap align-items-end">
               <div>
                 <label className="form-label small text-muted mb-1 d-block">File</label>
@@ -283,7 +286,9 @@ const AdminExcelMappings = () => {
   );
 };
 
-const ColumnMappingTable = ({ columns, columnMap, setMappingFor, headerOptions }) => (
+const ColumnMappingTable = ({ columns, columnMap, setMappingFor, headerOptions }) => {
+  const datalistId = React.useId();
+  return (
   <div className="table-responsive mb-2">
     <table className="table table-sm align-middle">
       <thead>
@@ -308,21 +313,25 @@ const ColumnMappingTable = ({ columns, columnMap, setMappingFor, headerOptions }
                   {c.systemManagedReason}
                 </span>
               ) : (
-                <select
-                  className="form-select form-select-sm"
+                <input
+                  type="text"
+                  list={datalistId}
+                  className="form-control form-control-sm"
+                  placeholder="— not mapped — (type or pick a column name)"
                   value={columnMap[c.name] || NOT_MAPPED}
                   onChange={(e) => setMappingFor(c.name, e.target.value)}
-                >
-                  <option value={NOT_MAPPED}>— not mapped —</option>
-                  {headerOptions.map((h) => <option key={h} value={h}>{h}</option>)}
-                </select>
+                />
               )}
             </td>
           </tr>
         ))}
       </tbody>
     </table>
+    <datalist id={datalistId}>
+      {headerOptions.map((h) => <option key={h} value={h} />)}
+    </datalist>
   </div>
-);
+  );
+};
 
 export default AdminExcelMappings;

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import AdminVendors from './AdminVendors';
+import AdminInvitations from './AdminInvitations';
 import AdminUsers from './AdminUsers';
 import AdminAuditLog from './AdminAuditLog';
 import AdminMasterData from './AdminMasterData';
@@ -74,6 +75,7 @@ const MENU = {
     desc: 'The records everything else refers to — suppliers, parts and assemblies.',
     children: {
       vendors: { name: 'Vendors', icon: 'fa-users', color: 'success', desc: 'Suppliers, payment terms and contacts.', ownChrome: true, real: (onBack) => <AdminVendors onBack={onBack} /> },
+      invitations: { name: 'Invitations', icon: 'fa-envelope-open-text', color: 'primary', desc: 'Invite a new supplier to register.', real: () => <AdminInvitations /> },
       // approvedSuppliers: { name: 'Approved Suppliers', icon: 'fa-user-check', color: 'success', desc: 'Vendors approved through Become-a-Supplier, with their Product/Service/Scheduling agreement/Sub-contracting type.', real: (onBack) => <AdminApprovedSuppliers onBack={onBack} /> },
       // materials: { name: 'Materials', icon: 'fa-box', color: 'primary', desc: 'Part master with cost, stock and lead time.', stub: true,
       //   table: 'material_master', endpoint: '/api/materials' },

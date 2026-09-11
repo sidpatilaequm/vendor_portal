@@ -2,8 +2,6 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import AdminVendors from './AdminVendors';
-import AdminProspects from './AdminProspects';
-import AdminInvitations from './AdminInvitations';
 import AdminUsers from './AdminUsers';
 import AdminAuditLog from './AdminAuditLog';
 import AdminMasterData from './AdminMasterData';
@@ -77,10 +75,8 @@ const MENU = {
     children: {
       vendors: { name: 'Vendors', icon: 'fa-users', color: 'success', desc: 'Suppliers, payment terms and contacts.', ownChrome: true, real: (onBack) => <AdminVendors onBack={onBack} /> },
       // approvedSuppliers: { name: 'Approved Suppliers', icon: 'fa-user-check', color: 'success', desc: 'Vendors approved through Become-a-Supplier, with their Product/Service/Scheduling agreement/Sub-contracting type.', real: (onBack) => <AdminApprovedSuppliers onBack={onBack} /> },
-      prospects: { name: 'Vendor Prospects', icon: 'fa-user-clock', color: 'warning', desc: 'Applicants still in onboarding review.', real: () => <AdminProspects /> },
-      invitations: { name: 'Invitations', icon: 'fa-envelope-open-text', color: 'primary', desc: 'Invite a new supplier to register.', real: () => <AdminInvitations /> },
-      materials: { name: 'Materials', icon: 'fa-box', color: 'primary', desc: 'Part master with cost, stock and lead time.', stub: true,
-        table: 'material_master', endpoint: '/api/materials' },
+      // materials: { name: 'Materials', icon: 'fa-box', color: 'primary', desc: 'Part master with cost, stock and lead time.', stub: true,
+      //   table: 'material_master', endpoint: '/api/materials' },
       // orgdata: hidden from the UI for now (menu entry removed on request) — the
       // AdminMasterData component and its endpoints are untouched, just not reachable
       // from the admin launcher.

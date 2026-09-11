@@ -382,6 +382,11 @@ const STAGE_GROUPS = [
   { label: 'Material Inward', keys: ['MATERIAL_INWARD'] },
 ];
 
+// A PO created directly with no PR (e.g. the SAP Master PO upload path) has no workflow
+// approval/RFQ/quotation history to show — those stages didn't just "not happen yet", they never
+// will, so they're left out of the stepper entirely rather than shown as "Not reached yet".
+const PO_ROOT_STAGE_GROUPS = STAGE_GROUPS.filter((g) => g.keys.some((k) => k.startsWith('PO_') || k === 'ASN_SENT' || k === 'GATE_ENTRY' || k === 'MATERIAL_INWARD'));
+
 const stageDecisionMeta = (status) => {
   const s = (status || '').toUpperCase();
   if (['AWARDED', 'ACCEPTED', 'ACKNOWLEDGED', 'APPROVED', 'ALLOW', 'ACCEPT'].includes(s)) {
@@ -467,7 +472,7 @@ const EventDetailModal = ({ event, onClose }) => {
   );
 };
 
-const StageStep = ({ index, label, events, awardedVendor, onSelectEvent }) => {
+const StageStep = ({ index, total, label, events, awardedVendor, onSelectEvent }) => {
   const done = events.length > 0;
   // Group same-stage events by branch (vendor / PO / etc.) so parallel activity (multiple RFQ
   // recipients, multiple quotations) shows as separate chips within this one step.
@@ -496,7 +501,7 @@ const StageStep = ({ index, label, events, awardedVendor, onSelectEvent }) => {
         >
           {index + 1}
         </div>
-        {index < STAGE_GROUPS.length - 1 && (
+        {index < total - 1 && (
           <div style={{ width: 2, flexGrow: 1, minHeight: 24, background: '#e2e5ea', marginTop: 4, marginBottom: 4 }} />
         )}
       </div>
@@ -544,7 +549,7 @@ const StageStep = ({ index, label, events, awardedVendor, onSelectEvent }) => {
 // Default (no PR picked) view — a live, paginated feed across every PR, same Load More pattern as
 // the other three tabs, so this tab shows something the moment you open it instead of requiring a
 // search first.
-const PrLifecycleFeed = ({ onPickPr }) => {
+const PrLifecycleFeed = ({ onPick }) => {
   const [entries, setEntries] = useState([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -574,17 +579,21 @@ const PrLifecycleFeed = ({ onPickPr }) => {
       <div className="table-responsive">
         <table className="table table-hover align-middle mb-0">
           <thead className="table-light text-muted fw-bold" style={{ fontSize: '11px' }}>
-            <tr><th>Time</th><th>PR Number</th><th>Stage</th><th>Branch</th><th>Actor</th><th>Status</th><th>Detail</th></tr>
+            <tr><th>Time</th><th>PR / PO Number</th><th>Stage</th><th>Branch</th><th>Actor</th><th>Status</th><th>Detail</th></tr>
           </thead>
           <tbody style={{ fontSize: 13 }}>
             {entries.map((e, i) => {
               const meta = stageDecisionMeta(e.status);
+              // Standalone-PO events (see backend PrLifecycleService.getFeed) carry poNumber
+              // instead of prNumber — route to the right lookup either way.
+              const number = e.prNumber || e.poNumber;
+              const type = e.prNumber ? 'PR' : 'PO';
               return (
                 <tr key={i} style={{ cursor: 'pointer' }} onClick={() => setSelectedEvent(e)} title="Click for full details">
                   <td className="text-muted" style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{e.timestamp ? new Date(e.timestamp).toLocaleString() : '—'}</td>
                   <td>
-                    <button type="button" className="btn btn-link btn-sm p-0" style={{ fontSize: 13 }} onClick={(ev) => { ev.stopPropagation(); onPickPr(e.prNumber); }}>
-                      {e.prNumber}
+                    <button type="button" className="btn btn-link btn-sm p-0" style={{ fontSize: 13 }} onClick={(ev) => { ev.stopPropagation(); onPick(number, type); }}>
+                      {number}
                     </button>
                   </td>
                   <td>{e.stageLabel}</td>
@@ -596,7 +605,7 @@ const PrLifecycleFeed = ({ onPickPr }) => {
               );
             })}
             {!loading && entries.length === 0 && (
-              <tr><td colSpan={7} className="text-center text-muted py-4">No PR activity recorded yet.</td></tr>
+              <tr><td colSpan={7} className="text-center text-muted py-4">No PR/PO activity recorded yet.</td></tr>
             )}
           </tbody>
         </table>
@@ -617,37 +626,59 @@ const PrLifecycleFeed = ({ onPickPr }) => {
 const PrLifecycleTab = () => {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
-  const [prNumber, setPrNumber] = useState('');
+  const [rootNumber, setRootNumber] = useState('');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
-    if (!query.trim() || query === prNumber) { setSuggestions([]); return; }
+    if (!query.trim() || query === rootNumber) { setSuggestions([]); return; }
     const t = setTimeout(() => {
       axios.get('/api/admin/audit-log/pr-lifecycle/search', { headers: authHeaders(), params: { q: query } })
-        .then((res) => setSuggestions(res.data.prNumbers || []))
+        .then((res) => setSuggestions([
+          ...(res.data.prNumbers || []).map((n) => ({ number: n, type: 'PR' })),
+          ...(res.data.poNumbers || []).map((n) => ({ number: n, type: 'PO' })),
+        ]))
         .catch(() => setSuggestions([]));
     }, 250);
     return () => clearTimeout(t);
-  }, [query, prNumber]);
+  }, [query, rootNumber]);
 
-  const load = (pr) => {
-    setPrNumber(pr);
-    setQuery(pr);
+  // type: 'PR' | 'PO' | undefined. undefined (raw Enter with no suggestion picked) tries PR
+  // first, then falls back to PO — a Master PO number has no PR equivalent to guess from.
+  const load = async (number, type) => {
+    setRootNumber(number);
+    setQuery(number);
     setSuggestions([]);
     setLoading(true);
     setError('');
     setData(null);
-    axios.get('/api/admin/audit-log/pr-lifecycle', { headers: authHeaders(), params: { prNumber: pr } })
-      .then((res) => setData(res.data))
-      .catch((err) => setError(errorMessage(err, 'Could not load this PR.')))
-      .finally(() => setLoading(false));
+    const fetchAs = (t) => axios.get('/api/admin/audit-log/pr-lifecycle', {
+      headers: authHeaders(),
+      params: t === 'PO' ? { poNumber: number } : { prNumber: number },
+    });
+    try {
+      const res = await fetchAs(type === 'PO' ? 'PO' : 'PR');
+      setData(res.data);
+    } catch (err) {
+      if (!type && err.response?.status === 404) {
+        try {
+          const res2 = await fetchAs('PO');
+          setData(res2.data);
+        } catch (err2) {
+          setError(errorMessage(err2, 'Could not find a PR or PO with that number.'));
+        }
+      } else {
+        setError(errorMessage(err, 'Could not load this PR/PO.'));
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const clear = () => {
-    setPrNumber('');
+    setRootNumber('');
     setQuery('');
     setData(null);
     setError('');
@@ -661,14 +692,14 @@ const PrLifecycleTab = () => {
   return (
     <>
       <div className="d-flex justify-content-between align-items-center mb-3">
-        {prNumber ? (
-          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={clear}>← All PR activity</button>
+        {rootNumber ? (
+          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={clear}>← All activity</button>
         ) : <div />}
         <div style={{ position: 'relative', width: 280 }}>
           <input
             type="text"
             className="form-control form-control-sm"
-            placeholder="Search PR number…"
+            placeholder="Search PR or PO number…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && query.trim()) load(query.trim()); }}
@@ -676,10 +707,11 @@ const PrLifecycleTab = () => {
           {suggestions.length > 0 && (
             <div className="border rounded shadow-sm bg-white position-absolute w-100 mt-1" style={{ zIndex: 10 }}>
               {suggestions.map((s) => (
-                <div key={s} className="px-2 py-1" style={{ fontSize: 13, cursor: 'pointer' }}
-                  onClick={() => load(s)}
+                <div key={`${s.type}-${s.number}`} className="px-2 py-1 d-flex justify-content-between" style={{ fontSize: 13, cursor: 'pointer' }}
+                  onClick={() => load(s.number, s.type)}
                   onMouseDown={(e) => e.preventDefault()}>
-                  {s}
+                  <span>{s.number}</span>
+                  <span className="text-muted" style={{ fontSize: 11 }}>{s.type}</span>
                 </div>
               ))}
             </div>
@@ -690,12 +722,12 @@ const PrLifecycleTab = () => {
       {error && <p style={{ color: 'var(--iron)', fontSize: 13.5 }}>{error}</p>}
       {loading && <p className="text-muted text-center mt-3" style={{ fontSize: 13 }}>Loading…</p>}
 
-      {!prNumber && !loading && <PrLifecycleFeed onPickPr={load} />}
+      {!rootNumber && !loading && <PrLifecycleFeed onPick={load} />}
 
       {data && (
         <>
           <div className="mb-4">
-            <div className="fw-bold" style={{ fontSize: 15 }}>{data.prNumber}</div>
+            <div className="fw-bold" style={{ fontSize: 15 }}>{data.rootType === 'PO' ? data.poNumber : data.prNumber}</div>
             <div className="text-muted" style={{ fontSize: 12.5 }}>
               {data.requestedBy && <>Created by {data.requestedBy} · </>}
               Current status: {data.prStatus}
@@ -703,10 +735,11 @@ const PrLifecycleTab = () => {
           </div>
 
           <div className="mb-4">
-            {STAGE_GROUPS.map((g, i) => (
+            {(data.rootType === 'PO' ? PO_ROOT_STAGE_GROUPS : STAGE_GROUPS).map((g, i, arr) => (
               <StageStep
                 key={g.label}
                 index={i}
+                total={arr.length}
                 label={g.label}
                 events={(data.events || []).filter((e) => g.keys.includes(e.stage))}
                 awardedVendor={awardedVendor}

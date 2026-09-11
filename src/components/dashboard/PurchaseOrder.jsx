@@ -38,6 +38,7 @@ const PurchaseOrder = ({ onBack }) => {
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [tileFilter, setTileFilter] = useState('ALL');
   const [expandedIdx, setExpandedIdx] = useState(null);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -187,7 +188,8 @@ const PurchaseOrder = ({ onBack }) => {
   const filtered = rows.filter(r => {
     const matchSearch = search === '' || (r.poNumber || '').toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'All' || r.poStatus === statusFilter;
-    return matchSearch && matchStatus;
+    const matchTile = tileFilter === 'ALL' || (r.tiles || []).includes(tileFilter);
+    return matchSearch && matchStatus && matchTile;
   });
 
   const exportCSV = () => {
@@ -336,6 +338,27 @@ const PurchaseOrder = ({ onBack }) => {
         </div>
       </div>
       */}
+
+      {/* Category tabs — a PO shows under whichever "Procure to pay" tile(s) its originating PR's
+          document type classifies as, same mapping the vendor dashboard tiles use. */}
+      <div className="d-flex flex-wrap gap-2 mb-3">
+        {[
+          { key: 'ALL', label: 'All' },
+          { key: 'products', label: 'Product' },
+          { key: 'services', label: 'Service' },
+          { key: 'subcontracting', label: 'Subcontracting' },
+          { key: 'scheduling', label: 'Scheduling Agreement' },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            className={`btn btn-sm ${tileFilter === tab.key ? 'btn-primary' : 'btn-light border text-secondary'}`}
+            style={{ borderRadius: '20px', padding: '6px 16px', fontSize: '13px', fontWeight: 600 }}
+            onClick={() => setTileFilter(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       {/* Filter and Search */}
       <div className="d-flex flex-column flex-md-row gap-3 mb-4">

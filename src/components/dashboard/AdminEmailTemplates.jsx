@@ -73,7 +73,12 @@ const AdminEmailTemplates = () => {
 
   useEffect(() => {
     if (selected) {
-      setForm({ ...selected, detail_rows: selected.detail_rows ? selected.detail_rows.map((r) => [...r]) : [] });
+      setForm({
+        ...selected,
+        detail_rows: selected.detail_rows ? selected.detail_rows.map((r) => [...r]) : [],
+        table_blocks: selected.table_blocks ? selected.table_blocks.map((b) => ({ ...b, columns: (b.columns || []).map((c) => ({ ...c })) })) : [],
+        sample_data: selected.sample_data ? { ...selected.sample_data } : {},
+      });
       setTestStatus('');
     }
   }, [selectedId, templates.length]);
@@ -106,7 +111,63 @@ const AdminEmailTemplates = () => {
   const addDetailRow = () => setForm((f) => ({ ...f, detail_rows: [...f.detail_rows, ['', '']] }));
   const removeDetailRow = (idx) => setForm((f) => ({ ...f, detail_rows: f.detail_rows.filter((_, i) => i !== idx) }));
 
+  // Dynamic tables — a block renders one row per item in whatever list the trigger caller puts
+  // under list_variable at send time (see WorkFlow's render_email_template). Sample rows here are
+  // only for the preview/save-time validation, stored under sample_data[list_variable].
+  const addTableBlock = () => setForm((f) => ({ ...f, table_blocks: [...f.table_blocks, { list_variable: '', title: '', columns: [] }] }));
+  const removeTableBlock = (idx) => setForm((f) => ({ ...f, table_blocks: f.table_blocks.filter((_, i) => i !== idx) }));
+  const setTableBlockField = (idx, key, value) => setForm((f) => {
+    const blocks = f.table_blocks.map((b) => ({ ...b }));
+    blocks[idx][key] = value;
+    return { ...f, table_blocks: blocks };
+  });
+  const addTableColumn = (blockIdx) => setForm((f) => {
+    const blocks = f.table_blocks.map((b) => ({ ...b, columns: [...b.columns] }));
+    blocks[blockIdx].columns.push({ header: '', value_template: '' });
+    return { ...f, table_blocks: blocks };
+  });
+  const removeTableColumn = (blockIdx, colIdx) => setForm((f) => {
+    const blocks = f.table_blocks.map((b) => ({ ...b, columns: [...b.columns] }));
+    blocks[blockIdx].columns = blocks[blockIdx].columns.filter((_, i) => i !== colIdx);
+    return { ...f, table_blocks: blocks };
+  });
+  const setTableColumn = (blockIdx, colIdx, key, value) => setForm((f) => {
+    const blocks = f.table_blocks.map((b) => ({ ...b, columns: b.columns.map((c) => ({ ...c })) }));
+    blocks[blockIdx].columns[colIdx][key] = value;
+    return { ...f, table_blocks: blocks };
+  });
+
+  // Sample rows text is kept as raw JSON in local state so an admin mid-edit of invalid JSON
+  // doesn't get clobbered — only a successful parse updates form.sample_data.
+  const [sampleRowsText, setSampleRowsText] = useState({});
+  const [sampleRowsError, setSampleRowsError] = useState({});
+  useEffect(() => {
+    if (!form) return;
+    const next = {};
+    for (const b of form.table_blocks) {
+      if (b.list_variable) next[b.list_variable] = JSON.stringify(form.sample_data?.[b.list_variable] || [], null, 2);
+    }
+    setSampleRowsText(next);
+    setSampleRowsError({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
+  const setSampleRowsJson = (listVariable, text) => {
+    setSampleRowsText((t) => ({ ...t, [listVariable]: text }));
+    try {
+      const parsed = JSON.parse(text);
+      if (!Array.isArray(parsed)) throw new Error('must be a JSON array');
+      setSampleRowsError((e) => ({ ...e, [listVariable]: null }));
+      setForm((f) => ({ ...f, sample_data: { ...f.sample_data, [listVariable]: parsed } }));
+    } catch (err) {
+      setSampleRowsError((e) => ({ ...e, [listVariable]: err.message }));
+    }
+  };
+
   const save = async () => {
+    if (Object.values(sampleRowsError).some(Boolean)) {
+      alert('Fix the invalid sample-rows JSON before saving.');
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -120,12 +181,16 @@ const AdminEmailTemplates = () => {
         heading: form.heading,
         intro: form.intro,
         detail_rows: form.detail_rows.filter((r) => r[0]),
+        table_blocks: form.table_blocks
+          .filter((b) => b.list_variable)
+          .map((b) => ({ ...b, columns: b.columns.filter((c) => c.header) })),
         cta_label: form.cta_label,
         cta_url: form.cta_url,
         outro: form.outro,
         footer_id: form.footer_id,
         footer_override_reason: form.footer_override_reason,
         footer_override_legal: form.footer_override_legal,
+        sample_data: form.sample_data,
         // Optimistic concurrency: the server rejects this with a 409 if the row changed since
         // we loaded it, instead of silently overwriting whatever another admin just saved.
         expected_updated_at: form.updated_at,
@@ -141,7 +206,12 @@ const AdminEmailTemplates = () => {
           setTemplates(fresh);
           const latest = fresh.find((t) => t.id === form.id);
           if (latest) {
-            setForm({ ...latest, detail_rows: latest.detail_rows ? latest.detail_rows.map((r) => [...r]) : [] });
+            setForm({
+              ...latest,
+              detail_rows: latest.detail_rows ? latest.detail_rows.map((r) => [...r]) : [],
+              table_blocks: latest.table_blocks ? latest.table_blocks.map((b) => ({ ...b, columns: (b.columns || []).map((c) => ({ ...c })) })) : [],
+              sample_data: latest.sample_data ? { ...latest.sample_data } : {},
+            });
           }
         } catch (refreshErr) {
           console.error('Failed to reload after conflict', refreshErr);
@@ -322,7 +392,65 @@ const AdminEmailTemplates = () => {
                 </div>
               ))}
               <button className="btn btn-sm btn-outline-secondary mb-3" onClick={addDetailRow}>+ Add a row</button>
+            </div>
+          </div>
 
+          <div className="card mb-3">
+            <div className="card-header fw-semibold">Dynamic tables</div>
+            <div className="card-body">
+              <p className="text-muted small">
+                Renders one row per item in a list the sender supplies at send time (e.g. PO/PR line
+                items) — unlike the Detail panel above, the row count isn't fixed in the editor.
+              </p>
+              {form.table_blocks.map((block, bi) => (
+                <div className="border rounded p-3 mb-3" key={bi}>
+                  <div className="d-flex gap-2 mb-2">
+                    <input
+                      className="form-control form-control-sm"
+                      placeholder="List variable name (e.g. line_items)"
+                      value={block.list_variable}
+                      onChange={(e) => setTableBlockField(bi, 'list_variable', e.target.value)}
+                    />
+                    <input
+                      className="form-control form-control-sm"
+                      placeholder="Table title (optional)"
+                      value={block.title || ''}
+                      onChange={(e) => setTableBlockField(bi, 'title', e.target.value)}
+                    />
+                    <button className="btn btn-sm btn-outline-danger" onClick={() => removeTableBlock(bi)}>✕</button>
+                  </div>
+
+                  <label className="form-label small text-muted text-uppercase">Columns</label>
+                  {block.columns.map((col, ci) => (
+                    <div className="d-flex gap-2 mb-2" key={ci}>
+                      <input className="form-control form-control-sm" placeholder="Header" value={col.header} onChange={(e) => setTableColumn(bi, ci, 'header', e.target.value)} />
+                      <input className="form-control form-control-sm" placeholder="Value template, e.g. {{sku}}" value={col.value_template} onChange={(e) => setTableColumn(bi, ci, 'value_template', e.target.value)} />
+                      <button className="btn btn-sm btn-outline-secondary" onClick={() => removeTableColumn(bi, ci)}>✕</button>
+                    </div>
+                  ))}
+                  <button className="btn btn-sm btn-outline-secondary mb-3" onClick={() => addTableColumn(bi)}>+ Add a column</button>
+
+                  <label className="form-label small text-muted text-uppercase">Sample rows (JSON, for preview)</label>
+                  <textarea
+                    className="form-control form-control-sm font-monospace"
+                    rows={4}
+                    value={block.list_variable ? (sampleRowsText[block.list_variable] ?? JSON.stringify(form.sample_data?.[block.list_variable] || [], null, 2)) : ''}
+                    disabled={!block.list_variable}
+                    placeholder={block.list_variable ? '[{"sku": "A1", "qty": 2}]' : 'Set a list variable name first'}
+                    onChange={(e) => setSampleRowsJson(block.list_variable, e.target.value)}
+                  />
+                  {block.list_variable && sampleRowsError[block.list_variable] && (
+                    <div className="text-danger small mt-1">Invalid JSON: {sampleRowsError[block.list_variable]}</div>
+                  )}
+                </div>
+              ))}
+              <button className="btn btn-sm btn-outline-secondary mb-3" onClick={addTableBlock}>+ Add a table</button>
+            </div>
+          </div>
+
+          <div className="card mb-3">
+            <div className="card-header fw-semibold">Call to action</div>
+            <div className="card-body">
               <div className="row">
                 <div className="col-6">
                   <Input label="Button label" id="ctaLabel" value={form.cta_label || ''} onChange={(e) => setField('cta_label', e.target.value)} placeholder="Leave blank for no button" />

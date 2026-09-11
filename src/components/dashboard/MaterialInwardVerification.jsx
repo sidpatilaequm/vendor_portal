@@ -977,7 +977,7 @@ export default function MaterialInwardVerification({ gateEntryId, onBack }) {
                 .then(data => {
                   const units = allLines().reduce((a, {line}) => a + lineState(line).accepted, 0);
                   updateC(c => { c.inward = {grn_no: data.grnNumber || ("GRN-" + c.gate_entry_no.replace(/^GE-/,"")), at:now(), units }; });
-                  toast("Inward raised — putaway list ready.");
+                  toast("File has been uploaded successfully");
                   setTimeout(onBack, 1500); // Go back after short delay
                 })
                 .catch(err => {

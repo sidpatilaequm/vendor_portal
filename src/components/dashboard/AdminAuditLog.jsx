@@ -623,7 +623,7 @@ const PrLifecycleFeed = ({ onPick }) => {
   );
 };
 
-const PrLifecycleTab = () => {
+const PrLifecycleTab = ({ initialPick, onConsumeInitialPick }) => {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [rootNumber, setRootNumber] = useState('');
@@ -676,6 +676,16 @@ const PrLifecycleTab = () => {
       setLoading(false);
     }
   };
+
+  // Arriving here from the Activity Feed tab's row click (see AdminAuditLog's goToLifecycle) —
+  // load whatever it picked, then tell the parent to clear it so switching tabs again doesn't
+  // re-trigger the same load.
+  useEffect(() => {
+    if (!initialPick) return;
+    load(initialPick.number, initialPick.type);
+    onConsumeInitialPick?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPick]);
 
   const clear = () => {
     setRootNumber('');
@@ -789,11 +799,27 @@ const TABS = [
   { key: 'accounts', label: 'Account Changes', render: () => <AccountChangesTab /> },
   { key: 'approvals', label: 'Approvals', render: () => <ApprovalsTab /> },
   { key: 'logins', label: 'Login Activity', render: () => <LoginActivityTab /> },
-  { key: 'pr-lifecycle', label: 'PR Lifecycle', render: () => <PrLifecycleTab /> },
+  {
+    key: 'activity-feed', label: 'Activity Feed',
+    render: (ctx) => <PrLifecycleFeed onPick={ctx.goToLifecycle} />,
+  },
+  {
+    key: 'pr-lifecycle', label: 'PR Lifecycle',
+    render: (ctx) => <PrLifecycleTab initialPick={ctx.pendingLifecyclePick} onConsumeInitialPick={ctx.consumePendingPick} />,
+  },
 ];
 
 const AdminAuditLog = () => {
   const [activeTab, setActiveTab] = useState('accounts');
+  // Set by the Activity Feed tab's row click — switches to PR Lifecycle and tells it what to
+  // load. Cleared once PrLifecycleTab has consumed it, so re-rendering doesn't re-trigger the load.
+  const [pendingLifecyclePick, setPendingLifecyclePick] = useState(null);
+
+  const goToLifecycle = (number, type) => {
+    setPendingLifecyclePick({ number, type });
+    setActiveTab('pr-lifecycle');
+  };
+  const consumePendingPick = () => setPendingLifecyclePick(null);
 
   return (
     <div className="cfg">
@@ -816,7 +842,7 @@ const AdminAuditLog = () => {
             ))}
           </ul>
 
-          {TABS.find((t) => t.key === activeTab)?.render()}
+          {TABS.find((t) => t.key === activeTab)?.render({ pendingLifecyclePick, goToLifecycle, consumePendingPick })}
         </div>
       </section>
     </div>

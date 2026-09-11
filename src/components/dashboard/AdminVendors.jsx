@@ -421,8 +421,18 @@ const AdminVendors = ({ onBack }) => {
               {!loadingDetail && vendorDetail && (
                 <VendorFullProfile
                   detail={vendorDetail}
+                  vendor={selectedVendor}
+                  companyLabel={companyLabel}
                   onBusinessTypesSaved={(patch) =>
                     setVendorDetail((d) => ({ ...d, registration: { ...d.registration, ...patch } }))
+                  }
+                  onCompanyBusinessTypesSaved={(companyCode, patch) =>
+                    setVendorDetail((d) => ({
+                      ...d,
+                      companyBusinessTypes: (d.companyBusinessTypes || []).map((c) =>
+                        c.companyCode === companyCode ? { ...c, ...patch } : c
+                      ),
+                    }))
                   }
                 />
               )}
@@ -543,6 +553,121 @@ const Section = ({ title, children }) => (
   </div>
 );
 
+// The vendor's own portal login account (name/phone/password, deactivate) — moved here from the
+// old "Vendors" tab on the User Management screen (System Settings), which just duplicated this
+// same list with nothing vendor-specific on top of it. Matched to a UserDetail row by email since
+// the supplier-registration profile has no direct user id of its own.
+function VendorAccountSection({ vendor }) {
+  // vendor (the selected row from the Master Data vendor list) already carries userId, email,
+  // firstName, lastName, phoneNumber and isActive straight from VendorService.getAllVendors()
+  // (it puts UserDetail's own fields on every row) -- no separate fetch/match needed.
+  const [user, setUser] = useState(vendor || null);
+  const [firstName, setFirstName] = useState(vendor?.firstName || '');
+  const [lastName, setLastName] = useState(vendor?.lastName || '');
+  const [phone, setPhone] = useState(vendor?.phoneNumber || '');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [alert, setAlert] = useState(null);
+
+  useEffect(() => {
+    setUser(vendor || null);
+    setFirstName(vendor?.firstName || '');
+    setLastName(vendor?.lastName || '');
+    setPhone(vendor?.phoneNumber || '');
+    setPassword('');
+    setAlert(null);
+  }, [vendor?.userId]);
+
+  const save = () => {
+    if (!user?.userId) return;
+    setSaving(true);
+    setAlert(null);
+    const token = localStorage.getItem('auth_token');
+    const payload = { firstName, lastName, phoneNumber: phone };
+    if (password) payload.password = password;
+    axios.put(`/api/users/${user.userId}`, payload, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then(() => {
+        setAlert({ type: 'success', message: password ? 'Saved — the user was emailed their new password.' : 'Saved.' });
+        setPassword('');
+        setUser((u) => ({ ...u, firstName, lastName, phoneNumber: phone }));
+      })
+      .catch((err) => setAlert({ type: 'danger', message: err.response?.data?.statusMsg || 'Could not save changes.' }))
+      .finally(() => setSaving(false));
+  };
+
+  const toggleActive = () => {
+    if (!user?.userId) return;
+    const activating = user.isActive === false;
+    const name = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
+    if (!activating && !window.confirm(`Deactivate ${name} (${user.email})? They will no longer be able to sign in.`)) return;
+    const token = localStorage.getItem('auth_token');
+    if (activating) {
+      // No reactivate endpoint exists yet on backend_java's user API — only deactivate
+      // (DELETE) is wired up, matching what the old Vendors tab on User Management offered.
+      setAlert({ type: 'danger', message: 'Reactivating a deactivated account isn’t supported yet — ask an admin to do this via the database.' });
+      return;
+    }
+    axios.delete(`/api/users/${user.userId}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(() => setUser((u) => ({ ...u, isActive: false })))
+      .catch((err) => setAlert({ type: 'danger', message: err.response?.data?.statusMsg || 'Could not deactivate this account.' }));
+  };
+
+  return (
+    <Section title="Portal Login Account">
+      {!user?.userId && <div className="col-12 text-muted small">No portal login account linked to this vendor.</div>}
+      {user?.userId && (
+        <>
+          <div className="col-12">
+            {alert && <div className={`alert alert-${alert.type} py-1.5 mb-2 small`}>{alert.message}</div>}
+          </div>
+          <div className="col-sm-6">
+            <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Login Email</label>
+            <div className="small fw-semibold">{user.email}</div>
+          </div>
+          <div className="col-sm-6">
+            <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Status</label>
+            <div>
+              <span className={`badge ${user.isActive === false ? 'bg-secondary-subtle text-secondary' : 'bg-success-subtle text-success'} px-2 py-1 rounded fw-semibold`} style={{ fontSize: 11 }}>
+                {user.isActive === false ? 'Deactivated' : 'Active'}
+              </span>
+            </div>
+          </div>
+          <div className="col-sm-6">
+            <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>First Name</label>
+            <input className="form-control form-control-sm" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+          </div>
+          <div className="col-sm-6">
+            <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Last Name</label>
+            <input className="form-control form-control-sm" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+          </div>
+          <div className="col-sm-6">
+            <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Phone Number</label>
+            <input className="form-control form-control-sm" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))} />
+          </div>
+          <div className="col-sm-6">
+            <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Reset Password</label>
+            <div className="input-group input-group-sm">
+              <input type={showPassword ? 'text' : 'password'} className="form-control" minLength={8} placeholder="Leave blank to keep current" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <button type="button" className="btn btn-outline-secondary" onClick={() => setShowPassword(!showPassword)}>
+                <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+              </button>
+            </div>
+          </div>
+          <div className="col-12 d-flex gap-2">
+            <Button onClick={save} loading={saving} className="btn-success px-3" style={{ fontSize: 12 }}>Save Account Changes</Button>
+            <button className="btn btn-outline-danger btn-sm" onClick={toggleActive} disabled={user.isActive === false}>
+              <i className="fas fa-user-minus me-1"></i>Deactivate
+            </button>
+          </div>
+        </>
+      )}
+    </Section>
+  );
+}
+
 const BUSINESS_TYPE_FIELDS = [
   { key: 'vendorTypeProduct', bodyKey: 'product', label: 'Product' },
   { key: 'vendorTypeService', bodyKey: 'service', label: 'Service' },
@@ -550,13 +675,17 @@ const BUSINESS_TYPE_FIELDS = [
   { key: 'vendorTypeSchedulingAgreement', bodyKey: 'schedulingAgreement', label: 'Scheduling Agreement' },
 ];
 
-function VendorFullProfile({ detail, onBusinessTypesSaved }) {
+function VendorFullProfile({ detail, vendor, companyLabel, onBusinessTypesSaved, onCompanyBusinessTypesSaved }) {
   const reg = detail.registration || {};
+  const currentProfile = detail.currentProfile;
   const documents = detail.documents || [];
   const attachments = detail.attachments || [];
   const dynamicAnswers = detail.dynamicAnswers || [];
+  const documentTypeSelections = detail.documentTypeSelections || [];
+  const companyBusinessTypes = detail.companyBusinessTypes || [];
   const [viewerDoc, setViewerDoc] = useState(null);
   const [savingType, setSavingType] = useState(null);
+  const [savingCompanyType, setSavingCompanyType] = useState(null);
 
   const hasSecondContact = reg.contact2Name || reg.contact2Email || reg.contact2Phone;
 
@@ -578,32 +707,80 @@ function VendorFullProfile({ detail, onBusinessTypesSaved }) {
       .finally(() => setSavingType(null));
   };
 
+  // Which companies this vendor is actually scoped to — same source of truth AdminWorkflows.jsx
+  // uses for its per-company document-type picker.
+  const vendorCompanyCodes = [...new Set(documentTypeSelections.map((s) => s.companyCode))];
+
+  const toggleCompanyBusinessType = (companyCode, field, checked) => {
+    setSavingCompanyType(`${companyCode}:${field.key}`);
+    const current = companyBusinessTypes.find((c) => c.companyCode === companyCode) || {};
+    const nextValues = { companyCode };
+    BUSINESS_TYPE_FIELDS.forEach((f) => { nextValues[f.bodyKey] = f.key === field.key ? checked : !!current[f.bodyKey]; });
+    const token = localStorage.getItem('auth_token');
+    axios.patch(`/api/supplier-registration/${reg.id}/company-business-types`, nextValues, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(() => onCompanyBusinessTypesSaved?.(companyCode, { [field.bodyKey]: checked }))
+      .catch((err) => alert('Failed to save: ' + (err.response?.data?.statusMsg || err.message)))
+      .finally(() => setSavingCompanyType(null));
+  };
+
   return (
     <>
+      <VendorAccountSection vendor={vendor} />
+
       <Section title="Company">
         <div className="col-12">
           <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Company Legal Name</label>
           <div className="fw-bold fs-5 text-dark">{reg.vendorName || '—'}</div>
         </div>
-        <Field label="Address" value={reg.address} />
+        <Field label="Address" value={currentProfile?.address || reg.address} />
         <Field label="Company Type" value={reg.companyType} />
         <div className="col-12">
           <label className="text-muted text-uppercase fw-bold" style={{ fontSize: '10px' }}>Vendor Type</label>
-          <div className="d-flex flex-wrap gap-3 mt-1">
-            {BUSINESS_TYPE_FIELDS.map((f) => (
-              <div className="form-check" key={f.key}>
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id={`vt-${f.key}`}
-                  checked={!!reg[f.key]}
-                  disabled={savingType === f.key}
-                  onChange={(e) => toggleBusinessType(f, e.target.checked)}
-                />
-                <label className="form-check-label" htmlFor={`vt-${f.key}`}>{f.label}</label>
-              </div>
-            ))}
-          </div>
+          {vendorCompanyCodes.length > 0 ? (
+            <div className="d-flex flex-column gap-2 mt-1">
+              {vendorCompanyCodes.map((companyCode) => {
+                const current = companyBusinessTypes.find((c) => c.companyCode === companyCode) || {};
+                return (
+                  <div key={companyCode} className="border rounded p-2 bg-light bg-opacity-50">
+                    <div className="fw-bold text-dark" style={{ fontSize: '12px' }}>{companyLabel ? companyLabel(companyCode) : companyCode}</div>
+                    <div className="d-flex flex-wrap gap-3 mt-1">
+                      {BUSINESS_TYPE_FIELDS.map((f) => (
+                        <div className="form-check" key={f.key}>
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            id={`vt-${companyCode}-${f.key}`}
+                            checked={!!current[f.bodyKey]}
+                            disabled={savingCompanyType === `${companyCode}:${f.key}`}
+                            onChange={(e) => toggleCompanyBusinessType(companyCode, f, e.target.checked)}
+                          />
+                          <label className="form-check-label" htmlFor={`vt-${companyCode}-${f.key}`}>{f.label}</label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="d-flex flex-wrap gap-3 mt-1">
+              {BUSINESS_TYPE_FIELDS.map((f) => (
+                <div className="form-check" key={f.key}>
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id={`vt-${f.key}`}
+                    checked={!!reg[f.key]}
+                    disabled={savingType === f.key}
+                    onChange={(e) => toggleBusinessType(f, e.target.checked)}
+                  />
+                  <label className="form-check-label" htmlFor={`vt-${f.key}`}>{f.label}</label>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <Field label="Business Type(s)" value={reg.businessTypes} />
         <Field label="Business Scope" value={reg.businessScope} />
